@@ -10,7 +10,7 @@ from numpy.random import default_rng
 
 
 # Local application imports
-from myorbit.util.timeutil import *
+from myorbit.util.time import *
 from myorbit.coord import *
 #from myastro.orbit import *
 #from myastro.keplerian import next_E
