@@ -3,11 +3,10 @@ This module contains functions to access vsop87 data
 """
 
 # Standard library imports
-from functools import partial
 import logging
+from functools import partial
 from pathlib import Path
 from configparser import ConfigParser
-
 
 # Third party imports
 import pandas as pd
@@ -16,13 +15,13 @@ from toolz import pipe
 from numpy import sin, cos, deg2rad, rad2deg, tan
 
 # Local application imports
-from myorbit.util import time as tc
-from myorbit.util.time import JD_J2000, JD_B1950, CENTURY
+from myorbit.util import timeut as tc
+from myorbit.util.timeut import JD_J2000, JD_B1950, CENTURY
 from myorbit import coord as co
 from myorbit.util.general import  memoize
-from myorbit.coord import polarFcartesian, Coord, EQUAT2_TYPE, polarFcartesian, prec_mtx_equat
+from myorbit.coord import polarFcartesian, Coord, polarFcartesian, prec_mtx_equat
 from myorbit.data_catalog import CometElms
-
+from myorbit.util.constants import *
 
 logger = logging.getLogger(__name__)
 
@@ -37,9 +36,6 @@ CONFIG_INI=Path(__file__).resolve().parents[3].joinpath('conf','config.ini')
 cfg = ConfigParser()
 cfg.read(CONFIG_INI)
 VSOP87_DATA_DIR=Path(cfg.get('general','vso87_data_dir_path'))
-
-TWOPI = 2*np.pi
-PI = np.pi
 
 def reduce_rad(rad, to_positive=False):
     remainder = tc.my_frac(rad/TWOPI)*TWOPI

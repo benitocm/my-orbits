@@ -1,0 +1,42 @@
+"""This module contains contants values shared between several modules[summary]
+"""
+# Third party imports
+import numpy as np
+
+
+# Product of grativational constant times and the solar mass AU^3*d^2
+# This is equivalent to k^2 (Heliocentric Gaussian constant)
+GM = 2.959122083e-4 
+k_2 = GM
+k_gauss = 0.01720209895
+c_light = 173.14  # [AU/d]
+
+AU_m = 149597870700
+seconds_in_day = 3600*24
+
+# Inverse of spped of light in days/AU
+#INV_C = 0.00578 
+INV_C = 0.0057755183
+
+TWOPI = 2*np.pi
+PI = np.pi
+PI_HALF = np.pi/2
+
+SPAIN_TZ_NAME = "Europe/Madrid"
+
+GM_by_planet = {
+    "Sun" :GM,                  
+    "Mercury" : GM/6023600.0,
+    "Venus" : GM/408523.5, 
+    "Earth": GM/328900.5,
+    "Mars": GM/3098710.0,
+    "Jupiter": GM/1047.355,
+    "Saturn": GM /3498.5,
+    "Uranus": GM / 22869.0,
+    "Neptune": GM / 19314.0,
+    "Pluto": GM/3000000.0 
+}
+
+CENTENNIAL_PRECESSION_DG = 1.3970
+CENTENNIAL_PRECESSION_RAD = np.deg2rad(CENTENNIAL_PRECESSION_DG)
+

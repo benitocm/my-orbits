@@ -9,10 +9,8 @@ import numpy as np
 from numpy import deg2rad
 from toolz import pipe 
 
-
-
 # Local application imports
-from myorbit.util.time import JD_J2000, CENTURY
+from myorbit.util.timeut import JD_J2000, CENTURY
 from myorbit.util.general import pr_radv
 from myorbit.coord import cartesianFpolar, obliquity, Rx_3d, polarFcartesian
 from .vsop87 import g_xyz_equat_sun_j2000

@@ -2,33 +2,17 @@
 This module contains functions related to time conversions
 """
 # Standard library imports
-from typing import Any,Dict,List,Tuple,Sequence
-#https://mypy.readthedocs.io/en/stable/cheat_sheet_py3.html
-
-
-from functools import partial
+from functools import partial, wraps
 from itertools import tee
-from functools import wraps
-import datetime
-
+from time import time
 
 # Third party imports
 import numpy as np
-import toolz as tz
-from toolz import compose, pipe, valmap
+from numpy import cos, sin
+from toolz import valmap
 
-from numpy import sin, cos, arccos
 # Local application imports
-# Should be empty in this case
-
-
-# Product of grativational constant times and the solar mass AU^3*d^2
-# This is equivalent to k^2 (Heliocentric Gaussian constant)
-GM = 2.959122083e-4 
-k_2 = GM
-k_gauss = 0.01720209895
-c_light = 173.14  # [AU/d]
-
+from .constants import *
 
 #https://en.wikipedia.org/wiki/Standard_gravitational_parameter
 mu_m3s_2__by_name = {
@@ -48,8 +32,6 @@ mu_m3s_2__by_name = {
 
 PERTURBING_PLANETS = mu_m3s_2__by_name.keys() - ["Sun","Ceres","Eris"]
 
-AU_m = 149597870700
-seconds_in_day = 3600*24
 
 def to_AU_days(mu_m3s_2):
     return mu_m3s_2 * seconds_in_day*seconds_in_day/(AU_m*AU_m*AU_m)
@@ -58,12 +40,6 @@ def to_AU_days(mu_m3s_2):
 mu_by_name = valmap(to_AU_days,mu_m3s_2__by_name)
 
 mu_Sun = mu_by_name["Sun"]
-
-
-# Inverse of spped of light in days/AU
-#INV_C = 0.00578 
-INV_C = 0.0057755183
-
 
 def pairwise(iterable):
     "s -> (s0,s1), (s1,s2), (s2, s3), ..."
@@ -119,8 +95,7 @@ def pr_radv(v):
     print(f'r: {v[0]}  lon: {np.rad2deg(v[1])}  lat: {np.rad2deg(v[2])}')
 
 
-from functools import wraps
-from time import time
+
 def measure(func):
     @wraps(func)
     def _time_it(*args, **kwargs):

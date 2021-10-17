@@ -9,7 +9,7 @@ import numpy as np
 from numpy.random import default_rng
 
 # Local application imports
-from myorbit.util.time import *
+from myorbit.util.timeut import *
 from myorbit.coord import *
 
 #from myastro.orbit import *

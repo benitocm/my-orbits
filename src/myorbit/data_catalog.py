@@ -6,24 +6,23 @@ In addition, it provides classes to wrap those data for particular objects
 from datetime import datetime
 from math import isclose
 from pathlib import Path
+import io
+import gzip
 import logging
-
 
 # Third party imports
 import pandas as pd
 import numpy as np
 from numpy import  sqrt,rad2deg, sqrt
-import toolz as tz
 from toolz import pipe
-import io
-import gzip
 
 # Local application imports
-import myorbit.util.time as tc
+import myorbit.util.timeut as tc
 from myorbit.coord import make_ra, mtx_gauss_vectors, make_lon
 
-from myorbit.util.general import pow, GM
-from myorbit.util.time import PI, reduce_rad, TWOPI
+from myorbit.util.general import pow
+from myorbit.util.timeut import reduce_rad
+from myorbit.util.constants import *
 
 # Configuration reading
 CONFIG_INI=Path(__file__).resolve().parents[2].joinpath('conf','config.ini')

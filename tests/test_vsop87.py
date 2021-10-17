@@ -15,10 +15,11 @@ from myorbit.planets.vsop87 import *
 from myorbit.planets.pluto import *
 from myorbit.coord import mk_co_equat2, Coord, EQUAT2_TYPE
 from myorbit.data_catalog import CometElms
-from myorbit.util.time import datetime2jd
-#from myastro.keplerian import g_rlb_equat_body_j2000
+from myorbit.util.timeut import datetime2jd
+from myorbit.orbits.keplerian import g_rlb_equat_body_j2000
+#myastro.keplerian import g_rlb_equat_body_j2000
 #from myastro.ephem import g_rlb_equat_body_j2000 
-from myorbit.util  import time as tc
+from myorbit.util import timeut as tc
 
 
 def equals_cood (c1,c2,abs=None,rel=None):
@@ -46,9 +47,7 @@ def test_grlb_equat_body_j2000_1():
             equinox_name = "J2000")
 
     jde = datetime2jd(1990,10,6,0,0,0)
-    # TODO Keplerian needs to be imported
-    #c = Coord(g_rlb_equat_body_j2000(jde,ENCKE),"", EQUAT2_TYPE)
-    c = None
+    c = Coord(g_rlb_equat_body_j2000(jde,ENCKE),"", EQUAT2_TYPE)
     equals_cood(c, mk_co_equat2("10h34m14.152s","19°09m31s","",r=0.8242810837210319),abs=1e-4)
 
 
@@ -64,9 +63,7 @@ def test_grlb_equat_body_j2000_2():
                 equinox_name = "B1950")
 
     jde = tc.datetime2jd(1985,11,15,0,0,0)
-    # TODO Keplerian needs to be imported
-    #c = Coord(g_rlb_equat_body_j2000(jde,HALLEY),"", EQUAT2_TYPE)
-    c = None
+    c = Coord(g_rlb_equat_body_j2000(jde,HALLEY),"", EQUAT2_TYPE)
     equals_cood(c, mk_co_equat2("4h00m40.226s","22°04m27s","",r=0.7368872829651026),abs=1e-5)
 
 

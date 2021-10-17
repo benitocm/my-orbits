@@ -2,27 +2,23 @@
 This module contains functions related to orbit calculations
 """
 # Standard library imports
-from typing import Any,Dict,List,Tuple,Sequence
-#https://mypy.readthedocs.io/en/stable/cheat_sheet_py3.html
-
-from datetime import datetime
 from functools import partial
 from collections import namedtuple
 import re as re
+import logging
 
 # Third party imports
 import numpy as np
-from numpy import sin, cos, tan, arcsin, arccos, arctan, arctan2, deg2rad, rad2deg
+from numpy import sin, cos, arctan2, deg2rad, rad2deg
 import toolz as tz
 from toolz import pipe, compose
 
 # Local application imports
-from myorbit.util import time as tc
-from myorbit.util.time import sin_dgms, cos_dgms, tan_dgms, PI_HALF, PI, TWOPI
+from myorbit.util import timeut as tc
+from myorbit.util.constants import *
 
-import logging
+
 logger = logging.getLogger(__name__)
-
 
 # Horizon Coordinate system
 HORIZ_TYPE= 'horiz'

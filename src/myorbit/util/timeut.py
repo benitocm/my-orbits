@@ -14,17 +14,11 @@ import numpy as np
 from pytz import timezone
 from numpy.polynomial.polynomial import Polynomial
 from datetime import datetime
-import toolz as tz
 from toolz import compose
-from  numpy import deg2rad, rad2deg
-
-SPAIN_TZ_NAME = "Europe/Madrid"
-
-PI_HALF = np.pi/2
-PI = np.pi
-TWOPI = 2*np.pi
+from numpy import deg2rad, rad2deg
 
 # Local application imports
+from .constants import *
 
 def my_fix(x : float) -> int:
     """
@@ -46,14 +40,12 @@ def my_frac(x: float) -> float:
 def norm_rad(rad):
     return pipe(rad,rad2deg,norm_dg,deg2rad)
 
-TWOPI = 2*np.pi
 def reduce_rad(rad, to_positive=False):
     remainder = my_frac(rad/TWOPI)*TWOPI
     if rad > 0 :
         return remainder
     else :
         return -remainder + TWOPI if to_positive else -remainder        
-
 
 def norm_dg(degrees):
     """
