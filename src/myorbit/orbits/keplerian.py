@@ -1,5 +1,5 @@
 """This module contains functions related to the calculation of Keplerian orbits.
-
+It is based on the book "Astronomy on the Personal Computer" by Montenbruck, Pfleger.
 """
 # Standard library imports
 from math import isclose
@@ -21,100 +21,123 @@ from myorbit.util.constants import *
 
 logger = logging.getLogger(__name__)
 
-def calc_M_for_body(t_mjd, epoch_mjd, period_in_days, M_at_epoch) :
-    """ 
-    Computes the mean anomaly based on the data of BodyElms, in this case,
+
+def _calc_M_for_body(t_mjd, epoch_mjd, period_in_days, M_at_epoch) :
+
+    """Computes the mean anomaly based on the data of BodyElms, in this case,
     uses the period (calculated) and the Mean anomaly at epoch.
-    For Body Elements
 
-    Args:
-        t_mjd : time of the computation as Modified Julian Day
-        t0: a point in time where Mean anomaly is knwon
-        M0: the mean anomaly in radians at t0
-        period : period of the orbit in days.
+    Parameters
+    ----------
+    t_mjd : float
+        Time of the computation as Modified Julian Day
+    epoch_mjd : float
+        The Epoch considered
+    period_in_days : float
+         period of the orbit [days]
+    M_at_epoch : float
+        The mean anomaly at epoch [radians]
 
-    Returns :
-        The mean anomaly in radians
+    Returns
+    -------
+    float
+        The mean anomaly [radians]
     """
     M = (t_mjd - epoch_mjd)*TWOPI/period_in_days
     M += M_at_epoch
     return reduce_rad(M,to_positive=True)     
 
 
-def calc_M_for_comet(t_mjd, tp_mjd, inv_a) -> float :
-    """ 
-    Computes the mean anomaly as a function a t, t0 and a, i.e., not depending on the
-    period of the orbit=1) and semi-major axis
+def _calc_M_for_comet(t_mjd, tp_mjd, inv_a) :
+    """Computes the mean anomaly as a function fo t, t0 and a, i.e., not depending on the
+    period of the orbit) and semi-major axis
 
-    Args:
-        t : time of the computation in Modified Julian Dates
-        t0: Time of perihelion passage 
-        a: semi-major axis in AU
+    Parameters
+    ----------
+    t_mjd : float
+        Time of the computation as Modified Julian Day
+    tp_mjd : float
+        Time of perihelion passage 
+    inv_a : float
+        Inverse of the semi-major axis [AU]
 
-    Returns :
-        The mean anomaly in radians
+    Returns
+    -------
+    float
+        The mean anomaly [radians]
     """
+
     #M = sqrt(ut.GM)*(t_mjd-tp_mjd)/np.float_power(a, 1.5)
     M = sqrt(GM)*(t_mjd-tp_mjd)*sqrt(pow(inv_a, 3))
     return reduce_rad(M, to_positive=True)
 
+def _calc_M_by_E(e, E):
+    """Computes the true anomaly based on the eccentricity value and eccentric anomaly
 
-def calc_M_by_E(e, E):
-    """ 
-    Computes the true anomaly 
+    Parameters
+    ----------
+    e : float
+        Eccentricity of the orbit
+    E : float
+        The eccentric anomaly [radians]
 
-    Args:
-        e : eccentricity of the orbit
-        e_anomaly : eccentric anomaly in radians
-        
-    Returns :
-        The true anomaly in angle units (radians) 
+    Returns
+    -------
+    float
+        The true anomaly [radians]
     """
 
     return 2 * arctan(sqrt((1+e)/(1-e))* tan(E/2))    
 
+def _next_E (e, m_anomaly, E) :
+    """Computes the eccentric anomaly for elliptical orbits. This 
+    function will be called by an iterative procedure. Used in the Newton
+    method (Pag 65 of Astronomy of  the personal computer book)
 
-def next_E (e:float, m_anomaly:float, E:float) -> float :
-    """
-    Iterative function to calculate the eccentric anomaly, i.e.,
-    computes the next eccentric value for ellictical orbits.
-    Used in the Newton method (Pag 65 of Astronomy of 
-    the personal computer)
+    Parameters
+    ----------
+    e : float
+        Eccentricity of the orbit
+    m_anomaly : float
+        Mean anomaly [radians]
+    E : float
+        The eccentric anomaly (radians)
 
-    Args:
-        e : eccentricity 
-        m_anomaly: Mean anomaly in angle units (rads)
-        E : Previous value of the eccentric anomaly
-
-    Returns :
-        The eccentric anomaly in angle units (radians)
+    Returns
+    -------
+    float
+        The next value of the the eccentric anomaly [radians]
     """
 
     num = E - e * sin(E) - m_anomaly
     den = 1 - e * cos(E)
     return E - num/den
 
+def _elliptic_orbit (next_E_func, m_anomaly, a, e):
+    """Computes the position (r) and velocity (v) vectors for elliptic orbits using
+    an iterative method (Newton's method) for solving the Kepler equation.
+    (pg 66 of Astronomy on the Personal Computer book). The m_anomaly is
+    the one that varies with time so the result of this function will also vary with time.
 
-def elliptic_orbit (next_E_func, m_anomaly, a, e):
-    """ 
-    Computes position (r) and velocity (v) vectors for elliptic orbits
-    Pg 66 of Astronomy on the Personal computer
-    The m_anomaly is the one that varies with time so the result
-    of this function will also vary with time.
+    Parameters
+    ----------
+    next_E_func : function
+        Function that really calculates the eccentric anomaly used in the iterative 
+        solution procedure (Newton's method for solving the Kepler equation)
+    m_anomaly : float
+        The current Mean anomaly that will depend on time [rads]
+    a : float
+        Semi-major axis of the orbit [AU]
+    e : float
+        Eccentricity of the orbit (<1 for elliptical)
 
-    An ellipse has (0<e<1)
-
-    Args:
-        next_E_func : iterating function to calculate the eccentric anomaly, used
-                      for solving kepler equation with Newton 
-        m_anomaly : The current Mean anomaly in rads (it will depend on time t)
-        a : Semi-major axis of the orbit in [AU]
-        e  : Eccentricity of the orbit (<1 for elliptical)
-        
-    Returns :
-        Position (r) w.r.t. orbital plane in [AU] 
-        Velocity (v) w.r.t orbital plane in [AU/days]
-
+    Returns
+    -------
+    tuple (r,v):
+        Where r is a np.array[3] that contains the radio vector (cartesian) from the Sun to the body 
+            with respect to the orbital plane [AU]
+        Where v is a np.array[3] that contains the velocity vector (cartesian) of the body
+            with respect to the orbital plane [AU/days]
     """
 
     E0 = m_anomaly if (e<=0.8) else PI
@@ -132,46 +155,58 @@ def elliptic_orbit (next_E_func, m_anomaly, a, e):
     v =  np.array([-cte*sin_E/rho, cte*fac*cos_E/rho, 0.0])
     return r,v
 
-def next_H (e:float, mh_anomaly: float, H:float) -> float:
-    """
-    Iterative function to calculate the eccentric anomaly, i.e.,
-    computes the next eccentric value for hyperbolic orbits.
-    Used in the Newton method (Pag 65 of Astronomy of 
-    the personal computer)
+def _next_H (e, mh_anomaly, H):
+    """Computes the eccentric anomaly for hyperbolic orbits. This 
+    function will be called by an iterative procedure. Used in the Newton
+    method (Pag 65 of Astronomy of  the personal computer book)
 
-    Args:
-        e : eccentricity 
-        mh_anomaly: Mean anomaly in angle units (rads) 
-        H : Previous value of the eccentric anomaly
+    Parameters
+    ----------
+    e : float
+        eccentricity of the orbit
+    mh_anomaly : float
+        Mean anomaly in angle units [radians]
+    H : float
+        Previous value of the eccentric anomaly [radians]
 
-    Returns :
-        The eccentric anomaly in angle units (radians)
+    Returns
+    -------
+    float
+        The next value of The eccentric anomaly [radians]
     """
     num = e * sinh(H) - H - mh_anomaly
     den = e * cosh(H) - 1
     return H - num/den
 
-def hyperpolic_orbit (tp, next_H_func, a, e, t):
-    """ 
-    Computes position (r) and velocity (v) vectors for hiperbolic orbits
-    Pg 66 of Astronomy on the Personal computer
-    The m_anomaly is the one that varies with time so the result
-    of this function will also vary with time.
 
-    An hyperbola has (e>1 e.g. e=1.5)
+def _hyperpolic_orbit (tp, next_H_func, a, e, t):
+    """Computes the position (r) and velocity (v) vectors for hyperbolic orbits using
+    an iterative method (Newton's method) for solving the Kepler equation.
+    (pg 66 of Astronomy on the Personal Computer book). The m_anomaly is
+    the one that varies with time so the result of this function will also vary with time.
 
-    Args:
-        tp: Time of perihelion passage in Julian centuries since J2000
-        next_H_func : iterating function to calculate the eccentric anomaly, used
-                for solving kepler equation with Newton 
-        a : Semi-major axis of the orbit in [AU]
-        e : eccentricity of the orbit (>1 for hiperbola
-        t : time of the computation in Julian centuries since J2000
-        
-    Returns :
-        Position (r) w.r.t. orbital plane in [AU] 
-        Velocity (v) w.r.t orbital plane in [AU/days]
+    Parameters
+    ----------
+    tp : float
+        Time of perihelion passage in Julian centuries since J2000
+    next_H_func : function
+        Function that really calculates the eccentric anomaly used in the iterative 
+        solution procedure (Newton's method for solving the Kepler equation)
+    a : float
+        Semi-major axis of the orbit in [AU]
+    e : float
+        Eccentricity of the orbit (>1 for hiperbola)
+    t : float
+        Time of the computation in Julian centuries since J2000
 
+    Returns
+    -------
+    tuple (r,v):
+        Where r is a np.array[3] that contains the radio vector (cartesian) from the Sun to the body 
+            with respect to the orbital plane [AU]
+        Where v is a np.array[3] that contains the velocity vector (cartesian) of the body
+            with respect to the orbital plane [AU/days]
+            
     """
     cte = sqrt(GM/a)
     # I have done the calculation and it is right
@@ -184,7 +219,7 @@ def hyperpolic_orbit (tp, next_H_func, a, e, t):
     else :
         H0 = -np.log(1.8-2*Mh/e)
     # Solve the eccentric anomaly
-    H = solve_ke_newton(e, next_H, Mh, H0)
+    H = solve_ke_newton(e, next_H_func, Mh, H0)
     cosh_H = cosh(H)
     sinh_H = sinh(H)
     fac =  sqrt((e+1.0)*(e-1.0))
@@ -194,18 +229,25 @@ def hyperpolic_orbit (tp, next_H_func, a, e, t):
     return r,v
 
 
-def calc_stumpff_values(E_2, epsilon=1e-7, max_iters=100):    
-    """ 
-    Computes the values for the Stumpff functions C1, C2, C3 
+def _calc_stumpff_values(E_2, epsilon=1e-7, max_iters=100):    
+    """Computes the values for the Stumpff functions C1, C2, C3 following
+    an iterative procedure
 
-    Args:
-        E_2: Square of eccentric anomaly in rads^2
-        epsilon: relative accuracy 
-        max_iters: 
-        
-    Returns :
-        A tuple with the valus of c1, c2, c3 
+    Parameters
+    ----------
+    E_2 : float
+        Square of eccentric anomaly [radians^2]
+    epsilon : float, optional
+        Relative accuracy, by default 1e-7
+    max_iters : int, optional
+        Maximum number of iterations, by default 100
+
+    Returns
+    -------
+    tuple (C1, C2, C3)
+        The three stumpff values [float]
     """
+
     c1, c2, c3 = 0.0, 0.0, 0.0
     to_add = 1.0
     for n in range(1 ,max_iters):
@@ -221,30 +263,34 @@ def calc_stumpff_values(E_2, epsilon=1e-7, max_iters=100):
     logger.error(f"Not converged after {n} iterations")
     return c1, c2, c3
 
+def _parabolic_orbit (tp, q, e, t, max_iters=15):
+    """Computes the position (r) and velocity (v) vectors for parabolic orbits using
+    an iterative method (Newton's method) for solving the Kepler equation.
+    (pg 66 of Astronomy on the Personal Computer book). The m_anomaly is
+    the one that varies with time so the result of this function will also vary with time.
 
+    Parameters
+    ----------
+    tp : float
+        Time of perihelion passage in Julian centuries since J2000
+    q : float
+        Perihelion distance [AU]
+    e : float
+        Eccentricity of the orbit
+    t : float
+        Time of the computation in Julian centuries since J2000
+    max_iters : int, optional
+        Maximum number of iterations, by default 15
 
-def parabolic_orbit (tp, q, e, t, max_iters=15):
-    """ 
-    Computes position (r) and velocity (v) vectors for hiperbolic orbits
-    Pg 66 of Astronomy on the Personal computer
-    The m_anomaly is the one that varies with time so the result
-    of this function will also vary with time.
-
-    An parabolic has (e=1)
-
-    Args:
-        tp: Time of perihelion passage in Julian centuries since J2000
-        next_H_func : iterating function to calculate the eccentric anomaly, used
-                for solving kepler equation with Newton 
-        a : Semi-major axis of the orbit in [AU]
-        e : eccentricity of the orbit (>1 for hiperbola
-        t : time of the computation in Julian centuries since J2000
-        
-    Returns :
-        Position (r) w.r.t. orbital plane in [AU] 
-        Velocity (v) w.r.t orbital plane in [AU/days]
-
+    Returns
+    -------
+    tuple (r,v):
+        Where r is a np.array[3] that contains the radio vector (cartesian) from the Sun to the body 
+            with respect to the orbital plane [AU]
+        Where v is a np.array[3] that contains the velocity vector (cartesian) of the body
+            with respect to the orbital plane [AU/days]
     """
+
     E_2 = 0.0    
     factor = 0.5 * e
     cte = sqrt(GM/(q*(1.0+e)))
@@ -258,7 +304,7 @@ def parabolic_orbit (tp, q, e, t, max_iters=15):
         u = B - 1.0/B 
         u_2 = u*u
         E_2 = u_2*(1.0-e)/factor 
-        c1, c2, c3 = calc_stumpff_values(E_2)
+        c1, c2, c3 = _calc_stumpff_values(E_2)
         factor = 3.0*e*c3 
         if isclose(E_2, E20, abs_tol=epsilon) :
             R = q * (1.0 + u_2*c2*e/factor)
@@ -275,6 +321,23 @@ M_min = 0.1
 class KeplerianOrbit:
 
     def __init__(self, epoch_mjd,  q, a, e, tp_mjd, M_at_epoch) :
+        """Setup the parameters for the orbit calculation
+
+        Parameters
+        ----------
+        epoch_mjd : [type]
+            [description]
+        q : float
+            Perihelion distance [AU]
+        a : float
+            [description]
+        e : float
+            Eccentricity of the orbit
+        tp_mjd : float
+            Time reference at which the object passed through perihelion in Modified Julian Day
+        M_at_epoch : float
+            Mean anomaly at epoch
+        """
         self.epoch_mjd = epoch_mjd
         self.tp_mjd = tp_mjd
         self.q = q
@@ -291,61 +354,67 @@ class KeplerianOrbit:
         return cls( comet_elms.epoch_mjd, comet_elms.q, None, comet_elms.e, comet_elms.tp_mjd, None)
 
     def calc_rv(self, t_mjd) :
-        """
-        Computes position (r) and velocity (v) vectors for keplerian orbits
-            depending the eccentricy and mean_anomlay to choose which type of conic
-            use.
+        """Computes position (r) and velocity (v) vectors for keplerian orbits
+        depending the eccentricy and mean_anomlay to choose which type of conic use
 
-            Args:
-                q: Perihelion distance q in AU
-                e: Eccentricity of the orbit
-                mtx_U : Matrix to change from orbital plane to eclictic plane
-                tp : Time reference at which the object passed through perihelion
-                t : time reference where the r, v vector will be calculated
+        Parameters
+        ----------
+        t_mjd : float
+            Time of the computation in Julian centuries since J2000
 
-            Returns :
-                Position (r): It is a np.array of 3 elements with the cartesian coordinates w.r.t. the ecliptic
-                Velocity (v): It is a np.array of 3 elements with the cartesian coordinates w.r.t. the ecliptic
+        Returns
+        -------
+        tuple (r,v):
+            Where r is a np.array[3] that contains the radio vector (cartesian) from the Sun to the body 
+                with respect to the orbital plane [AU]
+            Where v is a np.array[3] that contains the velocity vector (cartesian) of the body
+                with respect to the orbital plane [AU/days]
         """
         
         if self.a is not None :
             ## This is a body
             period_in_days = TWOPI*sqrt(pow(self.a,3)/GM)
-            M = calc_M_for_body (t_mjd, self.epoch_mjd, period_in_days, self.M_at_epoch)
+            M = _calc_M_for_body (t_mjd, self.epoch_mjd, period_in_days, self.M_at_epoch)
         else :
             # This is a comet
             # The inv_a is calculated to avoid to divide by 0 in parabolic
             inv_a = np.abs(1.0-self.e)/self.q
-            M = calc_M_for_comet(t_mjd, self.tp_mjd, inv_a)
-            # This is a comet
+            M = _calc_M_for_comet(t_mjd, self.tp_mjd, inv_a)
 
         if ((M < M_min) and (np.abs(1.0-self.e) < 0.1)) or isclose(self.e, 1.0, abs_tol=1e-04) :
             logger.warning(f'Doing parabolic orbit for e: {self.e}')
-            xyz, vxyz = parabolic_orbit(self.tp_mjd, self.q, self.e, t_mjd, 50)
+            xyz, vxyz = _parabolic_orbit(self.tp_mjd, self.q, self.e, t_mjd, 50)
         elif self.e < 1.0 :
             a = self.q/(1.0-self.e) if self.a is None else self.a
             logger.warning(f'Doing elliptic orbit for e: {self.e}')
-            xyz, vxyz = elliptic_orbit(next_E, M, a, self.e)
+            xyz, vxyz = _elliptic_orbit(_next_E, M, a, self.e)
         else :
             logger.warning(f'Doing hyperbolic orbit for e: {self.e}')
             a = self.q/np.abs(1.0-self.e) if self.a is None else self.a
-            xyz, vxyz =  hyperpolic_orbit (self.tp_mjd, next_H, a, self.e, t_mjd)
+            xyz, vxyz =  _hyperpolic_orbit (self.tp_mjd, _next_H, a, self.e, t_mjd)
         return xyz, vxyz
       
+#
+# Currently this code is not being used but I want to keep it because the same idea is used 
+# in othe parts, the sum of vectors are don in the equatorial system rather than the ecliptic system
+# 
 
-def g_rlb_equat_body_j2000(jd, body):
-
-    """
-    Computes the geocentric polar coordinates of body based at particular time and orbital elements of hte 
-    body following the second algorith of the Meeus (this is the one that explains that the 
+def _g_rlb_equat_body_j2000(jd, body):    
+    """Computes the geocentric polar coordinates of body (eliptical orbit) based at particular time and orbital elements of hte 
+    body following the second algorithm of the Meeus (this is the one that explains that the 
     sum of the vectors are done in the equatorial system and it works best that doing in the eliptic system)
 
-    Args:
-        jd : Point in time (normally used in Julian days
-        body: Orbital elements of the body
+    Parameters
+    ----------
+    jd : float
+        Time of computation in Julian days
+    body : BodyElms
+        Elemnents of the body whose position is calculated
 
-    Returns :
-        A numpy vector of 3 positions with the geocentric coordinates of the body in Equatorial system
+    Returns
+    -------
+    np.array:
+        A 3-vector with the geocentric coordinates of the body in Equatorial system
     """
    
     T_J2000 = 0.0 # desired equinox
@@ -362,8 +431,8 @@ def g_rlb_equat_body_j2000(jd, body):
     
     # Fist calculation of the position of the body is done
     #M = calc_M(jd, body.tp_jd, body.a)
-    M = calc_M_for_comet(jd, body.tp_jd, 1/body.a)
-    xyz, _ = elliptic_orbit(next_E, M, body.a, body.e)
+    M = _calc_M_for_comet(jd, body.tp_jd, 1/body.a)
+    xyz, _ = _elliptic_orbit(_next_E, M, body.a, body.e)
 	# xyz are cartesians in the orbital plane (perifocal system) so we need to transform 
 	# to equatorial
     		
@@ -375,14 +444,12 @@ def g_rlb_equat_body_j2000(jd, body):
     # Second try using tau
     #M = ob.calc_M(jd-tau, body.tp_jd, body.a)
     #M = calc_M(jd-tau, body.tp_jd, body.a)
-    M = calc_M_for_comet(jd-tau, body.tp_jd, 1/body.a)
+    M = _calc_M_for_comet(jd-tau, body.tp_jd, 1/body.a)
 
-    xyz, _ = elliptic_orbit(next_E, M, body.a, body.e)
+    xyz, _ = _elliptic_orbit(_next_E, M, body.a, body.e)
     h_xyz_equat_body = mtx_equat_PQR.dot(xyz)    
     g_xyz_equat_body = g_xyz_equat_sun + h_xyz_equat_body
     return co.polarFcartesian(g_xyz_equat_body)
-
-
 
     
 

@@ -41,6 +41,21 @@ def norm_rad(rad):
     return pipe(rad,rad2deg,norm_dg,deg2rad)
 
 def reduce_rad(rad, to_positive=False):
+    """Reduce an angle to a value between -TWOPI < angle < TWOPI
+
+    Parameters
+    ----------
+    rad : float
+        angle to reduce [radians]
+    to_positive : bool, optional
+        Indicates if a negative angle should be converted to its positive value (adding TWOPI), by default False
+
+    Returns
+    -------
+    float
+        The angle reduced [radians]
+    """
+
     remainder = my_frac(rad/TWOPI)*TWOPI
     if rad > 0 :
         return remainder
