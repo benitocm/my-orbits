@@ -194,7 +194,7 @@ def test_ceres_B1950_for_1992():
     EXP_DIFF = 59888.3
     EXP_DIFF_PERTURBED = 300.6
     EXP_DIFF_PERTURBED_J2000 = 3322.6
-    EXP_DIFF_PERT_ENCKES = EXP_DIFF_PERTURBED_J2000
+    EXP_DIFF_PERT_ENCKES = 64
 
     eph = EphemrisInput(from_date="1992.06.27.0",
                         to_date = "1992.07.25.0",
@@ -224,7 +224,8 @@ def test_ceres_J2000_for_2010():
     fn = TEST_DATA_PATH.joinpath('jpl_ceres_2010-06-27_2010-07-25.csv')
     exp_df = dc.read_jpl_data(fn)    
     EXP_DIFF = 30586
-    EXP_DIFF_PERTURBED = 841
+    EXP_DIFF_PERT = 841
+    EXP_DIFF_PERT_ENCKES = 69
     
     eph = EphemrisInput(from_date="2010.06.27.0",
                         to_date = "2010.07.25.0",
@@ -235,10 +236,14 @@ def test_ceres_J2000_for_2010():
     check_df(df, exp_df, EXP_DIFF)        
 
     df = calc_eph_minor_body_perturbed(dc.CERES_J2000, eph, 'body')    
-    check_df(df, exp_df, EXP_DIFF_PERTURBED)        
+    check_df(df, exp_df, EXP_DIFF_PERT)        
 
     df = calc_eph_by_cowells(dc.CERES_J2000, eph, 'body')   
-    check_df(df, exp_df, EXP_DIFF_PERTURBED)    
+    check_df(df, exp_df, EXP_DIFF_PERT)    
+
+    df = calc_eph_by_enckes(dc.CERES_J2000, eph, 'body')   
+    check_df(df, exp_df, EXP_DIFF_PERT_ENCKES)    
+
 
 """
 def test_comet_with_twobodys_J2000():    
