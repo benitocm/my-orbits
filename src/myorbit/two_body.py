@@ -77,7 +77,7 @@ def calc_eph_planet(name, eph):
     
 
 def calc_eph_twobody(body, eph, obj_type='comet'):
-    """ Computes the ephemris for a small body or comet
+    """ Computes the ephemeris for a small body or comet
 
     Parameters
     ----------
@@ -97,7 +97,7 @@ def calc_eph_twobody(body, eph, obj_type='comet'):
     """
 
     # Normally, the equinox of the data of the body will be J2000  and the equinox of the 
-    # ephemeris will also be J2000, so the precesion matrix will be the identity matrix
+    # ephemeris will also be J2000, so the precession matrix will be the identity matrix
     # Just in the case of book of Personal Astronomy with your computer pag 81 is used   
     MTX_Teqx_PQR = co.mtx_eclip_prec(body.T_eqx0, eph.T_eqx).dot(body.mtx_PQR)  
 
@@ -127,7 +127,7 @@ def calc_eph_minor_body_perturbed (body, eph , type, include_osc=False):
         body is a comet, the type of this parameter must be CometElms. In case of the boyd is a small body
         the type of this parameter must be BodyElms.
     eph : EphemrisInput
-        The entry data of the ephemris
+        The entry data of the ephemeris
     obj_type : str, optional
         Type of the object ('body' for small bodies or 'comet' for comets), by default 'comet'        
     include_osc: boolean, optional

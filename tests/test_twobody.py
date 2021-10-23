@@ -21,6 +21,7 @@ from myorbit.orbits.ephemeris_input import EphemrisInput
 import myorbit.util.timeut as ut
 from myorbit.util.general import angular_distance
 from myorbit.two_body import calc_eph_twobody, calc_eph_minor_body_perturbed
+from myorbit.pert_cowels import calc_eph_by_cowells
 
 
 def calc_diff_seconds(my_df, exp_df):
@@ -39,6 +40,14 @@ def calc_diff_seconds(my_df, exp_df):
 """ The test data is obtained from https://ssd.jpl.nasa.gov/horizons/app.html#/
 """
 
+def check_df(df, exp_df, exp_diff) :
+    print (df[df.columns[0:8]])
+    assert len(df) == len(exp_df)
+    diff_secs = calc_diff_seconds(df, exp_df)
+    assert diff_secs < exp_diff
+
+
+
 TEST_DATA_PATH = Path(__file__).resolve().parents[0].joinpath('data')
 
 def test_HalleyB1950_for_1985():    
@@ -56,17 +65,15 @@ def test_HalleyB1950_for_1985():
                         step_dd_hh_hhh = "10 00.0",
                         equinox_name = EQX_J2000)
 
-    df = calc_eph_twobody(dc.HALLEY_B1950, eph, obj_type='comet')   
-    print (df[df.columns[0:8]])
-    assert len(df) == len(exp_df)
-    diff_secs = calc_diff_seconds(df, exp_df)
-    assert diff_secs < EXP_DIFF
+    df = calc_eph_twobody(dc.HALLEY_B1950, eph, 'comet')   
+    check_df(df, exp_df, EXP_DIFF) 
 
-    df = calc_eph_minor_body_perturbed(dc.HALLEY_B1950, eph, type='comet')   
-    print (df[df.columns[0:8]])
-    assert len(df) == len(exp_df)
-    diff_secs = calc_diff_seconds(df, exp_df)
-    assert diff_secs < EXP_DIFF_PERTURBED
+    df = calc_eph_minor_body_perturbed(dc.HALLEY_B1950, eph, 'comet')   
+    check_df(df, exp_df, EXP_DIFF_PERTURBED) 
+
+    df = calc_eph_by_cowells(dc.HALLEY_B1950, eph, 'comet')   
+    check_df(df, exp_df, EXP_DIFF_PERTURBED)    
+
 
 def test_HalleyJ2000_for_1985():    
     """ For Halley, the epoch of the orbital elements for HALLEY_J2000 is 1994/02/17 i.e. the data were
@@ -83,22 +90,22 @@ def test_HalleyJ2000_for_1985():
     EXP_DIFF = 256239.92
     EXP_DIFF_PERTURBED = 1570
 
+
     eph  = EphemrisInput(from_date="1985.11.15.0",
                         to_date = "1986.04.05.0",
                         step_dd_hh_hhh = "10 00.0",
                         equinox_name = EQX_J2000)
 
-    df = calc_eph_twobody(dc.HALLEY_J2000, eph, obj_type='comet')   
-    print (df[df.columns[0:8]])
-    assert len(df) == len(exp_df)
-    diff_secs = calc_diff_seconds(df, exp_df)
-    assert diff_secs < EXP_DIFF
+    df = calc_eph_twobody(dc.HALLEY_J2000, eph, 'comet')   
+    check_df(df, exp_df, EXP_DIFF) 
 
     df = calc_eph_minor_body_perturbed(dc.HALLEY_J2000, eph, type='comet')   
-    print (df[df.columns[0:8]])
-    assert len(df) == len(exp_df)
-    diff_secs = calc_diff_seconds(df, exp_df)
-    assert diff_secs < EXP_DIFF_PERTURBED
+    check_df(df, exp_df, EXP_DIFF_PERTURBED) 
+
+    df = calc_eph_by_cowells(dc.HALLEY_J2000, eph, 'comet')   
+    check_df(df, exp_df, EXP_DIFF_PERTURBED)    
+
+
 
 def test_HalleyJ2000_for_1997():    
     """ For Halley, the epoch of the orbital elements for HALLEY_J2000 is 1994/02/17 i.e. the data were
@@ -119,17 +126,15 @@ def test_HalleyJ2000_for_1997():
                         step_dd_hh_hhh = "10 00.0",
                         equinox_name = EQX_J2000)
 
-    df = calc_eph_twobody(dc.HALLEY_J2000, eph, obj_type='comet')   
-    print (df[df.columns[0:8]])
-    assert len(df) == len(exp_df)
-    diff_secs = calc_diff_seconds(df, exp_df)
-    assert diff_secs < EXP_DIFF
+    df = calc_eph_twobody(dc.HALLEY_J2000, eph, 'comet')   
+    check_df(df, exp_df, EXP_DIFF) 
 
-    df = calc_eph_minor_body_perturbed(dc.HALLEY_J2000, eph, type='comet')   
-    print (df[df.columns[0:8]])
-    assert len(df) == len(exp_df)
-    diff_secs = calc_diff_seconds(df, exp_df)
-    assert diff_secs < EXP_DIFF_PERTURBED
+    df = calc_eph_minor_body_perturbed(dc.HALLEY_J2000, eph, 'comet')   
+    check_df(df, exp_df, EXP_DIFF_PERTURBED)     
+
+    df = calc_eph_by_cowells(dc.HALLEY_J2000, eph, 'comet')   
+    check_df(df, exp_df, EXP_DIFF_PERTURBED)    
+
 
 
 def test_HalleyJ2000_for_2017():    
@@ -149,18 +154,14 @@ def test_HalleyJ2000_for_2017():
                         step_dd_hh_hhh = "10 00.0",
                         equinox_name = EQX_J2000)
 
-    df = calc_eph_twobody(dc.HALLEY_J2000, eph, obj_type='comet')   
-    print (df[df.columns[0:8]])
-    assert len(df) == len(exp_df)
-    diff_secs = calc_diff_seconds(df, exp_df)
-    assert diff_secs < EXP_DIFF
+    df = calc_eph_twobody(dc.HALLEY_J2000, eph, 'comet')   
+    check_df(df, exp_df, EXP_DIFF) 
 
-    df = calc_eph_minor_body_perturbed(dc.HALLEY_J2000, eph, type='comet')   
-    print (df[df.columns[0:8]])
-    assert len(df) == len(exp_df)
-    diff_secs = calc_diff_seconds(df, exp_df)
-    assert diff_secs < EXP_DIFF_PERTURBED
+    df = calc_eph_minor_body_perturbed(dc.HALLEY_J2000, eph, 'comet')   
+    check_df(df, exp_df, EXP_DIFF_PERTURBED)     
 
+    df = calc_eph_by_cowells(dc.HALLEY_J2000, eph, 'comet')   
+    check_df(df, exp_df, EXP_DIFF_PERTURBED)    
 
 def test_ceres_B1950_for_1992():
     """ Two tests are done here to show that in the case of CERES the perturbantions
@@ -181,26 +182,17 @@ def test_ceres_B1950_for_1992():
                         step_dd_hh_hhh = "02 00.0",
                         equinox_name = EQX_J2000)
 
-    df = calc_eph_twobody(dc.CERES_B1950, eph, obj_type='body')   
-    print (df[df.columns[0:8]])
+    df = calc_eph_twobody(dc.CERES_B1950, eph, 'body')   
+    check_df(df, exp_df, EXP_DIFF)    
 
-    assert len(df) == len(exp_df)
-    diff_secs = calc_diff_seconds(df, exp_df)
-    assert diff_secs < EXP_DIFF
+    df = calc_eph_minor_body_perturbed(dc.CERES_B1950, eph, 'body')
+    check_df(df, exp_df, EXP_DIFF_PERTURBED)    
 
-    df = calc_eph_minor_body_perturbed(dc.CERES_B1950, eph, type='body')
-    print (df[df.columns[0:8]])
+    df = calc_eph_minor_body_perturbed(dc.CERES_J2000, eph, 'body')
+    check_df(df, exp_df, EXP_DIFF_PERTURBED_J2000)    
 
-    assert len(df) == len(exp_df)
-    diff_secs = calc_diff_seconds(df, exp_df)
-    assert diff_secs < EXP_DIFF_PERTURBED
-
-    df = calc_eph_minor_body_perturbed(dc.CERES_J2000, eph, type='body')
-    print (df[df.columns[0:8]])
-
-    assert len(df) == len(exp_df)
-    diff_secs = calc_diff_seconds(df, exp_df)
-    assert diff_secs < EXP_DIFF_PERTURBED_J2000
+    df = calc_eph_by_cowells(dc.CERES_J2000, eph, 'body')   
+    check_df(df, exp_df, EXP_DIFF_PERTURBED_J2000)    
 
 
 def test_ceres_J2000_for_2010():
@@ -217,19 +209,14 @@ def test_ceres_J2000_for_2010():
                         step_dd_hh_hhh = "02 00.0",
                         equinox_name = EQX_J2000)
 
-    df = calc_eph_twobody(dc.CERES_J2000, eph, obj_type='body')   
-    print (df[df.columns[0:8]])
+    df = calc_eph_twobody(dc.CERES_J2000, eph, 'body')   
+    check_df(df, exp_df, EXP_DIFF)        
 
-    assert len(df) == len(exp_df)
-    diff_secs = calc_diff_seconds(df, exp_df)
-    assert diff_secs < EXP_DIFF
+    df = calc_eph_minor_body_perturbed(dc.CERES_J2000, eph, 'body')    
+    check_df(df, exp_df, EXP_DIFF_PERTURBED)        
 
-    df = calc_eph_minor_body_perturbed(dc.CERES_J2000, eph, type='body')
-    print (df[df.columns[0:8]])
-
-    assert len(df) == len(exp_df)
-    diff_secs = calc_diff_seconds(df, exp_df)
-    assert diff_secs < EXP_DIFF_PERTURBED
+    df = calc_eph_by_cowells(dc.CERES_J2000, eph, 'body')   
+    check_df(df, exp_df, EXP_DIFF_PERTURBED)    
 
 """
 def test_comet_with_twobodys_J2000():    
