@@ -49,6 +49,7 @@ def _calc_M_for_body(t_mjd, epoch_mjd, period_in_days, M_at_epoch) :
 
 
 def _calc_M_for_comet(t_mjd, tp_mjd, inv_a) :
+
     """Computes the mean anomaly as a function fo t, t0 and a, i.e., not depending on the
     period of the orbit) and semi-major axis
 
@@ -70,6 +71,7 @@ def _calc_M_for_comet(t_mjd, tp_mjd, inv_a) :
     #M = sqrt(ut.GM)*(t_mjd-tp_mjd)/np.float_power(a, 1.5)
     M = sqrt(GM)*(t_mjd-tp_mjd)*sqrt(pow(inv_a, 3))
     return reduce_rad(M, to_positive=True)
+
 
 def _calc_M_by_E(e, E):
     """Computes the true anomaly based on the eccentricity value and eccentric anomaly
@@ -381,15 +383,18 @@ class KeplerianOrbit:
             inv_a = np.abs(1.0-self.e)/self.q
             M = _calc_M_for_comet(t_mjd, self.tp_mjd, inv_a)
 
-        if ((M < M_min) and (np.abs(1.0-self.e) < 0.1)) or isclose(self.e, 1.0, abs_tol=1e-04) :
-            logger.warning(f'Doing parabolic orbit for e: {self.e}')
+        if ((M < M_min) and (np.abs(1.0-self.e) < 0.1)): #or isclose(self.e, 1.0, abs_tol=1e-04) :
+            #logger.warning(f'Doing parabolic orbit for e: {self.e} and M: {M}')
+            print(f'Doing parabolic orbit for e: {self.e} and M: {M}')
             xyz, vxyz = _parabolic_orbit(self.tp_mjd, self.q, self.e, t_mjd, 50)
         elif self.e < 1.0 :
             a = self.q/(1.0-self.e) if self.a is None else self.a
-            logger.warning(f'Doing elliptic orbit for e: {self.e}')
+            #logger.warning(f'Doing elliptic orbit for e: {self.e} and M: {M}')
+            print(f'Doing elliptic orbit for e: {self.e} and M: {M}')
             xyz, vxyz = _elliptic_orbit(_next_E, M, a, self.e)
         else :
-            logger.warning(f'Doing hyperbolic orbit for e: {self.e}')
+            #logger.warning(f'Doing hyperbolic orbit for e: {self.e} and M: {M}')
+            print(f'Doing hyperbolic orbit for e: {self.e} and M: {M}')
             a = self.q/np.abs(1.0-self.e) if self.a is None else self.a
             xyz, vxyz =  _hyperpolic_orbit (self.tp_mjd, _next_H, a, self.e, t_mjd)
         return xyz, vxyz

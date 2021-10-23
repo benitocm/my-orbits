@@ -11,7 +11,7 @@ import logging
 import numpy as np
 from numpy import sin, cos, arctan2, deg2rad, rad2deg
 import toolz as tz
-from toolz import pipe, compose
+from toolz import pipe
 
 # Local application imports
 from myorbit.util import timeut as tc

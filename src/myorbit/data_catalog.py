@@ -1,4 +1,4 @@
-"""This module contains functions to read elements file for comets, bodys and planetes
+"""This module contains functions to read elements file for comets, bodies and planetes
 In addition, it provides classes to wrap those data for particular objects
 
 """
@@ -18,10 +18,9 @@ from toolz import pipe
 
 # Local application imports
 import myorbit.util.timeut as tc
+from myorbit.util.timeut import EQX_B1950, EQX_J2000
 from myorbit.coord import make_ra, mtx_gauss_vectors, make_lon
-
 from myorbit.util.general import pow
-from myorbit.util.timeut import reduce_rad
 from myorbit.util.constants import *
 
 # Configuration reading
@@ -32,33 +31,92 @@ cfg.read(CONFIG_INI)
 
 logger = logging.getLogger(__name__)
 
-class BodyElems:
+class BodyElms:
+
+    """Orbital elements for small bodies
+    """
 
     def __init__(self, name="", epoch_name="", a=0.0, e=0.0, i_dg=0.0, Node_dg=0.0, w_dg=0.0, M_dg=0.0, tp_mjd=0.0, equinox_name="J2000"):
         self.name= name
+        # Epoch of the elements represented as the Modified Julian Date (MJD), which is defined as the Julian date - 2400000.5
+        # In JPL, an example of this datum is 49400 (Halley) that corresponds to the date 1994/02/17. That means that orbital data
+        # are mostly updated for that especially the Mean Anomaly, i.e, the Mean Anomaly is the mean anomaly of the body 
+        # for that date. That is very important for perturbed methods because they start from this point and go backward or forward
+        # That is different from the equinox. The equinox is a time reference for the coordinate that normally are expressed in J2000 equinox
         self.epoch_name = epoch_name
+        # This field will have the epoch in MJD, i.e., instead of str, this field contains the integer value
         self.epoch_mjd = pipe(tc.epochformat2jd(self.epoch_name),tc.jd2mjd)
+        #Semimajor axis of the orbit (asteroids only).
         self.a = a
+        # Eccentricity of the orbit
         self.e = e
+        #Inclination of the orbit with respect to the J2000 ecliptic plane.
         self.i = np.deg2rad(i_dg)
+        # Longitude of the ascending node (J2000-Ecliptic)
         self.Node = np.deg2rad(Node_dg)
+        # Argument of perihelion (J2000-Ecliptic).
         self.w = np.deg2rad(w_dg)
+        #Mean anomaly at epoch (asteroids only), i.e., the mean anomaly of the boyd at the time indicated by the epoch_mjd
         self.M0 = np.deg2rad(M_dg)  # The Mean anomaly at epoch_mjd
+        # Time of perihelion passage (comets only)
         self.tp_mjd = tp_mjd
+        # Equinox used for the coordinates, by default J2000 but in the cases of B1950 are used
         self.eqx_name = equinox_name
+        # Century of the equinox
         self.T_eqx0 = tc.T(self.eqx_name)
+        # Period of the body in days
         self.period_in_days = TWOPI*sqrt(pow(self.a,3)/GM)
+        # Matrix 
         self.mtx_PQR = mtx_gauss_vectors(self.Node,self.i,self.w)
 
     def calc_M(self, t_mjd) -> float :
-        """
+        """[summary]
+
+        Parameters
+        ----------
+        t_mjd : [type]
+            [description]
+
+        Returns
+        -------
+        float
+            [description]
         """
         M = (t_mjd - self.epoch_mjd)*TWOPI/self.period_in_days
         M += self.M0
-        return reduce_rad(M,to_positive=True)        
+        return tc.reduce_rad(M,to_positive=True)        
 
     @classmethod
-    def in_radians(cls, name="", epoch_name="", a=0.0, e=0.0, i_rad=0.0, Node_rad=0.0, w_rad=0.0, M_rad=0.0, equinox_name=""):    
+    def in_radians(cls, name="", epoch_name="", a=0.0, e=0.0, i_rad=0.0, Node_rad=0.0, w_rad=0.0, M_rad=0.0, equinox_name=""):   
+        """[summary]
+
+        Parameters
+        ----------
+        name : str, optional
+            [description], by default ""
+        epoch_name : str, optional
+            [description], by default ""
+        a : float, optional
+            [description], by default 0.0
+        e : float, optional
+            [description], by default 0.0
+        i_rad : float, optional
+            [description], by default 0.0
+        Node_rad : float, optional
+            [description], by default 0.0
+        w_rad : float, optional
+            [description], by default 0.0
+        M_rad : float, optional
+            [description], by default 0.0
+        equinox_name : str, optional
+            [description], by default ""
+
+        Returns
+        -------
+        [type]
+            [description]
+        """
+        
         return cls(name, epoch_name,a,e,np.rad2deg(i_rad),np.rad2deg(Node_rad),np.rad2deg(w_rad),np.rad2deg(M_rad),equinox_name)        
 
     def as_dict(self):
@@ -73,6 +131,14 @@ class BodyElems:
         return d
 
     def __str__(self):
+
+        """Return the string represtantion of a BodyElms instance
+
+        Returns
+        -------
+        str
+            Representation of a BodyElms instance
+        """        
         s = []
         s.append(f'Elements for {self.name}')
         s.append(f'            epoch: {self.epoch_name}')
@@ -91,24 +157,68 @@ class BodyElems:
 
 
 class CometElms:
+
+    """[summary]
+    """
     def __init__(self, name="",  epoch_name="", q=0.0, e=0.0, i_dg=0.0, Node_dg=0.0, w_dg=0.0, tp_str="", equinox_name="J2000"):
+        """[summary]
+
+        Parameters
+        ----------
+        name : str, optional
+            [description], by default ""
+        epoch_name : str, optional
+            [description], by default ""
+        q : float, optional
+            [description], by default 0.0
+        e : float, optional
+            [description], by default 0.0
+        i_dg : float, optional
+            [description], by default 0.0
+        Node_dg : float, optional
+            [description], by default 0.0
+        w_dg : float, optional
+            [description], by default 0.0
+        tp_str : str, optional
+            [description], by default ""
+        equinox_name : str, optional
+            [description], by default "J2000"
+        """
+
+        # Name of the comet
         self.name=name
+        # Epoch of the elements represented as the Modified Julian Date (MJD), which is defined as the Julian date - 2400000.5
+        # In JPL, an example of this datum is 49400 (Halley) that corresponds to the date 1994/02/17. That means that orbital data
+        # are mostly updated for that especially the Mean Anomaly, i.e, the Mean Anomaly is the mean anomaly of the body 
+        # for that date. That is very important for perturbed methods because they start from this point and go backward or forward
+        # That is different from the equinox. The equinox is a time reference for the coordinate that normally are expressed in J2000 equinox
         self.epoch_name = epoch_name
-        #self.epoch_mjd = pipe(tc.epochformat2jd(self.epoch_name),tc.jd2mjd)
+        # This field will have the epoch in MJD, i.e., instead of str, this field contains the integer value
         self.epoch_mjd = pipe(tc.epochformat2jd(self.epoch_name),tc.jd2mjd) if self.epoch_name is not None else None
+        #Eccentricity of the orbit.
         self.e = e
+        # Perihelion distance (comets only).
         self.q = q
+        # Semimajor axis of the orbit (asteroids only) so in the case of comet we tried to calculate it
         if isclose(1-e, 0, abs_tol=1e-6):
             self.a = None
         else :
             self.a = q / (1-e)
+        # Inclination of the orbit with respect to the J2000 ecliptic plane.
         self.i = np.deg2rad(i_dg)
+        # Longitude of the ascending node (J2000-Ecliptic).
         self.Node = np.deg2rad(Node_dg)
+        # Argument of perihelion (J2000-Ecliptic).
         self.w = np.deg2rad(w_dg)
+        # Time of perihelion passage (comets only) as MJD
         self.tp_mjd = _yyyymmdd_ddd2mjd (tp_str)
+        # Time of perihelion passage (comets only) as JD
         self.tp_jd = tc.mjd2jd(self.tp_mjd)
+        # Equinox used for the coordinates, by default J2000 but in the cases of B1950 are used
         self.eqx_name = equinox_name
+        # Century of the equinox
         self.T_eqx0 = tc.T(self.eqx_name)
+        # Matrix
         self.mtx_PQR = mtx_gauss_vectors(self.Node,self.i,self.w)
 
 
@@ -119,31 +229,34 @@ class CometElms:
         Parameters
         ----------
         t_mjd : float
-            Time of the compuation in Modified Julian Date
+            Time of the computation in Modified Julian Date
 
         Returns
         -------
         float
-            Mean anomly in radians
+            Mean anomaly in radians
         """
         M = sqrt(GM)*(t_mjd-self.tp_mjd)/np.float_power(self.a,1.5)
-        return reduce_rad(M,to_positive=True)
+        return tc.reduce_rad(M,to_positive=True)
     
 
     def __str__(self):
-        """Return the string represtantion of a CometElemts instance
+
+        """Return the string represtantion of a CometElms instance
 
         Returns
         -------
         str
-            Representation of a CometElemts instance
+            Representation of a CometElms instance
         """
-
+        
         s = []
         s.append(f'Elements for {self.name}')
         s.append(f'     equinox name: {self.eqx_name}')
         s.append(f'            T eq: {self.T_eqx0}')
         s.append(f'        epoch mjd: {self.epoch_mjd} day')
+        epoch_date_str = pipe(self.epoch_mjd,tc.mjd2jd,tc.jd2str_date) if self.epoch_mjd is not None else "None"
+        s.append(f'       epoch date: {epoch_date_str} ')
         s.append(f'                q: {self.q} AU')
         s.append(f'                a: {self.a} AU')
         s.append(f'                e: {self.e}')
@@ -235,8 +348,8 @@ def read_body_elms_for(body_name, df):
 
     Returns
     -------
-    BodyElems
-        Orbital elements of the body wrapped in the BodyElems structure. 
+    BodyElms
+        Orbital elements of the body wrapped in the BodyElms structure. 
         If the body is not found, None is returned.
     """
     row = df[df.Name==body_name]
@@ -244,7 +357,7 @@ def read_body_elms_for(body_name, df):
         logger.error('The body %s does not exist is not found ', body_name)
         return
     row = row.to_dict('records')[0]
-    return BodyElems(name = row['Name'],
+    return BodyElms(name = row['Name'],
                    epoch_name = tc.mjd2epochformat(row['Epoch']),
                    a = row['a'],
                    e = row['e'],
@@ -266,8 +379,8 @@ def read_comet_elms_for(comet_name, df) :
 
     Returns
     -------
-    BodyElems
-        Orbital elements of the body wrapped in the BodyElems structure. 
+    BodyElms
+        Orbital elements of the body wrapped in the BodyElms structure. 
         If the body is not found, None is returned.
     """
 
@@ -287,12 +400,14 @@ def read_comet_elms_for(comet_name, df) :
 
 # These dataframes are read when the module is imported.
 DF_COMETS = read_ELEMENTS_file(Path(cfg.get('general','comets_file_path')))
-DF_BODYS = read_ELEMENTS_file(Path(cfg.get('general','numbered_asteroids_file_path')))
+DF_BODIES = read_ELEMENTS_file(Path(cfg.get('general','numbered_asteroids_file_path')))
 DF_PLANETS = read_planets_orbital_elements(Path(cfg.get('general','planets_orb_elements_file_path')))
 
-#Some objects
+####################################################################
+#Some objects are defined for other modules to use.
+####################################################################
 
-APOFIS = BodyElems(name="99942 Apophis",
+APOFIS = BodyElms(name="99942 Apophis",
                 epoch_name="2008.09.24.0",
                 a = .9224383019077086	,
                 e = .1911953048308701	,
@@ -303,7 +418,7 @@ APOFIS = BodyElems(name="99942 Apophis",
                 equinox_name = "J2000")
 
 
-B_2013_XA22 = BodyElems(name="2013 XA22",
+B_2013_XA22 = BodyElms(name="2013 XA22",
                 epoch_name="2020.05.31.0",
                 a = 1.100452156382869	,
                 e = .2374314858572631		,
@@ -311,8 +426,34 @@ B_2013_XA22 = BodyElems(name="2013 XA22",
                 Node_dg = 82.58938621175157		,
                 w_dg = 258.157582490417		,
                 M_dg = 295.092371879095		,
-                equinox_name = "J2000")
+                equinox_name = EQX_J2000)
 
+HALLEY_J2000 = read_comet_elms_for("1P/Halley", DF_COMETS)    
+
+HALLEY_B1950 = CometElms(name="1P/Halley",
+            epoch_name="1986.02.19.0" ,
+            q =  0.5870992 ,
+            e = 0.9672725 ,
+            i_dg = 162.23932 ,
+            Node_dg = 58.14397 ,
+            w_dg = 111.84658 ,
+            #tp_str = "19860209.43867",
+            tp_str = "19860209.44",
+            equinox_name = EQX_B1950)
+
+CERES_B1950 = BodyElms(name="Ceres",
+                epoch_name="1983.09.23.0",
+                a = 2.7657991,
+                e = 0.0785650,
+                i_dg = 10.60646,
+                Node_dg = 80.05225,
+                w_dg = 73.07274,
+                M_dg = 174.19016,
+                equinox_name = EQX_B1950)
+
+
+CERES_J2000 = read_body_elms_for("Ceres", DF_BODIES)        
+             
 
 def change_date_format(date_str):
     datetime_obj = datetime.strptime(date_str, "%Y-%b-%d")
@@ -325,7 +466,7 @@ def change_date_format(date_str):
 #""")
 
 def read_jpl_data(DATA):
-    df = pd.read_csv(DATA, sep="\s+", dtype={"col6":object}) 
+    df = pd.read_csv(DATA, sep="\s+", dtype={"col6":object}, index_col=False) 
     df['date'] = df['date'].map(change_date_format)
     df['ra_hh'] = df['col3'].astype(np.int32)
     df['ra_mm'] = df['col4'].astype(np.int32)
@@ -342,6 +483,7 @@ def read_jpl_data(DATA):
     df['de_1'] = df['sign_de']* df.apply(lambda x: tc.dgms2dg(x['de_dg'],x['de_mm'],x['de_ss'],x['de_sign']), axis=1).map(np.deg2rad)
     cols = ['date','ra_1','de_1','r_AU_1']
     return df[cols].copy()
+    return df
 
 #TESTDATA = StringIO("""col1 col2 col3 col4 col5 col6 col7 col8 
 #0  2018/06/27     95.1  168.3  10.6  2.5640  10h18m45.264s  +20°08'30"  3.01395840
@@ -361,12 +503,13 @@ def read_my_df(DATA)    :
 if __name__ == "__main__" :
     import logging.config
     logging.config.fileConfig(CONFIG_INI, disable_existing_loggers=False)    
-    print ("For Ceres body\n\n")
-    elm = read_body_elms_for("Ceres",DF_BODYS)
-    print (elm)
-    print ("For Halley Comet\n\n")
-    elm = read_comet_elms_for("1P/Halley",DF_COMETS)
-    print (elm)
+    print (HALLEY_J2000)
+    #print ("For Ceres body\n\n")
+    #elm = read_body_elms_for("Ceres",DF_BODIES)
+    #print (elm)
+    #print ("For Halley Comet\n\n")
+    #elm = read_comet_elms_for("1P/Halley",DF_COMETS)
+    #print (elm)
 
 
     

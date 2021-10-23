@@ -13,7 +13,8 @@ from myorbit.util.timeut import *
 from myorbit.coord import *
 
 #from myastro.orbit import *
-#from myastro.keplerian import next_E
+from myorbit.orbits.keplerian import _next_E
+import myorbit.orbits.orbutil as ob
 
 def test_polar_cartesian():
     xyzs = [np.array([0,0,0]),
@@ -76,8 +77,7 @@ def test_horiz2equat_2():
     alts2, azs2 =  map(list,zip(*tups))
     assert alts == approx(alts2)
     assert azs == approx(azs2)
-    """
-
+"""  
 
 """
 def test_eclip2equat():
@@ -99,7 +99,7 @@ def test_eclip2equat():
 
 def test_equinox_correction():
     assert equinox_correction(12.816667,27.4,1950.0,2000.0) == approx((12.857323608897255, 27.12802708736664))
-
+"""
 
 # Excercies pag 106
 def test_ch04Ex01():
@@ -113,7 +113,7 @@ def test_ch04Ex02():
     h,m,s, _ = tc.gst2lst(*tc.h2hms(gst),40)
     ha = tc.ra_lst2ha(tc.hms2h(12,32,6),h,m,s)
     assert tc.h2hms(ha) == approx((9.0, 6.0, 57.6327))   
-"""
+
 
 def test_ch04Ex03():
     lat_obs = make_lat("35°36m5.115sN")
@@ -152,29 +152,26 @@ def test_ch04Ex12():
     ra,dec = equinox_correction(tc.hms2h(12,34,34), tc.dgms2dg(29,49,34),2000.0,2015.0)
     assert tc.h2hms(ra) == approx((12,35,18.391146))
     #assert tc.dg2dgms(dec) == approx((29,44,11,1))
-
-"""
-
 """
 def test_ch04Ex13():
     e, m_anomaly  = 0.00035 , np.deg2rad(5.498078)
     # Solving with Newton
-    e_funcs = [next_E] 
+    e_funcs = [_next_E] 
     for func in e_funcs:        
-        e_anomaly = solve_ke_newton(e, func, m_anomaly, m_anomaly)        
+        e_anomaly = ob.solve_ke_newton(e, func, m_anomaly, m_anomaly)        
         assert np.rad2deg(e_anomaly) == approx(5.5, abs=1e-02)
 
     # Solving just Iteraring
     for func in e_funcs:        
-        e_anomaly = solve_ke (e, func, m_anomaly)        
+        e_anomaly = ob.solve_ke (e, func, m_anomaly)        
         assert np.rad2deg(e_anomaly) == approx(5.5, abs=1e-02)
-    
+
 def test_ch04Ex14():
     e, m_anomaly  = 0.6813025 , np.deg2rad(5.498078)
     # Solving with Newton
-    e_funcs = [next_E] 
+    e_funcs = [_next_E] 
     for func in e_funcs:        
-        e_anomaly = solve_ke_newton(e, func, m_anomaly, m_anomaly)        
+        e_anomaly = ob.solve_ke_newton(e, func, m_anomaly, m_anomaly)        
         assert np.rad2deg(e_anomaly) == approx(16.744355,abs=1e-4)
 
     # Solving just Iteraring
@@ -185,9 +182,9 @@ def test_ch04Ex14():
 def test_ch04Ex15():
     e, m_anomaly  = 0.85 , np.deg2rad(5.498078)  
     # Solving with Newton
-    e_funcs = [next_E] 
+    e_funcs = [_next_E] 
     for func in e_funcs:        
-        e_anomaly = solve_ke_newton(e, func, m_anomaly, m_anomaly)        
+        e_anomaly = ob.solve_ke_newton(e, func, m_anomaly, m_anomaly)        
         assert np.rad2deg(e_anomaly) == approx(29.422286,abs=1e-4)
         
     # Solving just Iteraring
@@ -210,4 +207,4 @@ def test_change_equinox_eclip():
     eclip = mk_co_eclip("149°28m54.984s","1°45m55.76s")
     changed_eclip = change_equinox_eclip(f_epoch,t_epoch,eclip)
     equals_cood(changed_eclip, mk_co_eclip("+118°43m51.01s","+01°36m55.74s",t_epoch), abs=1e-4)
-"""
+

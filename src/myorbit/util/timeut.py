@@ -576,6 +576,8 @@ JD_B1950 =  2433282.4235 #datefd2jd(*(1950.0,1.0,0.9235))
 MDJ_J2000 = jd2mjd(JD_J2000)
 CENTURY = 36525.0
 T_J2000 = 0.0
+EQX_J2000="J2000"
+EQX_B1950="B1950"
 
 def T_given_mjd(mjd):
     """ 
@@ -616,7 +618,7 @@ def T (epoch_name:str, from_epoch_name="J2000") -> float :
         A float with nunmber of Julian centuries
     """
     jd = epochformat2jd(epoch_name)
-    return (jd - JD_J2000)/36525.0
+    return (jd - JD_J2000)/CENTURY
 
 
 
