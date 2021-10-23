@@ -22,7 +22,7 @@ import myorbit.util.timeut as ut
 from myorbit.util.general import angular_distance
 from myorbit.two_body import calc_eph_twobody, calc_eph_minor_body_perturbed
 from myorbit.pert_cowels import calc_eph_by_cowells
-
+from myorbit.pert_enckes import calc_eph_by_enckes
 
 def calc_diff_seconds(my_df, exp_df):
     my_df['r_AU_2'] = my_df['r[AU]']
@@ -49,15 +49,15 @@ def check_df(df, exp_df, exp_diff) :
 
 
 TEST_DATA_PATH = Path(__file__).resolve().parents[0].joinpath('data')
+    
 
-def test_HalleyB1950_for_1985():    
-    """[summary]
-    """        
+def test_HalleyB1950_for_1985():  
     fn = TEST_DATA_PATH.joinpath('jpl_halley_1985-Nov-15_1985-Apr-05.csv')
 
     exp_df = dc.read_jpl_data(fn)    
     EXP_DIFF = 1305.1
-    EXP_DIFF_PERTURBED =761.92
+    EXP_DIFF_PERT =761.92
+    EXP_DIFF_PERT_ENCKES = 776
 
 
     eph  = EphemrisInput(from_date="1985.11.15.0",
@@ -69,10 +69,14 @@ def test_HalleyB1950_for_1985():
     check_df(df, exp_df, EXP_DIFF) 
 
     df = calc_eph_minor_body_perturbed(dc.HALLEY_B1950, eph, 'comet')   
-    check_df(df, exp_df, EXP_DIFF_PERTURBED) 
+    check_df(df, exp_df, EXP_DIFF_PERT) 
 
     df = calc_eph_by_cowells(dc.HALLEY_B1950, eph, 'comet')   
-    check_df(df, exp_df, EXP_DIFF_PERTURBED)    
+    check_df(df, exp_df, EXP_DIFF_PERT)    
+
+    df = calc_eph_by_enckes(dc.HALLEY_B1950, eph, 'comet')   
+    check_df(df, exp_df, EXP_DIFF_PERT_ENCKES)    
+
 
 
 def test_HalleyJ2000_for_1985():    
@@ -88,7 +92,8 @@ def test_HalleyJ2000_for_1985():
     
     exp_df = dc.read_jpl_data(fn)    
     EXP_DIFF = 256239.92
-    EXP_DIFF_PERTURBED = 1570
+    EXP_DIFF_PERT = 1570
+    EXP_DIFF_PERT_ENCKES = 1570
 
 
     eph  = EphemrisInput(from_date="1985.11.15.0",
@@ -100,10 +105,15 @@ def test_HalleyJ2000_for_1985():
     check_df(df, exp_df, EXP_DIFF) 
 
     df = calc_eph_minor_body_perturbed(dc.HALLEY_J2000, eph, type='comet')   
-    check_df(df, exp_df, EXP_DIFF_PERTURBED) 
+    check_df(df, exp_df, EXP_DIFF_PERT) 
 
     df = calc_eph_by_cowells(dc.HALLEY_J2000, eph, 'comet')   
-    check_df(df, exp_df, EXP_DIFF_PERTURBED)    
+    check_df(df, exp_df, EXP_DIFF_PERT) 
+
+    # TODO the lenght of the df result are not equal
+    #df = calc_eph_by_enckes(dc.HALLEY_J2000, eph, 'comet')   
+    #check_df(df, exp_df, EXP_DIFF_PERT_ENCKES)    
+   
 
 
 
@@ -119,7 +129,8 @@ def test_HalleyJ2000_for_1997():
     fn = TEST_DATA_PATH.joinpath('jpl_halley_1997-Nov-15_1998-Apr-04.csv')
     exp_df = dc.read_jpl_data(fn)    
     EXP_DIFF = 1099.5
-    EXP_DIFF_PERTURBED = 14
+    EXP_DIFF_PERT = 14
+    EXP_DIFF_PERT_ENCKES = 8
 
     eph  = EphemrisInput(from_date="1997.11.15.0",
                         to_date = "1998.04.04.0",
@@ -130,11 +141,13 @@ def test_HalleyJ2000_for_1997():
     check_df(df, exp_df, EXP_DIFF) 
 
     df = calc_eph_minor_body_perturbed(dc.HALLEY_J2000, eph, 'comet')   
-    check_df(df, exp_df, EXP_DIFF_PERTURBED)     
+    check_df(df, exp_df, EXP_DIFF_PERT)     
 
     df = calc_eph_by_cowells(dc.HALLEY_J2000, eph, 'comet')   
-    check_df(df, exp_df, EXP_DIFF_PERTURBED)    
+    check_df(df, exp_df, EXP_DIFF_PERT)    
 
+    df = calc_eph_by_enckes(dc.HALLEY_J2000, eph, 'comet')   
+    check_df(df, exp_df, EXP_DIFF_PERT_ENCKES)    
 
 
 def test_HalleyJ2000_for_2017():    
@@ -147,7 +160,8 @@ def test_HalleyJ2000_for_2017():
     fn = TEST_DATA_PATH.joinpath('jpl_halley_2017-Nov-15_2018-Apr-04.csv')
     exp_df = dc.read_jpl_data(fn)    
     EXP_DIFF = 1807    
-    EXP_DIFF_PERTURBED = 113.6
+    EXP_DIFF_PERT = 113.6
+    EXP_DIFF_PERT_ENCKES = 66
 
     eph  = EphemrisInput(from_date="2017.11.15.0",
                         to_date = "2018.04.04.0",
@@ -158,10 +172,14 @@ def test_HalleyJ2000_for_2017():
     check_df(df, exp_df, EXP_DIFF) 
 
     df = calc_eph_minor_body_perturbed(dc.HALLEY_J2000, eph, 'comet')   
-    check_df(df, exp_df, EXP_DIFF_PERTURBED)     
+    check_df(df, exp_df, EXP_DIFF_PERT)     
 
     df = calc_eph_by_cowells(dc.HALLEY_J2000, eph, 'comet')   
-    check_df(df, exp_df, EXP_DIFF_PERTURBED)    
+    check_df(df, exp_df, EXP_DIFF_PERT)    
+
+    df = calc_eph_by_enckes(dc.HALLEY_J2000, eph, 'comet')   
+    check_df(df, exp_df, EXP_DIFF_PERT_ENCKES)    
+
 
 def test_ceres_B1950_for_1992():
     """ Two tests are done here to show that in the case of CERES the perturbantions
@@ -176,6 +194,7 @@ def test_ceres_B1950_for_1992():
     EXP_DIFF = 59888.3
     EXP_DIFF_PERTURBED = 300.6
     EXP_DIFF_PERTURBED_J2000 = 3322.6
+    EXP_DIFF_PERT_ENCKES = EXP_DIFF_PERTURBED_J2000
 
     eph = EphemrisInput(from_date="1992.06.27.0",
                         to_date = "1992.07.25.0",
@@ -193,6 +212,9 @@ def test_ceres_B1950_for_1992():
 
     df = calc_eph_by_cowells(dc.CERES_J2000, eph, 'body')   
     check_df(df, exp_df, EXP_DIFF_PERTURBED_J2000)    
+
+    df = calc_eph_by_enckes(dc.CERES_J2000, eph, 'body')   
+    check_df(df, exp_df, EXP_DIFF_PERT_ENCKES)    
 
 
 def test_ceres_J2000_for_2010():

@@ -109,7 +109,7 @@ def apply_enckes(eph, t_range, r0, v0):
     return result
 
 
-def calc_eph_by_enckes (body, eph, type='body'):
+def calc_eph_by_enckes (body, eph, obj_type='body'):
     """
     Computes the ephemeris for a minor body using the Enckes method. This has more precission that
     the Cowells but it takes more time to be calculated.
@@ -142,7 +142,7 @@ def calc_eph_by_enckes (body, eph, type='body'):
 
     initial_mjd = body.epoch_mjd  
 
-    if type == 'body' :
+    if obj_type == 'body' :
         k_orbit = KeplerianOrbit.for_body(body)
     else :
         k_orbit = KeplerianOrbit.for_comet(body)
