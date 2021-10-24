@@ -5,17 +5,13 @@ perturbation method by Cowels
 import logging
 
 # Third party imports
-import pandas as pd
 import numpy as np
-from numpy import rad2deg, deg2rad
 from numpy.linalg import norm
-import toolz as tz
 # Using Newton-Ramson method
 from scipy.integrate import solve_ivp    
 
 # Local application imports
 from myorbit import coord as co
-import myorbit.planets as pl
 import myorbit.coord as co
 from myorbit.util.general import frange
 from myorbit.orbits.keplerian import KeplerianOrbit

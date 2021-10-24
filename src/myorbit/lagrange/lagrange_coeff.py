@@ -1,40 +1,33 @@
-"""
-This module contains functions related to Lagrange Coefficients and universal variables
-The source comes from the book Orbital Mechanics for Engineering Students 
+""" This module contains functions related to Lagrange Coefficients and universal variables
+The source comes from the book 'Orbital Mechanics for Engineering Students'
 """
 # Standard library imports
-
-from functools import partial
-from math import isclose
 import logging
-import sys
 
 # Third party imports
 import numpy as np
-from numpy import sin, cos, tan, arcsin, arccos, arctan2, arctan, sqrt,cosh,sinh,deg2rad,rad2deg, sqrt
-from numpy.linalg import multi_dot, norm
-from toolz import pipe, compose, first, valmap
+from numpy import sin, cos, sqrt,cosh,sinh, sqrt
+from numpy.linalg import norm
 
 # Local application imports
-import myorbit.orbits.orbutil as ob
-import myorbit.data_catalog as dc
-from myorbit.orbits.ephemeris_input import EphemrisInput
 from myorbit.util.general import pow
-import myorbit.util as ut
+import  myorbit.lagrange.kepler_u as ku
 from myorbit.util.constants import *
-import  myorbit.kepler_u as ku
+
 
 logger = logging.getLogger(__name__)
 
-
 def stump_C(z) :
-    """
-    Evaluates the Stumpff function C(z) according to the Equation 3.53
-    
-    Args:
-        z : argument (real number)
+    """Evaluates the Stumpff function C(z) according to the Equation 3.53
 
-    Returns :
+    Parameters
+    ----------
+    z : float
+        The argument
+
+    Returns
+    -------
+    float
         The value of the C(z)
     """
 
@@ -45,44 +38,54 @@ def stump_C(z) :
     else :
         return 0.5
 
+def stump_S(z) :    
+    """Evaluates the Stumpff function S(z) according to the Equation 3.52
 
-def stump_S(z) :
-    """
-    Evaluates the Stumpff function S(z) according to the Equation 3.52
-    
-    Args:
-        z : argument (real number)
+    Parameters
+    ----------
+    z : float
+        The argument
 
-    Returns :
+    Returns
+    -------
+    float
         The value of the S(z)
     """
-
     if z > 0:
         sz = sqrt(z) 
         return (sz - sin(sz))/pow(sz,3)
     elif z < 0 :
         s_z = sqrt(-z) 
-        # According to the equation the denominatori is pow(sqrt(z),3)
+        # According to the equation the denominator is pow(sqrt(z),3)
         return  (sinh(s_z) - s_z)/pow(s_z,3)
     else :
         return 0.1666666666666666
 
-
 def kepler_U_prv(mu, x , dt, ro, vro, inv_a, nMax=500):
-    """
-    Compute the general anomaly by solving the universal Kepler
-    function  using the Newton's method 
+    """Compute the general anomaly by solving the universal Kepler
+    function using the Newton's method 
 
-    Args:
-        mu : Gravitational parameter (AU^3/days^2)
-        dt : time since x = 0 (days)
-        ro : radial position (AU) when x=0
-        vro: rdial velocity (AU/days) when x=0
-        inv_a : reciprocal of the semimajor axis (1/AU)
-        nMax : maximum allowable number of iterations
+    Parameters
+    ----------
+    mu : float
+        Gravitational parameter [AU^3/days^2]
+    x : float
+        the universal anomaly after time t [km^0.5]
+    dt : float
+        time since x = 0 [days]
+    ro : np.array
+        Initial radial position, i.e., when x=0 [AU]
+    vro : np.array
+        Initial radial velocity, i.e., when x=0 [AU]
+    inv_a : float
+        Reciprocal of the semimajor axis [1/AU]
+    nMax : int, optional
+        Maximum allowable number of iterations, by default 500
 
-    Returns :
-        The universal anomaly (x) AU^.5
+    Returns
+    -------
+    float
+        The universal anomaly (x) [AU^.5]
     """
 
     error = 1.0e-8
@@ -105,20 +108,30 @@ def kepler_U_prv(mu, x , dt, ro, vro, inv_a, nMax=500):
 LINEAR_GRID = list(np.linspace(2.5,4,16,endpoint=True))
 
 def kepler_U(mu, dt, ro, vro, inv_a, nMax=500):
-    """
-    Compute the general anomaly by solving the universal Kepler
-    function  using the Newton's method 
+    """Compute the general anomaly by solving the universal Kepler
+    function  using the Newton's method
 
-    Args:
-        mu : Gravitational parameter (AU^3/days^2)
-        dt : time since x = 0 (days)
-        ro : radial position (AU) when x=0
-        vro: rdial velocity (AU/days) when x=0
-        inv_a : reciprocal of the semimajor axis (1/AU)
-        nMax : maximum allowable number of iterations
+    Parameters
+    ----------
+    mu : float
+        Gravitational parameter [AU^3/days^2]
+    x : float
+        the universal anomaly after time t [km^0.5]
+    dt : float
+        time since x = 0 [days]
+    ro : np.array
+        Initial radial position, i.e., when x=0 [AU]
+    vro : np.array
+        Initial radial velocity, i.e., when x=0 [AU]
+    inv_a : float
+        Reciprocal of the semimajor axis [1/AU]
+    nMax : int, optional
+        Maximum allowable number of iterations, by default 500
 
-    Returns :
-        The universal anomaly (x) AU^.5
+    Returns
+    -------
+    float
+        The universal anomaly (x) [AU^.5]
     """
 
     """
@@ -136,42 +149,56 @@ def kepler_U(mu, dt, ro, vro, inv_a, nMax=500):
     x = sqrt(mu)*abs(inv_a)*dt
     return ku.kepler_U(mu, x, dt, ro, vro, inv_a, nMax)
    
-
-
 def calc_f_g(mu, x, t, ro, inv_a):
-    """
-    Calculates the Lagrange f and g coefficients starting from the initial position r0 (radio vector
-    from the dinamical center (normally the Sun) and the elapsed time t)
+    """Calculates the Lagrange f and g coefficients starting from the initial
+    position r0 (radio vector from the dinamical center (normally the Sun)
+    and the elapsed time t)
 
-    Args:
-        mu : Gravitational parameter (AU^3/days^2)
-        x : the universal anomaly after time t (km^0.5)
-        t : the time elapsed since ro (days)
-        ro : the radial position at time to (AU)
-        inv_a : reciprocal of the semimajor axis (1/AU)
+    Parameters
+    ----------
+    mu : float
+        Gravitational parameter [AU^3/days^2]
+    x : float
+        the universal anomaly after time t [km^0.5]
+    t : float
+        the time elapsed since ro (days)
+    ro : np.array
+        the radial position at time to [AU]
+    inv_a : float
+        reciprocal of the semimajor axis [1/AU]
 
-    Returns :
-        A tuple with f and g coefficients
+    Returns
+    -------
+    tuple
+        A tuple with f and g coefficients, i.e.,  (f,g)
     """
     z = inv_a*pow(x,2)
     f = 1 - pow(x,2)/ro*stump_C(z)    
     g = t - 1/sqrt(mu)*pow(x,3)*stump_S(z)
     return f, g 
 
+
 def calc_fdot_gdot(mu, x, r, ro, inv_a) :
-    """
-    Calculates the time derivatives of Lagrange coefficients
+    """Calculates the time derivatives of Lagrange coefficients
     f and g coefficients.
 
-    Args:
-        mu : Gravitational parameter (AU^3/days^2)
-        x : the universal anomaly after time t (AU^0.5)
-        r :  the radial position (radio vector) after time t (AU)
-        ro : the radial position (radio vector) at time to (AU)
-        inv_a : reciprocal of the semimajor axis (1/AU)
+    Parameters
+    ----------
+    mu : float
+        Gravitational parameter [AU^3/days^2]
+    x : float
+        the universal anomaly after time t [AU^0.5]
+    r : np.array
+        the radial position (radio vector) after time t [AU]
+    ro : np.array
+        the radial position (radio vector) at time to [AU]
+    inv_a : float
+        reciprocal of the semimajor axis [1/AU]
 
-    Returns :
-        a tuple with fdot and gdot 
+    Returns
+    -------
+    tuple
+        a tuple with fdot and gdot, i.e., (fdot, gdot)
     """
 
     z = inv_a*pow(x,2)
@@ -181,27 +208,34 @@ def calc_fdot_gdot(mu, x, r, ro, inv_a) :
     gdot = 1 - pow(x,2)/r*stump_C(z)
     return fdot, gdot
 
-
 def rv_from_r0v0(mu, R0, V0, t):
-    """
-    This function computes the state vector (R,V) from the
+    """This function computes the state vector (R,V) from the
     initial state vector (R0,V0) and after the elapsed time.
     Internally uses the universal variables and the lagrange coefficients.
-    Although according to the book, this is used in the perifocal plane (i.e. the orbital plane),
-    in the enckle method I used in the ecliptic plane and it works. It may be becasue at the
-    end the the size of the orbital plane does not change only it is rotated according to the
+    Although according to the book, this is used in the perifocal plane 
+    (i.e. the orbital plane), in the enckle method I used in the ecliptic 
+    plane and it works. It may be becasue at the end the the size of the
+    orbital plane does not change only it is rotated according to the
     Gauss angles.
 
-    Args:
-        mu : Gravitational parameter (AU^3/days^2)
-        R0 : initial position vector (AU)
-        V0 : initial velocity vector (AU/days)
-         t : Elapsed time (days)
+    Parameters
+    ----------
+    mu : float
+        Gravitational parameter [AU^3/days^2]
+    R0 : np.array
+        initial position vector [AU]
+    V0 : np.array
+        initial position vector [AU]
+    t : float
+        Elapsed time [days]
 
-    Returns :
-        A tuple with:
+    Returns
+    -------
+    tuple
+        A tuple (R,V) where:
             R: Final position vector (AU)
             V: Final position vector (AU/days)
+
     """
     #...Magnitudes of R0 and V0:
     r0 = norm(R0)

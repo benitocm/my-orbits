@@ -13,8 +13,6 @@ import numpy as np
 # Local application imports
 from myorbit.util.general import my_range
 
-
-
 def my_range2 (start, stop, step, include_start = True, include_end = True):
     result = []
     i = 0

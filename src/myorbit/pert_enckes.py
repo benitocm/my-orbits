@@ -14,7 +14,7 @@ from scipy.integrate import solve_ivp
 
 from myorbit import coord as co
 
-from myorbit.lagrange_coeff import rv_from_r0v0
+from myorbit.lagrange.lagrange_coeff import rv_from_r0v0
 from myorbit.util.timeut import epochformat2jd, jd2mjd, T, mjd2jd, jd2str_date, MDJ_J2000, JD_J2000
 from myorbit.planets import g_xyz_equat_sun_j2000, g_rlb_eclip_sun_eqxdate
 from myorbit.util.general import mu_by_name, mu_Sun, my_range, measure

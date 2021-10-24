@@ -24,36 +24,14 @@ from myorbit.two_body import calc_eph_twobody, calc_eph_minor_body_perturbed
 from myorbit.pert_cowels import calc_eph_by_cowells
 from myorbit.pert_enckes import calc_eph_by_enckes
 
-def calc_diff_seconds(my_df, exp_df):
-    my_df['r_AU_2'] = my_df['r[AU]']
-    my_df['ra_2'] = my_df['ra'].map(co.make_ra)
-    my_df['de_2'] = my_df['dec'].str.replace("'","m").str.replace('"',"s").map(co.make_lon)
-    cols=['date','ra_2','de_2','r_AU_2']
-    df = my_df[cols].copy()
-    df = exp_df.merge(my_df, on='date')
-    df['dist_ss'] = df.apply(lambda x: angular_distance(x['ra_1'],x['de_1'],x['ra_2'],x['de_2']), axis=1).map(np.rad2deg)*3600.0
-    print (df['dist_ss'].abs() )
-    print ((df['dist_ss'].abs()).sum())
-    return (df['dist_ss'].abs()).sum()
+from common import calc_diff_seconds, check_df, TEST_DATA_PATH
 
-
-""" The test data is obtained from https://ssd.jpl.nasa.gov/horizons/app.html#/
-"""
-
-def check_df(df, exp_df, exp_diff) :
-    print (df[df.columns[0:8]])
-    assert len(df) == len(exp_df)
-    diff_secs = calc_diff_seconds(df, exp_df)
-    assert diff_secs < exp_diff
-
-
-
-TEST_DATA_PATH = Path(__file__).resolve().parents[0].joinpath('data')
-    
+# Because ENCKES calcultations takes a lot of time, this flag variable is 
+# to control when to run them
+TEST_ENCKES = False
 
 def test_HalleyB1950_for_1985():  
     fn = TEST_DATA_PATH.joinpath('jpl_halley_1985-Nov-15_1985-Apr-05.csv')
-
     exp_df = dc.read_jpl_data(fn)    
     EXP_DIFF = 1305.1
     EXP_DIFF_PERT =761.92
@@ -74,8 +52,9 @@ def test_HalleyB1950_for_1985():
     df = calc_eph_by_cowells(dc.HALLEY_B1950, eph, 'comet')   
     check_df(df, exp_df, EXP_DIFF_PERT)    
 
-    df = calc_eph_by_enckes(dc.HALLEY_B1950, eph, 'comet')   
-    check_df(df, exp_df, EXP_DIFF_PERT_ENCKES)    
+    if TEST_ENCKES :
+        df = calc_eph_by_enckes(dc.HALLEY_B1950, eph, 'comet')   
+        check_df(df, exp_df, EXP_DIFF_PERT_ENCKES)    
 
 
 
@@ -146,8 +125,9 @@ def test_HalleyJ2000_for_1997():
     df = calc_eph_by_cowells(dc.HALLEY_J2000, eph, 'comet')   
     check_df(df, exp_df, EXP_DIFF_PERT)    
 
-    df = calc_eph_by_enckes(dc.HALLEY_J2000, eph, 'comet')   
-    check_df(df, exp_df, EXP_DIFF_PERT_ENCKES)    
+    if TEST_ENCKES :
+        df = calc_eph_by_enckes(dc.HALLEY_J2000, eph, 'comet')   
+        check_df(df, exp_df, EXP_DIFF_PERT_ENCKES)    
 
 
 def test_HalleyJ2000_for_2017():    
@@ -177,8 +157,9 @@ def test_HalleyJ2000_for_2017():
     df = calc_eph_by_cowells(dc.HALLEY_J2000, eph, 'comet')   
     check_df(df, exp_df, EXP_DIFF_PERT)    
 
-    df = calc_eph_by_enckes(dc.HALLEY_J2000, eph, 'comet')   
-    check_df(df, exp_df, EXP_DIFF_PERT_ENCKES)    
+    if TEST_ENCKES :
+        df = calc_eph_by_enckes(dc.HALLEY_J2000, eph, 'comet')   
+        check_df(df, exp_df, EXP_DIFF_PERT_ENCKES)    
 
 
 def test_ceres_B1950_for_1992():
@@ -213,8 +194,9 @@ def test_ceres_B1950_for_1992():
     df = calc_eph_by_cowells(dc.CERES_J2000, eph, 'body')   
     check_df(df, exp_df, EXP_DIFF_PERTURBED_J2000)    
 
-    df = calc_eph_by_enckes(dc.CERES_J2000, eph, 'body')   
-    check_df(df, exp_df, EXP_DIFF_PERT_ENCKES)    
+    if TEST_ENCKES :
+        df = calc_eph_by_enckes(dc.CERES_J2000, eph, 'body')   
+        check_df(df, exp_df, EXP_DIFF_PERT_ENCKES)    
 
 
 def test_ceres_J2000_for_2010():
@@ -241,8 +223,9 @@ def test_ceres_J2000_for_2010():
     df = calc_eph_by_cowells(dc.CERES_J2000, eph, 'body')   
     check_df(df, exp_df, EXP_DIFF_PERT)    
 
-    df = calc_eph_by_enckes(dc.CERES_J2000, eph, 'body')   
-    check_df(df, exp_df, EXP_DIFF_PERT_ENCKES)    
+    if TEST_ENCKES :
+        df = calc_eph_by_enckes(dc.CERES_J2000, eph, 'body')   
+        check_df(df, exp_df, EXP_DIFF_PERT_ENCKES)    
 
 
 """

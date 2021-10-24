@@ -2,7 +2,7 @@
 This module contains functions related to time conversions
 """
 # Standard library imports
-from functools import partial, wraps
+from functools import wraps
 from itertools import tee
 from time import time
 
@@ -12,7 +12,7 @@ from numpy import cos, sin
 from toolz import valmap
 
 # Local application imports
-from .constants import *
+from myorbit.util.constants import *
 
 #https://en.wikipedia.org/wiki/Standard_gravitational_parameter
 mu_m3s_2__by_name = {
@@ -32,27 +32,29 @@ mu_m3s_2__by_name = {
 
 PERTURBING_PLANETS = mu_m3s_2__by_name.keys() - ["Sun","Ceres","Eris"]
 
-
 def to_AU_days(mu_m3s_2):
-    return mu_m3s_2 * seconds_in_day*seconds_in_day/(AU_m*AU_m*AU_m)
+    return mu_m3s_2 * SECONDS_IN_DAY*SECONDS_IN_DAY/(AU_m*AU_m*AU_m)
 
-# Gravitational parameters en AU/days
+# Gravitational parameters in AU/days
 mu_by_name = valmap(to_AU_days,mu_m3s_2__by_name)
 
 mu_Sun = mu_by_name["Sun"]
 
-def pairwise(iterable):
-    "s -> (s0,s1), (s1,s2), (s2, s3), ..."
-    a, b = tee(iterable)
-    next(b, None)
-    return zip(a, b)
-
-
-def euclidean_distance (tup1, tup2) :
-    return np.sqrt(np.square(tup1[0]-tup2[0])+np.square(tup1[0]-tup2[0]))
-
-
 def pow(x,n):
+    """Computes x^n 
+
+    Parameters
+    ----------
+    x : float
+        the value to power
+    n : int
+        The exponent 
+
+    Returns
+    -------
+    int
+        the value of x^n
+    """
     if n ==0:
         return 1
     elif n==1:
@@ -64,14 +66,44 @@ def pow(x,n):
     else :
         return np.power(x,n)
 
-
 def frange(start, stop, step):
+    """Generates a list of integer numbers in a closed interval according to
+    a step
+
+    Parameters
+    ----------
+    start : int
+        The start of the interval
+    stop : int
+        The end of the interval
+    step : int
+        the step
+
+    Yields
+    -------
+    int
+        the secuence of numbers
+    """
     i = 0
     while start + i * step <= stop:
         yield start + i * step
         i += 1
 
 def memoize(func):
+    """Decorates a function adding caching funcionality, i.e, introduce a dictionary where
+    the results are stored indexed by a key so the function is only called when
+    the key requested is not in the dictionary
+
+    Parameters
+    ----------
+    func : function
+        Function to which the caching functionality is added
+
+    Returns
+    -------
+    func
+        The decorated function
+    """
     cache = func.cache = {}
     @wraps(func)
     def memoized_func(*args, **kwargs):
@@ -83,20 +115,64 @@ def memoize(func):
 
 
 def angular_distance(ra1,de1,ra2,de2):
+    """Computes the angular distance between two points from its RA,DEC coordinates
+
+    Parameters
+    ----------
+    ra1 : float
+        Right Ascenison of the first point [radians]
+    de1 : float
+        Declination of the first point [radians]
+    ra2 : float
+        Right Ascenison of the second point [radians]
+    de2 : float
+        Declination of the first point [radians]
+
+    Returns
+    -------
+    float
+        The angular distance [radians]
+    """
     cos_d = sin(de1) * sin(de2) + cos(de1)*cos(de2)*cos(ra1-ra2)
     d = np.arccos(cos_d)
     return d    
  
 
 def pr_rad(alpha):
+    """Utility function to print in degrees an angle expressend in radians
+
+    Parameters
+    ----------
+    alpha : float
+        Angle [radians]
+    """
     print (np.rad2deg(alpha))
 
 def pr_radv(v):
+    """Utility function to print in degrees a 3-vector that contains 
+    a radial component (not an angle), a longitude (radians) and latitude (radians) 
+
+    Parameters
+    ----------
+    v : np.array
+        A 3-vector containing a radial component, a longitude component (radians) 
+        and latitude component (radians)
+    """
     print(f'r: {v[0]}  lon: {np.rad2deg(v[1])}  lat: {np.rad2deg(v[2])}')
 
-
-
 def measure(func):
+    """Decorates a function to measure its execution time
+
+    Parameters
+    ----------
+    func : function
+        The function whose execution time will be measured
+
+    Returns
+    -------
+    decorator
+        The function decorated
+    """
     @wraps(func)
     def _time_it(*args, **kwargs):
         start = int(round(time() * 1000))
@@ -107,23 +183,32 @@ def measure(func):
             print(f"Total execution time: {end_ if end_ > 0 else 0} ms")
     return _time_it
     
-    
+
+
 def my_range (start, stop, step, include_start = True, include_end = True):
-    """
-    Generate a range of number but allows to force the inclusion of the start and the end
-    the Cowells but it takes more time to be calculated.
+    """Generate a range of number but allows to force the inclusion of the
+    start and the end (used in EncKes) but it takes more time to be calculated.
     Even if the step is too big, the start and end can be forced
 
-    Args:
-        start :
-        end : 
-        step : 
-        include_start :
-        include_end
+    Parameters
+    ----------
+    start : int
+        The inital index of the range
+    stop : int
+        The final index of the range
+    step : int
+        The step
+    include_start : bool, optional
+        Indicates whether the initialindex must be included in the result or not[description], by default True
+    include_end : bool, optional
+        Indicates whether the final index must be included in the result or not, by default True
 
-    Returns :
-        A list with the interval
-    """    
+    Returns
+    -------
+    list
+        The list of indexes that meets the criteria
+    """
+
     result = []
     i = 0
     while start + i * step <= stop:
@@ -139,3 +224,5 @@ def my_range (start, stop, step, include_start = True, include_end = True):
         result = result[1:]
     return result
     
+if __name__ == "__main__" :
+   None

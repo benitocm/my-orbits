@@ -20,17 +20,37 @@ from numpy import deg2rad, rad2deg
 # Local application imports
 from .constants import *
 
-def my_fix(x : float) -> int:
-    """
-    Given a float number, return an integer that is less
+
+def my_fix(x):
+    """Given a float number, return an integer that is less
     than or equal to the argument
+
+    Parameters
+    ----------
+    x : float
+        The value 
+
+    Returns
+    -------
+    int
+        The integer part of the x
     """
     return int(np.modf(x)[1])
 
-def my_frac(x: float) -> float:
-    """
-    Given a float number, return the fraction part as float ignoring
+
+def my_frac(x) :
+    """Given a float number, return the fraction part as float ignoring
     the sign
+
+    Parameters
+    ----------
+    x : float
+        The value
+
+    Returns
+    -------
+    float
+        The fraction part of x
     """
     return np.abs(np.modf(x)[0])
 
@@ -38,6 +58,18 @@ def my_frac(x: float) -> float:
 # Python's built-in float type has double precision
 
 def norm_rad(rad):
+    """[summary]
+
+    Parameters
+    ----------
+    rad : float
+        angle [radians]
+
+    Returns
+    -------
+    float 
+        [description]
+    """
     return pipe(rad,rad2deg,norm_dg,deg2rad)
 
 def reduce_rad(rad, to_positive=False):
@@ -626,7 +658,7 @@ def T (epoch_name:str, from_epoch_name="J2000") -> float :
 if __name__ == "__main__":
     #print (datefd2jd(1957,10,4.81))
     #print (ymdfh2mjd(1805, 9, 5, 24.165))
-    print (datetime2jd(1805,9, 5, hour=24.165) )
+    #print (datetime2jd(1805,9, 5, hour=24.165) )
     #print (dms2d(0,30,30.00,"-"))
     #print ( hms2h (9,14,55.8))
     #print (elapsed_days2date(2005,68))

@@ -1,8 +1,7 @@
-"""This module contains contants values shared between several modules[summary]
+"""This module contains contants values shared between several modules
 """
 # Third party imports
 import numpy as np
-
 
 # Product of grativational constant times and the solar mass AU^3*d^2
 # This is equivalent to k^2 (Heliocentric Gaussian constant)
@@ -12,10 +11,9 @@ k_gauss = 0.01720209895
 c_light = 173.14  # [AU/d]
 
 AU_m = 149597870700
-seconds_in_day = 3600*24
+SECONDS_IN_DAY = 3600*24
 
 # Inverse of spped of light in days/AU
-#INV_C = 0.00578 
 INV_C = 0.0057755183
 
 TWOPI = 2*np.pi

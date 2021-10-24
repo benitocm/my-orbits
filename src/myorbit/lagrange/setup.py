@@ -2,7 +2,8 @@ from distutils.core import Extension, setup
 from distutils.extension import Extension
 from Cython.Build import cythonize
 
-# The instructions to build the cython are :
+# The instructions to build the cython are, execute on the directory 
+#  where the setup.py is located:
 #       python setup.py build_ext --inplace
 #   
 
