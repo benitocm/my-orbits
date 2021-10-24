@@ -7,10 +7,11 @@ from typing import Any,Dict,List,Tuple,Sequence
 
 from datetime import datetime
 from functools import partial
-from toolz import pipe
+from math import isclose
 
 # Third party imports
 import numpy as np
+from toolz import pipe
 from pytz import timezone
 from numpy.polynomial.polynomial import Polynomial
 from datetime import datetime
@@ -20,6 +21,9 @@ from numpy import deg2rad, rad2deg
 # Local application imports
 from .constants import *
 
+#
+# Python's built-in float type has double precision
+#
 
 def my_fix(x):
     """Given a float number, return an integer that is less
@@ -36,7 +40,6 @@ def my_fix(x):
         The integer part of the x
     """
     return int(np.modf(x)[1])
-
 
 def my_frac(x) :
     """Given a float number, return the fraction part as float ignoring
@@ -55,25 +58,8 @@ def my_frac(x) :
     return np.abs(np.modf(x)[0])
 
 
-# Python's built-in float type has double precision
-
-def norm_rad(rad):
-    """[summary]
-
-    Parameters
-    ----------
-    rad : float
-        angle [radians]
-
-    Returns
-    -------
-    float 
-        [description]
-    """
-    return pipe(rad,rad2deg,norm_dg,deg2rad)
-
 def reduce_rad(rad, to_positive=False):
-    """Reduce an angle to a value between -TWOPI < angle < TWOPI
+    """Reduce an angle to a value between (-TWOPI, TWOPI), i.e. an open interval
 
     Parameters
     ----------
@@ -87,38 +73,97 @@ def reduce_rad(rad, to_positive=False):
     float
         The angle reduced [radians]
     """
-
     remainder = my_frac(rad/TWOPI)*TWOPI
-    if rad > 0 :
+    if isclose(remainder, 0, abs_tol=1e-9):
+        return 0.0
+    if rad >= 0.0 :
         return remainder
     else :
         return -remainder + TWOPI if to_positive else -remainder        
 
 def norm_dg(degrees):
-    """
+    """Given a angle in degress (positve or negative), computes
+    the equivalent angle between [0,360) degrees. In case,
+    the angle is negative, the positive version is returned.
+
+    Parameters
+    ----------
+    degrees : float
+        Angle that may include the fractional part [degrees]
+
+    Returns
+    -------
+    float
+        The equivalent angle between [0,360)
     """
     frac = my_frac(degrees)
     fix =  my_fix(degrees)
-    new_alpha = (np.abs(fix) % 360) + frac
-    if degrees < 0 :
-        new_alpha = 360 - new_alpha        
-    return new_alpha
+    new_alpha = (np.abs(fix) % 360) + frac    
+    if isclose(new_alpha, 0, abs_tol=1e-9):
+        return 0.0
+    elif degrees < 0 :
+        return 360 - new_alpha        
+    else :
+        return new_alpha
+
+def norm_rad(rad):
+    """"Given a angle in radians (positve or negative), computes
+    the equivalent angle between [0,2*PI) radians. In case,
+    the angle is negative, the positive version is returned.
+
+    Parameters
+    ----------
+    rad : float
+        angle [radians]
+
+    Returns
+    -------
+    float 
+        The equivalent angle between [0,2*PI)
+    """
+    return pipe(rad,rad2deg,norm_dg,deg2rad)
+
 
 # angles [-360, 360]
 # time   [0,24]
 
-def dgms2dg(dg :float ,arm: float = 0,ars: float =0, sign: int = 1) -> float : 
-    """
-    Converts from degress, minutes and seconds to decimal degrees
+def dgms2dg(dg ,arm = 0, ars =0, sign = 1) : 
+    """Convert from degress, minutes and seconds to decimal degrees
+
+    Parameters
+    ----------
+    dg : float
+        The degress value
+    arm : float, optional
+        The minutes value, by default 0
+    ars : float, optional
+        The second value, by default 0
+    sign : int, optional
+        The sign, when +1 means positive, when -1 means negative, by default +1
+
+    Returns
+    -------
+    float
+        The decimal degress
     """
     value = np.abs(dg) + arm/60 + ars/3600
     value = value if sign>0 else -value 
     return value
 
-def dg2dgms(ddg : float) -> Tuple: 
+def dg2dgms(ddg) : 
+    """Converts from decimal degress to degrees, minutes and seconds
+
+    Parameters
+    ----------
+    ddg : float
+        A value in decimal degress
+
+    Returns
+    -------
+    Tuple
+        A tuple (dg, min, sec, sign) 
     """
-    Converts from decimal degress to degrees, minutes and seconds
-    """
+
     dminutes, dg =  np.modf(np.abs(ddg))
     dseconds, minutes = np.modf(dminutes*60)
     seconds = np.around(dseconds * 60)
