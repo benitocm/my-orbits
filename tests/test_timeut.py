@@ -51,7 +51,7 @@ def test_norm_rad():
     alpha = TWOPI-0.001
     assert norm_rad(alpha) == approx(alpha)
     alpha = TWOPI
-    assert norm_rad(alpha) == approx (0)
+    assert norm_rad(alpha) == approx (0,abs=1e-12)
     alpha = deg2rad(361)
     assert norm_rad(alpha) == approx(deg2rad(1))
     alpha = 2*TWOPI
@@ -60,10 +60,10 @@ def test_norm_rad():
     assert norm_rad(alpha) == approx(deg2rad(1))
     alpha = deg2rad(-359)
     assert norm_rad(alpha) == approx(deg2rad(1))
-    assert norm_rad(-TWOPI) == approx (0)
+    assert norm_rad(-TWOPI) == approx (0,abs=1e-12)
     alpha = deg2rad(-361)
     assert norm_rad(alpha) == approx(deg2rad(359))
-    assert norm_rad(-2*TWOPI) == approx (0)
+    assert norm_rad(-2*TWOPI) == approx (0,abs=1e-12)
     alpha = deg2rad(-721)
     assert norm_rad(alpha) == approx(deg2rad(359))
 
@@ -72,11 +72,11 @@ def test_reduce_rad():
     alpha = deg2rad(359) 
     assert reduce_rad(alpha) == approx(alpha)
     alpha = TWOPI
-    assert reduce_rad(alpha) == approx(0)
+    assert reduce_rad(alpha) == approx(0,abs=1e-12)
     alpha = deg2rad(361)
     assert reduce_rad(alpha) == approx(deg2rad(1))
     alpha = 2*TWOPI
-    assert reduce_rad(alpha) == approx(0)
+    assert reduce_rad(alpha) == approx(0,abs=1e-12)
     alpha = deg2rad(721)
     assert reduce_rad(alpha) == approx(deg2rad(1))
     # Negative values as negative valuesa
@@ -85,7 +85,7 @@ def test_reduce_rad():
     alpha = deg2rad(-359) 
     assert reduce_rad(alpha) == approx(deg2rad(-359))
     alpha = -TWOPI
-    assert reduce_rad(alpha) == approx(0)
+    assert reduce_rad(alpha) == approx(0,abs=1e-12)
     alpha = deg2rad(-361)
     assert reduce_rad(alpha) == approx(deg2rad(-1))
     alpha = deg2rad(-721)
@@ -96,55 +96,57 @@ def test_reduce_rad():
     alpha = deg2rad(-359) 
     assert reduce_rad(alpha,True) == approx(deg2rad(1))
     alpha = -TWOPI
-    assert reduce_rad(alpha,True) == approx(0)
+    assert reduce_rad(alpha,True) == approx(0,abs=1e-12)
     alpha = deg2rad(-361)
     assert reduce_rad(alpha,True) == approx(deg2rad(359))
     alpha = deg2rad(-721)
     assert reduce_rad(alpha,True) == approx(deg2rad(359))
 
-def test_dgms2dg():
-    assert dgms2dg(24,13,18) == approx(24.221666)
-    assert dgms2dg(24,13,18,-1) == approx(-24.221666)
+def test_dgms2dg_dg2dgms():
 
-    assert dgms2dg(13,4,10) == approx(13.069444)
-    assert dgms2dg(13,4,10,-1) == approx(-13.069444)
-    
-    assert dgms2dg(13,4,10) == approx(13.069444)
-    assert dgms2dg(13,4,10,-1) == approx(-13.069444)
+    assert dgms2dg(24,13,18) == approx(24.221666666666664)   
+    assert dg2dgms(24.221666666666664) == (24,13,approx(18),1)   
 
-    assert dgms2dg(300,20,00) == approx(300.333333)
+    assert dgms2dg(24,13,18,-1) == approx(-24.221666666666664)
+    assert dg2dgms(-24.221666666666664) == (24,13,approx(18),-1)   
+        
+
+    assert dgms2dg(13,4,10) == approx(13.069444444444445)
+    assert dg2dgms(13.069444444444445) == (13,4,approx(10),1)   
+
+    assert dgms2dg(13,4,10,-1) == approx(-13.069444444444445)
+    assert dg2dgms(-13.069444444444445) == (13,4,approx(10),-1)   
+   
+    assert dgms2dg(300,20,00) == approx(300.3333333333333)
+    assert dg2dgms(300.3333333333333) == (300,20,approx(0,abs=1e-12),1)   
+
     assert dgms2dg(300,20,00,-1) == approx(-300.333333)
+    assert dg2dgms(-300.333333) == (300,20,approx(0,abs=1e-12),-1)   
 
-    assert dgms2dg(182,31,27) == approx(182.524167)
-    assert dgms2dg(182,31,27,-1) == approx(-182.524167)
+    assert dgms2dg(182,31,27) == approx(182.52416666666667)
+    assert dg2dgms(182.52416666666667) == (182,31,approx(27),1)   
 
-    
+    assert dgms2dg(182,31,27,-1) == approx(-182.52416666666667)
+    assert dg2dgms(-182.52416666666667) == (182,31,approx(27),-1)   
 
+    assert dg2dgms(-0.50833) == (0.0,30,approx(29.9879999),-1)
+    assert dg2dgms(10.2958) == (10,17,approx(44.8799999),1)
+    assert dg2dgms(-0.586) == (0,35.0,approx(9.5999999),-1) 
 
+def test_hms2h_h2hms():
+    assert hms2h (10,25,11) == approx(10.419722222222221)
+    assert h2hms (10.419722222222221) == (10,25,approx(11))
 
+    assert hms2h (9,14,55.8) == approx(9.248833333333332)
+    assert h2hms (9.248833333333332) == (9,14,approx(55.8))
 
+    assert hms2h (-9,-14,-55.8) == approx(9.248833333333332)
 
-
-
-
-
-
-
-
-def test_d2dms():
-    assert dg2dgms(-0.50833) == approx((0,30,29.9,-1),abs=1)
-    assert dg2dgms(10.2958) == approx((10,17,44.88,1))
-    assert dg2dgms(-0.586) == approx((0,35,9.6,-1))
-    assert dg2dgms(182.5241667) == (182,31,approx(27,abs=1),1)
-
-
-def test_hms2h():
-    assert hms2h (10,25,11) == approx(10.419722)
-    assert hms2h (9,14,55.8) == approx(9.248833)
+    assert hms2h (0,0,0.1) == approx(2.777777777777778e-05)
+    assert h2hms (2.777777777777778e-05) = hms2h (0,0,0.1)
 
 
-def test_h2hms():
-    assert h2hms(20.352) == approx((20, 21, 07.2))
+
 
 def test_radians():
     assert np.rad2deg(2.5) == approx(143.239449)
