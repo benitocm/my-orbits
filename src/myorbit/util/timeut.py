@@ -190,13 +190,19 @@ def hms2h(h = 0, m = 0, s=0)  :
     -------
     float
         decimal hours
+        None for negative values.
     """
-    value = np.abs(h) + np.abs(m)/60 +  np.abs(s)/3600
-    return value
+    if 0 <= h < 24 :
+        if 0 <= m < 60 :
+            if 0 <= s < 60 :
+                value = h + m/60 +  s/3600
+                return value
+    
+    
 
 def h2hms(dh) : 
     """Converts from decimal hours to hours, minutes and seconds
-    Used
+    Used for Right Ascension within a range  [0h0m0s -> 23h59h59s]
 
     Parameters
     ----------
@@ -207,7 +213,10 @@ def h2hms(dh) :
     -------
     Tuple
         A tuple (h, min, sec, sign) 
+        None for negative values
     """
+    if dh < 0:
+        return None
     dm, h = np.modf(np.abs(dh))
     ds, m = np.modf(dm*60)
     s = np.around(ds * 60)
@@ -216,10 +225,29 @@ def h2hms(dh) :
     else :
         return h,m,ds*60
 
-def hms2dg(h :float = 0, m: float = 0, s: float =0) -> float : 
+def hms2dg(h = 0, m = 0, s =0) : 
+    """Converts from  hours, minutes and seconds to decimal degrees   
+    Used for Right Ascension within a range  [0h0m0s -> 23h59h59s]
+
+    Parameters
+    ----------
+    h : float, optional
+        hours, by default 0
+    m : float, optional
+        minutes, by default 0
+    s : float, optional
+        seconds, by default 0
+
+    Returns
+    -------
+    float
+        [description]
     """
-    """
-    return dgms2dg(h,m,s) * 15
+    if 0 <= h < 24 :
+        if 0 <= m < 60 :
+            if 0 <= s < 60 :
+                #return dgms2dg(h,m,s) * 15
+                return hms2h(h,m,s)*15
 
 
 def dg2h(d : float ) -> float :
