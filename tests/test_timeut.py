@@ -143,12 +143,6 @@ def test_hms2h_h2hms():
     assert hms2h (0,0,0.1) == approx(2.777777777777778e-05)
     assert h2hms (2.777777777777778e-05) == (0,0,0.1)
 
-
-
-
-def test_radians():
-    assert np.rad2deg(2.5) == approx(143.239449)
-
 def test_hms2deg():
     # Used https://www.vercalendario.info/en/how/convert-ra-degrees-hours.html
     assert hms2dg(2,0,0) == 30

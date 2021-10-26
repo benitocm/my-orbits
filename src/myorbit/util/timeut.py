@@ -246,24 +246,68 @@ def hms2dg(h = 0, m = 0, s =0) :
     if 0 <= h < 24 :
         if 0 <= m < 60 :
             if 0 <= s < 60 :
-                #return dgms2dg(h,m,s) * 15
                 return hms2h(h,m,s)*15
 
 
-def dg2h(d : float ) -> float :
+def dg2h(d)  :
+    """Converts from decimal degrees to decimal hours. Used to convert to RA
+
+    # TODO negative values?
+    Parameters
+    ----------
+    d : float
+        decimal degrees value. It should be positive
+
+    Returns
+    -------
+    float
+        Decimal hours value (Right Ascension)
     """
-    """
+    
     return d/15
+    
+def dms2h (dg, arm = 0, ars =0, sign = 1) -> float : 
+    """Convert from degrees, minutes and seconds to decimal hours.
+    Used for R.A
 
+    Parameters
+    ----------
+    dg : float
+        Degrees
+    arm : float, optional
+        Minutes, by default 0
+    ars : float, optional
+        Seconds, by default 0
+    sign : int, optional
+        The sign, by default 1
 
-def dms2h (dg :float ,arm: float = 0,ars: float =0, sign: int = 1) -> float : 
-    """
+    Returns
+    -------
+    float
+        Decimal hours
     """
     return dg2h(dgms2dg(dg,arm,ars,sign))
 
-def hms2fd(h,m,s):
     """
     Given a time, returns the fractional day 
+    """
+
+def hms2fd(h,m,s):
+    """Converts a point in time in a day into the fractional day
+
+    Parameters
+    ----------
+    h : [type]
+        [description]
+    m : [type]
+        [description]
+    s : [type]
+        [description]
+
+    Returns
+    -------
+    [type]
+        [description]
     """
     return hms2h(h,m,s)/24
 
@@ -298,8 +342,22 @@ tan_hms = compose(np.tan,np.deg2rad,hms2dg)
 
 
 def is_gregorian (year, month, day):
-    """
+    """ Given a date as year, month number and day number, return if
+    that date is gregorian or not
 
+    Parameters
+    ----------
+    year : int
+        A year number
+    month : [type]
+        A month number 1<=month<=12
+    day : [type]
+        day number 1<=day<=31
+
+    Returns
+    -------
+    bool
+        True if the date is Gregorian. False, otherwise
     """
     if year > 1582:
         return True
@@ -312,8 +370,6 @@ def is_gregorian (year, month, day):
     else :
         return (day>=15)
 
-
-def datetime2jd(year,month,day,hour=0,minute=0,second=0) :
     """
     Given a date and time, calculates the julian day.
     A Julian day begins at 12h UT (noon) and not at 0h UT (midnight)
@@ -322,6 +378,38 @@ def datetime2jd(year,month,day,hour=0,minute=0,second=0) :
     part is 0.5, the time of day was midnight (UT)
 
     """   
+
+
+def datetime2jd(year,month,day,hour=0,minute=0,second=0) :
+    """Given a date-time as year number, month number, day number, hour,
+    minute and secondd, calculate the corresponding Julian Day.
+
+    A Julian day begins at 12h UT (noon) and not at 0h UT (midnight)
+    so whenever the fractional part of a Julian day is 0.0, the time of day
+    was noon (UT) for the calendar converted whereas whenever the fractional
+    part is 0.5, the time of day was midnight (UT)
+
+
+    Parameters
+    ----------
+    year : int
+        A year number
+    month : int
+        A month number 1<=month<=12
+    day : int
+        A day number 1<=day<=31
+    hour : int, optional
+        A hour number 0<=hour<=23, by default 0
+    minute : int, optional
+        A minute number 0<=minute<=59, by default 0, by default 0
+    second : int, optional
+        A second number 0<=second<=59, by default 0, by default 0
+
+    Returns
+    -------
+    float
+        The julian day
+    """
     m = month if (month>2) else month+12
     y = year if (month>2) else year-1
     t = 0.75 if (year<0) else 0
@@ -331,24 +419,85 @@ def datetime2jd(year,month,day,hour=0,minute=0,second=0) :
     jd = b + my_fix(365.25*y-t)+my_fix(30.6001*(m+1))+day+1720994.5+hms2fd(hour,minute,second)
     return jd
 
-#def datefd2jd(year,month,day,frac_day=0):
-#    return datetime2jd(year,month,day, *fd2hms(frac_day))
+def jd2datetime( julian_day : float ) -> Tuple:
+    """Converts a Julian day to the corresponding date-time value, i.e, 
+    year, month, day, fractional_day
+
+    Parameters
+    ----------
+    julian_day : float
+        A julian day value
+
+    Returns
+    -------
+    Tuple
+        (year, month, day, fractional_day)
+    """
+    
+    y, mo,fd = jd2datefd(julian_day)
+    d = my_fix(fd)    
+    return (y,mo,d,*fd2hms(my_frac(fd)))    
 
 def jd2str_date(jd):
+    """Given a julian day, returns its corresponding date-time as 
+    string
+
+    Parameters
+    ----------
+    jd : float
+        a Julian day
+
+    Returns
+    -------
+    str
+        The date-time as a string corresponding to the julian day.
+    """
     tup = jd2datetime(jd)
     return f'{tup[0]:04.0f}/{tup[1]:02.0f}/{tup[2]:02.0f}'
 
 
-def datefd2jd(year, month, day:float) -> float :
+def datefd2jd(year, month, day) :
+    """ Converts a date with year, month and day with fractional part into
+    the corresponding Julian day
+
+    Parameters
+    ----------
+    year : int
+        A year number
+    month : int
+        A month number 1<=month<=12
+    day : float
+        a day value with fractional part
+
+    Returns
+    -------
+    float
+        The julian day
+    """
     frac_day = my_frac(day)  
     d = my_fix(day)  
     return datetime2jd(year,month,d, *fd2hms(frac_day))    
 
-def ymfd2mjd(year, month, day:float) -> float :
-    """
-    Computes the modified Julian day (MJD). Its bases is November 17, 1858 at 0h
+def datefd2mjd(year, month, day:float) -> float :
+    """ Converts a date with year, month and day with fractional part into
+    the corresponding Modified Julian day.  Its bases is  November 17, 1858 at 0h
+
+    Parameters
+    ----------
+    year : int
+        A year number
+    month : int
+        A month number 1<=month<=12
+    day : float
+        a day value with fractional part
+
+    Returns
+    -------
+    float
+        The Modified julian day
     """
     return datefd2jd(year,month, day) - 2400000.5
+
 
 def ymdfh2mjd(year, month, day, frac_day) -> float :
     """
@@ -356,10 +505,34 @@ def ymdfh2mjd(year, month, day, frac_day) -> float :
     """
     return datetime2jd(year,month,day, *fd2hms(frac_day)) - 2400000.5
 
-def mjd2jd(mjd : float) -> float : 
+def mjd2jd(mjd)  : 
+    """Converts a Modified Julian Day into a Julian Day
+
+    Parameters
+    ----------
+    mjd : float
+        A Modified Julian Day
+
+    Returns
+    -------
+    float
+        The Julian Day
+    """
     return mjd + 2400000.5
 
-def jd2mjd(jd : float) -> float : 
+def jd2mjd(jd) : 
+    """Converts a Julian Day into a Modified Julian Day
+
+    Parameters
+    ----------
+    mjd : float
+        A Julian Day
+
+    Returns
+    -------
+    float
+        The Modified Julian Day
+    """
     return jd - 2400000.5
 
 def jd2datefd_v2( julian_day : float ) -> Tuple:
@@ -414,14 +587,6 @@ def jd2datefd( julian_day : float ) -> Tuple:
         year = c - 4715
 
     return year,month,day
-
-def jd2datetime( julian_day : float ) -> Tuple:
-    """
-    """
-    y, mo,fd = jd2datefd(julian_day)
-    d = my_fix(fd)    
-    return (y,mo,d,*fd2hms(my_frac(fd)))
-
 
 def is_leap_year(year : int ) -> bool :
     return (year%400 == 0) or (( year%4 == 0 ) and ( year%100 != 0))
