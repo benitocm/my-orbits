@@ -34,8 +34,8 @@ def test_HalleyB1950_for_1985():
     fn = TEST_DATA_PATH.joinpath('jpl_halley_1985-Nov-15_1985-Apr-05.csv')
     exp_df = dc.read_jpl_data(fn)    
     EXP_DIFF = 1305.1
-    EXP_DIFF_PERT =761.92
-    EXP_DIFF_PERT_ENCKES = 776
+    EXP_DIFF_PERT = 757
+    EXP_DIFF_PERT_ENCKES = 757
 
 
     eph  = EphemrisInput(from_date="1985.11.15.0",

@@ -86,6 +86,7 @@ def solve_ke(e, func_e_anomaly,  m_anomaly):
         logger.debug(f"Converged in {res[2]} iterations wih result {np.rad2deg(res[1])} degrees")
         return res[1]
 
+
 def solve_ke_newton(e, func_e_anomaly, m_anomaly, e_anomaly_0=None):
     """ Solves the kepler equation, i.e., calculates the excentric anomaly by using
      the Newton-Ranson method
@@ -338,7 +339,7 @@ def process_solution(tpoints, MTX_J2000_Teqx, MTX_equatFeclip, eph_eqx_name, inc
 
         g_rlb_equat_body = co.polarFcartesian(g_xyz_equat_body)        
 
-        row['ra'] = co.format_time(tz.pipe(g_rlb_equat_body[1], tc.rad2ddeg,  tc.dg2h, tc.h2hms))
+        row['ra'] = co.format_time(tz.pipe(g_rlb_equat_body[1], tc.rad2deg,  tc.dg2h, tc.h2hms))
         row['dec'] = co.format_dg(*tz.pipe(g_rlb_equat_body[2], tc.rad2deg, tc.dg2dgms))
         row['r[AU]'] = r_AU
         rows.append(row)

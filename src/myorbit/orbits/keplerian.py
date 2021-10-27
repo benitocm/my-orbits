@@ -4,11 +4,13 @@ It is based on the book "Astronomy on the Personal Computer" by Montenbruck, Pfl
 # Standard library imports
 from math import isclose
 import logging
+from functools import partial
 
 # Third party imports
 import numpy as np
 from numpy import sqrt, cos, sin, cosh, sinh, tan, arctan
 from numpy.linalg import multi_dot
+from scipy.optimize import newton
 
 # Local application imports
 from myorbit.util.timeut import reduce_rad
@@ -115,17 +117,132 @@ def _next_E (e, m_anomaly, E) :
     den = 1 - e * cos(E)
     return E - num/den
 
-def _elliptic_orbit (next_E_func, m_anomaly, a, e):
+
+def _F(e, M, E):
+    """Definition of the Kepler equation. Normally, given a time t, the mean anomaly
+    M is calculated and after that the Kepler equation is solved to obtain the Eccentric Anomaly.
+    Once we have the Eccentric anomaly, the True anomaly is easily computed.
+
+    Parameters
+    ----------
+    e : float
+        Eccentricity
+    M : float
+        Mean anomaly
+    E : float
+        Eccentric anomaly
+
+    Returns
+    -------
+    float
+        The Eccentric anomaly 
+    """
+    return E-e*sin(E)- M
+
+def _Fprime(e, E):
+    """First derivative with respect to E of the Kepler equation. It is needed for
+    solving the Kepler equation more efficently
+
+    Parameters
+    ----------
+    e : float
+        Eccentricity
+    E : float
+        Eccentric anomaly
+
+    Returns
+    -------
+    float
+        The first derivative 
+    """
+    return 1 - e*cos(E)
+
+def _Fprime2(e, E):
+    """Second derivative with respect to E of the Kepler equation. It is needed for
+    solving the Kepler equation more efficently
+
+    Parameters
+    ----------
+    e : float
+        Eccentricity
+    E : float
+        Eccentric anomaly
+
+    Returns
+    -------
+    float
+        The second derivative 
+    """
+    return e*sin(E)
+
+def solve_kepler_eq(e, M, E0):
+    """Solve the Kepler equation
+
+    Parameters
+    ----------
+    e : float
+        Eccentricity
+    M : float
+        Mean anomaly
+    E0 : float
+        The initial Eccentric anomaly
+
+    Returns
+    -------
+    Tuple
+        A tuple (x,root) where:
+            x is The Eccentric anomaly that solves the Kepler equation
+            root is a structure with information about how the calculation was, including a flag
+            for signaling if the method converged or not.
+
+    """
+    # The two first parameters of F are bounded, so we end up with f(E)
+    # So f(E) = 0 is the equation that is desired to solve (the kepler equation)
+    f = partial(_F, e , M)
+    # The first parameter of Fprime is bounded, so we end up with fprime(E)
+    # According to the newton method, it is better if the first derivative of f is available
+    fprime = partial (_Fprime, e)
+    # The first parameter of Fprime2 is bounded, so we end up with fprime2(E)
+    # According to the newton method, it is better if the second derivative of f is available
+    # If the second derivative is provided, the method used for newton method is Halley method
+    # is applied that converged in a cubic way
+    fprime2= partial (_Fprime2, e)
+    x, root = newton(f, E0, fprime, tol=1e-12, maxiter=50, fprime2=fprime2, full_output=True)
+    return x, root 
+
+
+def _calc_E0(e, M):
+    """According to Orbital Mechanics (Conway) pg 32, this is a better
+    way to provide the initial value for solving Kepler equation in the elliptical
+    case.
+
+    Parameters
+    ----------
+    e : float
+        Eccentricity
+    M : float
+        Mean anomaly (radians)
+
+    Returns
+    -------
+    float
+        The inital value of the Eccentric anomaly to solve the Kepler equation
+    """
+
+    mu = M+e
+    num = M*(1 - np.sin(mu) ) + mu*np.sin(M)
+    den = 1 + np.sin(M) - np.sin(mu)
+    return num/den
+
+
+
+def _elliptic_orbit (m_anomaly, a, e):
     """Computes the position (r) and velocity (v) vectors for elliptic orbits using
-    an iterative method (Newton's method) for solving the Kepler equation.
-    (pg 66 of Astronomy on the Personal Computer book). The m_anomaly is
+    an iterative method (Newton's method) for solving the Kepler equation. The m_anomaly is
     the one that varies with time so the result of this function will also vary with time.
 
     Parameters
     ----------
-    next_E_func : function
-        Function that really calculates the eccentric anomaly used in the iterative 
-        solution procedure (Newton's method for solving the Kepler equation)
     m_anomaly : float
         The current Mean anomaly that will depend on time [rads]
     a : float
@@ -142,12 +259,20 @@ def _elliptic_orbit (next_E_func, m_anomaly, a, e):
             with respect to the orbital plane [AU/days]
     """
 
-    E0 = m_anomaly if (e<=0.8) else PI
+    #E0 = m_anomaly
+    E0 = _calc_E0(e, m_anomaly)
+    e_anomaly, root = solve_kepler_eq(e, m_anomaly, E0)
+    if not root.converged :
+        msg = f"Not converged: {root}"
+        print (msg)
+        logger.error(msg)
+    
+    #E0 = m_anomaly if (e<=0.8) else PI
+    #e_anomaly = solve_ke_newton(e, next_E_func, m_anomaly, E0)
 
-    e_anomaly = solve_ke_newton(e, next_E_func, m_anomaly, E0)
     # Pg 65 Astronomy on the Personal Computer
     #t_anomaly = calc_M_by_E(e,e_anomaly)
-    
+
     cte = sqrt(GM/a)
     cos_E = cos(e_anomaly)
     sin_E = sin(e_anomaly)
@@ -391,7 +516,7 @@ class KeplerianOrbit:
             a = self.q/(1.0-self.e) if self.a is None else self.a
             #logger.warning(f'Doing elliptic orbit for e: {self.e} and M: {M}')
             print(f'Doing elliptic orbit for e: {self.e} and M: {M}')
-            xyz, vxyz = _elliptic_orbit(_next_E, M, a, self.e)
+            xyz, vxyz = _elliptic_orbit(M, a, self.e)
         else :
             #logger.warning(f'Doing hyperbolic orbit for e: {self.e} and M: {M}')
             print(f'Doing hyperbolic orbit for e: {self.e} and M: {M}')
@@ -437,7 +562,7 @@ def _g_rlb_equat_body_j2000(jd, body):
     # Fist calculation of the position of the body is done
     #M = calc_M(jd, body.tp_jd, body.a)
     M = _calc_M_for_comet(jd, body.tp_jd, 1/body.a)
-    xyz, _ = _elliptic_orbit(_next_E, M, body.a, body.e)
+    xyz, _ = _elliptic_orbit(M, body.a, body.e)
 	# xyz are cartesians in the orbital plane (perifocal system) so we need to transform 
 	# to equatorial
     		
@@ -451,7 +576,7 @@ def _g_rlb_equat_body_j2000(jd, body):
     #M = calc_M(jd-tau, body.tp_jd, body.a)
     M = _calc_M_for_comet(jd-tau, body.tp_jd, 1/body.a)
 
-    xyz, _ = _elliptic_orbit(_next_E, M, body.a, body.e)
+    xyz, _ = _elliptic_orbit( M, body.a, body.e)
     h_xyz_equat_body = mtx_equat_PQR.dot(xyz)    
     g_xyz_equat_body = g_xyz_equat_sun + h_xyz_equat_body
     return co.polarFcartesian(g_xyz_equat_body)
