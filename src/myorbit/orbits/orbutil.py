@@ -254,8 +254,6 @@ def calc_osculating_orb_elmts(h_xyz, h_vxyz, epoch_mjd=0, equinox="J2000"):
         M += 2.0*PI    
     return dc.BodyElms.in_radians("Osculating Body",tc.mjd2epochformat(epoch_mjd),a,e,i,Omega,omega,M,equinox)
        
-
-
 def process_solution(tpoints, MTX_J2000_Teqx, MTX_equatFeclip, eph_eqx_name, include_osc=False):
     """ 
     Utitly method used in the calculation of the ephemeris to obtain the equatorial geocentric coordinates

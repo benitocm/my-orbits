@@ -69,18 +69,18 @@ class BodyElms:
         # Matrix 
         self.mtx_PQR = mtx_gauss_vectors(self.Node,self.i,self.w)
 
-    def calc_M(self, t_mjd) -> float :
-        """[summary]
+    def calc_M(self, t_mjd) :
+        """Computes the Mean Anomaly 
 
         Parameters
         ----------
-        t_mjd : [type]
-            [description]
+        t_mjd : float
+            Time of the computation
 
         Returns
         -------
         float
-            [description]
+            Mean anomaly [rads]
         """
         M = (t_mjd - self.epoch_mjd)*TWOPI/self.period_in_days
         M += self.M0

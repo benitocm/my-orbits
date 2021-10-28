@@ -96,6 +96,8 @@ def norm_dg(degrees):
     float
         The equivalent angle between [0,360)
     """
+    if 0 <= degrees < 360 :
+        return degrees
     frac = my_frac(degrees)
     fix =  my_fix(degrees)
     new_alpha = (np.abs(fix) % 360) + frac    
@@ -121,7 +123,10 @@ def norm_rad(rad):
     float 
         The equivalent angle between [0,2*PI)
     """
-    return pipe(rad,rad2deg,norm_dg,deg2rad)
+    if 0 <= rad < 2*TWOPI :
+        return rad
+    else :
+        return pipe(rad,rad2deg,norm_dg,deg2rad)
 
 
 # angles [-360, 360]

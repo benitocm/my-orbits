@@ -13,7 +13,7 @@ from numpy.linalg import multi_dot
 from scipy.optimize import newton
 
 # Local application imports
-from myorbit.util.timeut import reduce_rad
+from myorbit.util.timeut import  norm_rad
 from myorbit.orbits.orbutil import solve_ke_newton
 from myorbit.planets import g_xyz_equat_sun_j2000
 from myorbit.util.general import pow
@@ -47,7 +47,8 @@ def _calc_M_for_body(t_mjd, epoch_mjd, period_in_days, M_at_epoch) :
     """
     M = (t_mjd - epoch_mjd)*TWOPI/period_in_days
     M += M_at_epoch
-    return reduce_rad(M,to_positive=True)     
+    #return reduce_rad(M,to_positive=True)     
+    return norm_rad(M)
 
 
 def _calc_M_for_comet(t_mjd, tp_mjd, inv_a) :
@@ -71,8 +72,9 @@ def _calc_M_for_comet(t_mjd, tp_mjd, inv_a) :
     """
 
     #M = sqrt(ut.GM)*(t_mjd-tp_mjd)/np.float_power(a, 1.5)
-    M = sqrt(GM)*(t_mjd-tp_mjd)*sqrt(pow(inv_a, 3))
-    return reduce_rad(M, to_positive=True)
+    M = sqrt(GM)*(t_mjd-tp_mjd)*sqrt(pow(inv_a, 3)) # in radians
+    return norm_rad(M)
+    #return reduce_rad(M, to_positive=True)
 
 
 def _calc_M_by_E(e, E):
@@ -194,6 +196,7 @@ def solve_kepler_eq(e, M, E0):
             x is The Eccentric anomaly that solves the Kepler equation
             root is a structure with information about how the calculation was, including a flag
             for signaling if the method converged or not.
+            In case of the solution does not coverge, the last value obtained is returned
 
     """
     # The two first parameters of F are bounded, so we end up with f(E)
@@ -208,6 +211,8 @@ def solve_kepler_eq(e, M, E0):
     # is applied that converged in a cubic way
     fprime2= partial (_Fprime2, e)
     x, root = newton(f, E0, fprime, tol=1e-12, maxiter=50, fprime2=fprime2, full_output=True)
+    if not root.converged:
+       logger.error(f'Not converged with root:{root}') 
     return x, root 
 
 
@@ -228,13 +233,10 @@ def _calc_E0(e, M):
     float
         The inital value of the Eccentric anomaly to solve the Kepler equation
     """
-
     mu = M+e
     num = M*(1 - np.sin(mu) ) + mu*np.sin(M)
     den = 1 + np.sin(M) - np.sin(mu)
     return num/den
-
-
 
 def _elliptic_orbit (m_anomaly, a, e):
     """Computes the position (r) and velocity (v) vectors for elliptic orbits using
@@ -259,7 +261,6 @@ def _elliptic_orbit (m_anomaly, a, e):
             with respect to the orbital plane [AU/days]
     """
 
-    #E0 = m_anomaly
     E0 = _calc_E0(e, m_anomaly)
     e_anomaly, root = solve_kepler_eq(e, m_anomaly, E0)
     if not root.converged :
@@ -267,9 +268,6 @@ def _elliptic_orbit (m_anomaly, a, e):
         print (msg)
         logger.error(msg)
     
-    #E0 = m_anomaly if (e<=0.8) else PI
-    #e_anomaly = solve_ke_newton(e, next_E_func, m_anomaly, E0)
-
     # Pg 65 Astronomy on the Personal Computer
     #t_anomaly = calc_M_by_E(e,e_anomaly)
 
@@ -417,7 +415,6 @@ def _parabolic_orbit (tp, q, e, t, max_iters=15):
         Where v is a np.array[3] that contains the velocity vector (cartesian) of the body
             with respect to the orbital plane [AU/days]
     """
-
     E_2 = 0.0    
     factor = 0.5 * e
     cte = sqrt(GM/(q*(1.0+e)))
@@ -508,17 +505,25 @@ class KeplerianOrbit:
             inv_a = np.abs(1.0-self.e)/self.q
             M = _calc_M_for_comet(t_mjd, self.tp_mjd, inv_a)
 
+        """
         if ((M < M_min) and (np.abs(1.0-self.e) < 0.1)): #or isclose(self.e, 1.0, abs_tol=1e-04) :
             #logger.warning(f'Doing parabolic orbit for e: {self.e} and M: {M}')
             print(f'Doing parabolic orbit for e: {self.e} and M: {M}')
             xyz, vxyz = _parabolic_orbit(self.tp_mjd, self.q, self.e, t_mjd, 50)
+        """
+
+        if isclose(np.abs(1.0-self.e), 0, abs_tol=1e-8) :
+            # The eccentricity is close to 1
+            logger.warning(f'Doing elliptic orbit for e: {self.e} and M: {M}')
+            print(f'Doing parabolic orbit for e: {self.e} and M: {M}')
+            xyz, vxyz = _parabolic_orbit(self.tp_mjd, self.q, self.e, t_mjd, 50)
         elif self.e < 1.0 :
             a = self.q/(1.0-self.e) if self.a is None else self.a
-            #logger.warning(f'Doing elliptic orbit for e: {self.e} and M: {M}')
+            logger.warning(f'Doing elliptic orbit for e: {self.e} and M: {M}')
             print(f'Doing elliptic orbit for e: {self.e} and M: {M}')
             xyz, vxyz = _elliptic_orbit(M, a, self.e)
         else :
-            #logger.warning(f'Doing hyperbolic orbit for e: {self.e} and M: {M}')
+            logger.warning(f'Doing hyperbolic orbit for e: {self.e} and M: {M}')
             print(f'Doing hyperbolic orbit for e: {self.e} and M: {M}')
             a = self.q/np.abs(1.0-self.e) if self.a is None else self.a
             xyz, vxyz =  _hyperpolic_orbit (self.tp_mjd, _next_H, a, self.e, t_mjd)

@@ -216,7 +216,14 @@ def calc_eph_minor_body_perturbed (body, eph , type, include_osc=False):
         result[clock_mjd] = (SOL_Y[:,idx][:3],SOL_Y[:,idx][3:6])
     return ob.process_solution(result, MTX_J2000_Teqx, MTX_equatFeclip, eph.eqx_name, True)
 
-    
+def test_1():
+    C2012_CH17 = dc.read_comet_elms_for("C/2012 CH17 (MOSS)", dc.DF_COMETS)        
+    eph = EphemrisInput(from_date="2012.09.27.0",
+                        to_date = "2012.11.27.0",
+                        step_dd_hh_hhh = "2 00.0",
+                        equinox_name = "J2000")
+    print (calc_eph_twobody(C2012_CH17, eph, 'comet'))
+
 
 def test_jupiter():
     # TODO Add test for Planets including Pluto
@@ -229,7 +236,7 @@ def test_jupiter():
     print (calc_eph_planet("Jupiter",eph))
 
 
-
 if __name__ == "__main__":
-    test_jupiter()
+    test_1()
+    #test_jupiter()
     

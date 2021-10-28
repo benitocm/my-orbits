@@ -24,7 +24,15 @@ from myorbit.two_body import calc_eph_twobody, calc_eph_minor_body_perturbed
 from myorbit.pert_cowels import calc_eph_by_cowells
 from myorbit.pert_enckes import calc_eph_by_enckes
 
-from common import calc_diff_seconds, check_df, TEST_DATA_PATH
+# The configuration file is shared between general config and logging config
+CONFIG_INI=Path(__file__).resolve().parents[1].joinpath('conf','config.ini')
+print (CONFIG_INI)
+# For logging configuration
+import logging.config
+logging.config.fileConfig(CONFIG_INI, disable_existing_loggers=False)
+
+
+from common import check_df, TEST_DATA_PATH
 
 # Because ENCKES calcultations takes a lot of time, this flag variable is 
 # to control when to run them
@@ -228,6 +236,36 @@ def test_ceres_J2000_for_2010():
         check_df(df, exp_df, EXP_DIFF_PERT_ENCKES)    
 
 
+
+def test_C2012CH17_J2000_for_2012():
+    # This comet  has an eccentricity of 0.999991
+    fn = TEST_DATA_PATH.joinpath('jpl_C2012CH17_2012-Sep-27_2012-Nov-27.csv')
+    exp_df = dc.read_jpl_data(fn)    
+    EXP_DIFF = 184
+    EXP_DIFF_PERT = 103
+    EXP_DIFF_PERT_ENCKES = 103
+
+    C2012_CH17 = dc.read_comet_elms_for("C/2012 CH17 (MOSS)", dc.DF_COMETS)        
+    eph = EphemrisInput(from_date="2012.09.27.0",
+                        to_date = "2012.11.27.0",
+                        step_dd_hh_hhh = "2 00.0",
+                        equinox_name = "J2000")
+
+    df = calc_eph_twobody(C2012_CH17, eph, 'comet')
+    check_df(df, exp_df, EXP_DIFF)        
+
+    df = calc_eph_minor_body_perturbed(C2012_CH17, eph, 'comet')    
+    check_df(df, exp_df, EXP_DIFF_PERT)        
+
+    df = calc_eph_by_cowells(C2012_CH17, eph, 'comet')   
+    check_df(df, exp_df, EXP_DIFF_PERT)    
+
+    if TEST_ENCKES :
+        df = calc_eph_by_enckes(C2012_CH17, eph, 'comet')   
+        check_df(df, exp_df, EXP_DIFF_PERT_ENCKES)    
+
+
+    
 """
 def test_comet_with_twobodys_J2000():    
 
