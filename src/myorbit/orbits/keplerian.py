@@ -238,6 +238,29 @@ def _calc_E0(e, M):
     den = 1 + np.sin(M) - np.sin(mu)
     return num/den
 
+
+def h1(mu, r, cos_f):
+    return np.sqrt(r*mu*(1+cos_f))
+
+def slr (a,e):
+    return  a*(1+e*e)
+
+def h2(slr):
+    return np.sqrt(GM*slr)
+
+def vt(h, e, cos_f):
+    return GM*(1+e*cos_f)/h
+
+def vr(h, e, sin_f):
+    return GM*e*sin_f/h
+
+def xdotydot (h,e, sin_f, cos_f):
+    return np.array([-GM*sin_f/h, GM*(e+cos_f)/h, 0.0])
+
+def h3(a,e) :
+    return np.sqrt(a*(1-e*e)*GM)
+
+
 def _elliptic_orbit (m_anomaly, a, e):
     """Computes the position (r) and velocity (v) vectors for elliptic orbits using
     an iterative method (Newton's method) for solving the Kepler equation. The m_anomaly is
@@ -278,6 +301,16 @@ def _elliptic_orbit (m_anomaly, a, e):
     rho = 1.0 - e*cos_E
     r =  np.array([a*(cos_E-e), a*fac*sin_E, 0.0]) #x,y at pag 62
     v =  np.array([-cte*sin_E/rho, cte*fac*cos_E/rho, 0.0])
+
+    cos_f = r[0]/np.linalg.norm(r)
+    sin_f = r[1]/np.linalg.norm(r)
+    h = h1(GM, np.linalg.norm(r), cos_f)
+    #print (f'h={h}, vt={vt(h,e,cos_f)}, vr={vr(h,e,sin_f)}')
+    print (xdotydot(h, e, sin_f, cos_f))
+    print (isclose(h, h3(a,e)))
+    print (h,h3(a,e))
+    
+
     return r,v
 
 def _next_H (e, mh_anomaly, H):
@@ -442,6 +475,7 @@ def _parabolic_orbit (tp, q, e, t, max_iters=15):
 
 M_min = 0.1
 
+
 class KeplerianOrbit:
 
     def __init__(self, epoch_mjd,  q, a, e, tp_mjd, M_at_epoch) :
@@ -476,6 +510,8 @@ class KeplerianOrbit:
     @classmethod
     def for_comet(cls, comet_elms):    
         return cls( comet_elms.epoch_mjd, comet_elms.q, None, comet_elms.e, comet_elms.tp_mjd, None)
+
+
 
     def calc_rv(self, t_mjd) :
         """Computes position (r) and velocity (v) vectors for keplerian orbits
@@ -519,16 +555,19 @@ class KeplerianOrbit:
             xyz, vxyz = _parabolic_orbit(self.tp_mjd, self.q, self.e, t_mjd, 50)
         elif self.e < 1.0 :
             a = self.q/(1.0-self.e) if self.a is None else self.a
-            logger.warning(f'Doing elliptic orbit for e: {self.e} and M: {M}')
-            print(f'Doing elliptic orbit for e: {self.e} and M: {M}')
+            #ogger.warning(f'Doing elliptic orbit for e: {self.e} and M: {M}')
+            #print(f'Doing elliptic orbit for e: {self.e} and M: {M}')
             xyz, vxyz = _elliptic_orbit(M, a, self.e)
         else :
             logger.warning(f'Doing hyperbolic orbit for e: {self.e} and M: {M}')
             print(f'Doing hyperbolic orbit for e: {self.e} and M: {M}')
             a = self.q/np.abs(1.0-self.e) if self.a is None else self.a
             xyz, vxyz =  _hyperpolic_orbit (self.tp_mjd, _next_H, a, self.e, t_mjd)
+        print (xyz,vxyz,np.cross(xyz,vxyz))
+
         return xyz, vxyz
       
+
 #
 # Currently this code is not being used but I want to keep it because the same idea is used 
 # in othe parts, the sum of vectors are don in the equatorial system rather than the ecliptic system
