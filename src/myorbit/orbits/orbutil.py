@@ -239,7 +239,7 @@ def calc_osculating_orb_elmts(h_xyz, h_vxyz, epoch_mjd=0, equinox="J2000"):
     v_2 = h_vxyz.dot(h_vxyz)
     a = 1.0/(2.0/R-v_2/GM)
     e_cosE = 1.0-R/a
-    e_sinE = h_xyz.dot(h_vxyz)/sqrt(GM*a)
+    e_sinE = h_xyz.dot(h_vxyz)/sqrt(GM*np.abs(a))
     e_2 = pow(e_cosE,2) + pow(e_sinE,2)
     e = sqrt(e_2)
     E = arctan2(e_sinE,e_cosE)

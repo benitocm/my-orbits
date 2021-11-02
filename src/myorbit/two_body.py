@@ -5,6 +5,7 @@ in other module
 
 # Standard library imports
 import logging
+from math import isclose
 
 # Third party imports
 import pandas as pd
@@ -17,10 +18,12 @@ import myorbit.planets as pl
 from myorbit import coord as co
 from myorbit.util.general import frange
 from myorbit.util.timeut import CENTURY, JD_J2000, dg2h, h2hms, dg2dgms, T_given_mjd, mjd2jd, jd2str_date
-from myorbit.orbits.keplerian import KeplerianOrbit
 import myorbit.orbits.orbutil as ob
 import myorbit.data_catalog as dc
 from myorbit.orbits.ephemeris_input import EphemrisInput
+from myorbit.planets import g_xyz_equat_sun_j2000, g_rlb_eclip_sun_eqxdate
+from myorbit.orbits.orbit_state import OrbitStateSolver
+from myorbit.orbits.ellipitical import calc_rv_for_elliptic_orbit, calc_M
 
 from myorbit.util.constants import *
 
@@ -76,7 +79,7 @@ def calc_eph_planet(name, eph):
     return df.sort_values(by='t_mjd')
     
 
-def calc_eph_twobody(body, eph, obj_type='comet'):
+def calc_eph_twobody(body, eph):
     """ Computes the ephemeris for a small body or comet
 
     Parameters
@@ -87,8 +90,6 @@ def calc_eph_twobody(body, eph, obj_type='comet'):
         the type of this parameter must be BodyElms.
     eph : EphemrisInput
         The entry data of the ephemeris
-    obj_type : str, optional
-        Type of the object ('body' for small bodies or 'comet' for comets), by default 'comet'
 
     Returns
     -------
@@ -104,19 +105,28 @@ def calc_eph_twobody(body, eph, obj_type='comet'):
     # Transform from ecliptic to equatorial just depend on desired equinox
     MTX_equatFecli = co.mtx_equatFeclip(eph.T_eqx)
 
-    if obj_type == 'comet' :
-        k_orbit = KeplerianOrbit.for_comet(body)
+    if hasattr(body, 'q') :
+        # Comets
+        solver = OrbitStateSolver.make(body.tp_mjd, body.e, body.q, body.a, None, None)
     else :
-        k_orbit = KeplerianOrbit.for_body(body)
+        # Asteroids 
+        solver = OrbitStateSolver.make(body.tp_mjd, body.e, None, body.a, body.epoch_mjd, body.M0)
      
     result = dict()
+    # Angular momentums in the orbit
+    hs = []
     for clock_mjd in frange(eph.from_mjd, eph.to_mjd, eph.step):        
-        r , v = k_orbit.calc_rv(clock_mjd)
-        result[clock_mjd] = (MTX_Teqx_PQR.dot(r), MTX_Teqx_PQR.dot(v))
+        r_xyz, v_xyz, r, h, *other = solver.calc_rv(clock_mjd)
+        hs.append(h)
+        result[clock_mjd] = (MTX_Teqx_PQR.dot(r_xyz), MTX_Teqx_PQR.dot(v_xyz))
+    if not all(isclose(h, hs[0], abs_tol=1e-12) for h in hs):
+        msg = f'The angular momentum is NOT constant in the orbit'
+        print (msg)
+        logger.error(msg)
     return ob.process_solution(result, np.identity(3), MTX_equatFecli, eph.eqx_name, False)
 
 
-def calc_eph_minor_body_perturbed (body, eph , type, include_osc=False):
+def calc_eph_minor_body_perturbed (body, eph ,include_osc=False):
     """ Computes the ephemeris for a small body or comet taking into account
     the perturbations introduced by the planets.
 
@@ -162,13 +172,14 @@ def calc_eph_minor_body_perturbed (body, eph , type, include_osc=False):
         return pd.DataFrame()
 
     initial_mjd = body.epoch_mjd  
-
-    if type == 'comet' :
-        k_orbit = KeplerianOrbit.for_comet(body)
+    if hasattr(body, 'q') :
+        # Comets
+        solver = OrbitStateSolver.make(body.tp_mjd, body.e, body.q, body.a, None, None)
     else :
-        k_orbit = KeplerianOrbit.for_body(body)
-
-    xyz0, vxyz0 =  k_orbit.calc_rv(initial_mjd)
+        # Asteroids 
+        solver = OrbitStateSolver.make(body.tp_mjd, body.e, None, body.a, body.epoch_mjd, body.M0)
+     
+    xyz0, vxyz0, *other =  solver.calc_rv(initial_mjd)
      
     y0 = np.concatenate((MTX_J2000_PQR.dot(xyz0), MTX_J2000_PQR.dot(vxyz0)))  
     
@@ -216,13 +227,91 @@ def calc_eph_minor_body_perturbed (body, eph , type, include_osc=False):
         result[clock_mjd] = (SOL_Y[:,idx][:3],SOL_Y[:,idx][3:6])
     return ob.process_solution(result, MTX_J2000_Teqx, MTX_equatFeclip, eph.eqx_name, True)
 
+
+#
+# Currently this code is not being used but I want to keep it because the same idea is used 
+# in other parts, the sum of vectors are done in the equatorial system rather than int the ecliptic system
+# 
+
+def _g_rlb_equat_body_j2000(jd, body):    
+    """Computes the geocentric polar coordinates of body (eliptical orbit) based 
+    at particular time and orbital elements of the body following the second 
+    algorithm of the Meeus (this is the one that explains that the sum of the vectors 
+    are done in the equatorial system and it works better than doing in the eliptic system)
+
+    Parameters
+    ----------
+    jd : float
+        Time of computation in Julian days        
+    body : BodyElms
+        Elemnents of the body whose position is calculated
+
+    Returns
+    -------
+    np.array:
+        A 3-vector with the geocentric coordinates of the body in Equatorial system
+    """
+   
+    T_J2000 = 0.0 # desired equinox
+
+    # The matrix will include the precesion from equinox of the date of the body
+    mtx_equat_PQR =  np.linalg.multi_dot([co.mtx_equatFeclip(T_J2000),
+                               co.mtx_eclip_prec(body.T_eqx0,T_J2000),
+                               co.mtx_gauss_vectors(body.Node, body.i, body.w)                                                          
+                               ])
+
+	# The equatorial xyz of the sun referred to equinox J2000 for the 
+	# specific moment
+    g_xyz_equat_sun = g_xyz_equat_sun_j2000(jd)    
+    
+    # Fist calculation of the position of the body is done
+    #M = calc_M(jd, body.tp_jd, body.a)
+
+    M = calc_M (jd, body.tp_jd, body.a)
+    xyz, *others = calc_rv_for_elliptic_orbit(M, body.a, body.e)
+
+	# xyz are cartesians in the orbital plane (perifocal system) so we need to transform 
+	# to equatorial
+    		
+    # This is key to work. The sum of the vectors is done in the equatorial system.
+    h_xyz_equat_body = mtx_equat_PQR.dot(xyz)
+    g_xyz_equat_body = g_xyz_equat_sun + h_xyz_equat_body
+    tau = np.linalg.norm(g_xyz_equat_body)*INV_C
+
+    # Second try using tau
+    M = calc_M (jd-tau, body.tp_jd, body.a)
+    xyz, *others = calc_rv_for_elliptic_orbit(M, body.a, body.e)
+
+
+    h_xyz_equat_body = mtx_equat_PQR.dot(xyz)    
+    g_xyz_equat_body = g_xyz_equat_sun + h_xyz_equat_body
+    return co.polarFcartesian(g_xyz_equat_body)
+
+
+
+
 def test_1():
-    C2012_CH17 = dc.read_comet_elms_for("C/2012 CH17 (MOSS)", dc.DF_COMETS)        
+    # Eliptical almost Parabolical
     eph = EphemrisInput(from_date="2012.09.27.0",
                         to_date = "2012.11.27.0",
                         step_dd_hh_hhh = "2 00.0",
                         equinox_name = "J2000")
-    print (calc_eph_twobody(C2012_CH17, eph, 'comet'))
+    print (calc_eph_twobody(dc.C2012_CH17, eph))
+
+def test_2():  
+    eph = EphemrisInput(from_date="2021.04.01.0",
+                        to_date = "2021.04.27.0",
+                        step_dd_hh_hhh = "2 00.0",
+                        equinox_name = "J2000")
+    print (calc_eph_twobody(dc.C_2020_J1_SONEAR, eph))
+
+def test_3():
+    eph = EphemrisInput(from_date="2017.8.01.0",
+                        to_date = "2017.8.30.0",
+                        step_dd_hh_hhh = "2 00.0",
+                        equinox_name = "J2000")
+    print (calc_eph_twobody(dc.C_2018_F3_Johnson, eph))
+    
 
 
 def test_jupiter():
@@ -238,5 +327,7 @@ def test_jupiter():
 
 if __name__ == "__main__":
     test_1()
+    test_2()
+    test_3()
     #test_jupiter()
     

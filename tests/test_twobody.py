@@ -19,7 +19,6 @@ from myorbit.util.timeut import EQX_B1950, EQX_J2000
 import myorbit.data_catalog as dc
 from myorbit.orbits.ephemeris_input import EphemrisInput
 import myorbit.util.timeut as ut
-from myorbit.util.general import angular_distance
 from myorbit.two_body import calc_eph_twobody, calc_eph_minor_body_perturbed
 from myorbit.pert_cowels import calc_eph_by_cowells
 from myorbit.pert_enckes import calc_eph_by_enckes
@@ -43,7 +42,7 @@ def test_HalleyB1950_for_1985():
     exp_df = dc.read_jpl_data(fn)    
     EXP_DIFF = 1305.1
     EXP_DIFF_PERT = 757
-    EXP_DIFF_PERT_ENCKES = 757
+    EXP_DIFF_PERT_ENCKES = 771
 
 
     eph  = EphemrisInput(from_date="1985.11.15.0",
@@ -51,17 +50,17 @@ def test_HalleyB1950_for_1985():
                         step_dd_hh_hhh = "10 00.0",
                         equinox_name = EQX_J2000)
 
-    df = calc_eph_twobody(dc.HALLEY_B1950, eph, 'comet')   
+    df = calc_eph_twobody(dc.HALLEY_B1950, eph)   
     check_df(df, exp_df, EXP_DIFF) 
 
-    df = calc_eph_minor_body_perturbed(dc.HALLEY_B1950, eph, 'comet')   
+    df = calc_eph_minor_body_perturbed(dc.HALLEY_B1950, eph)   
     check_df(df, exp_df, EXP_DIFF_PERT) 
 
-    df = calc_eph_by_cowells(dc.HALLEY_B1950, eph, 'comet')   
+    df = calc_eph_by_cowells(dc.HALLEY_B1950, eph)   
     check_df(df, exp_df, EXP_DIFF_PERT)    
 
     if TEST_ENCKES :
-        df = calc_eph_by_enckes(dc.HALLEY_B1950, eph, 'comet')   
+        df = calc_eph_by_enckes(dc.HALLEY_B1950, eph)   
         check_df(df, exp_df, EXP_DIFF_PERT_ENCKES)    
 
 
@@ -88,13 +87,13 @@ def test_HalleyJ2000_for_1985():
                         step_dd_hh_hhh = "10 00.0",
                         equinox_name = EQX_J2000)
 
-    df = calc_eph_twobody(dc.HALLEY_J2000, eph, 'comet')   
+    df = calc_eph_twobody(dc.HALLEY_J2000, eph)   
     check_df(df, exp_df, EXP_DIFF) 
 
-    df = calc_eph_minor_body_perturbed(dc.HALLEY_J2000, eph, type='comet')   
+    df = calc_eph_minor_body_perturbed(dc.HALLEY_J2000, eph)   
     check_df(df, exp_df, EXP_DIFF_PERT) 
 
-    df = calc_eph_by_cowells(dc.HALLEY_J2000, eph, 'comet')   
+    df = calc_eph_by_cowells(dc.HALLEY_J2000, eph)   
     check_df(df, exp_df, EXP_DIFF_PERT) 
 
     # TODO the lenght of the df result are not equal
@@ -124,17 +123,17 @@ def test_HalleyJ2000_for_1997():
                         step_dd_hh_hhh = "10 00.0",
                         equinox_name = EQX_J2000)
 
-    df = calc_eph_twobody(dc.HALLEY_J2000, eph, 'comet')   
+    df = calc_eph_twobody(dc.HALLEY_J2000, eph)   
     check_df(df, exp_df, EXP_DIFF) 
 
-    df = calc_eph_minor_body_perturbed(dc.HALLEY_J2000, eph, 'comet')   
+    df = calc_eph_minor_body_perturbed(dc.HALLEY_J2000, eph)   
     check_df(df, exp_df, EXP_DIFF_PERT)     
 
-    df = calc_eph_by_cowells(dc.HALLEY_J2000, eph, 'comet')   
+    df = calc_eph_by_cowells(dc.HALLEY_J2000, eph)   
     check_df(df, exp_df, EXP_DIFF_PERT)    
 
     if TEST_ENCKES :
-        df = calc_eph_by_enckes(dc.HALLEY_J2000, eph, 'comet')   
+        df = calc_eph_by_enckes(dc.HALLEY_J2000, eph)   
         check_df(df, exp_df, EXP_DIFF_PERT_ENCKES)    
 
 
@@ -156,10 +155,10 @@ def test_HalleyJ2000_for_2017():
                         step_dd_hh_hhh = "10 00.0",
                         equinox_name = EQX_J2000)
 
-    df = calc_eph_twobody(dc.HALLEY_J2000, eph, 'comet')   
+    df = calc_eph_twobody(dc.HALLEY_J2000, eph)   
     check_df(df, exp_df, EXP_DIFF) 
 
-    df = calc_eph_minor_body_perturbed(dc.HALLEY_J2000, eph, 'comet')   
+    df = calc_eph_minor_body_perturbed(dc.HALLEY_J2000, eph)   
     check_df(df, exp_df, EXP_DIFF_PERT)     
 
     df = calc_eph_by_cowells(dc.HALLEY_J2000, eph, 'comet')   
@@ -190,20 +189,20 @@ def test_ceres_B1950_for_1992():
                         step_dd_hh_hhh = "02 00.0",
                         equinox_name = EQX_J2000)
 
-    df = calc_eph_twobody(dc.CERES_B1950, eph, 'body')   
+    df = calc_eph_twobody(dc.CERES_B1950, eph)   
     check_df(df, exp_df, EXP_DIFF)    
 
-    df = calc_eph_minor_body_perturbed(dc.CERES_B1950, eph, 'body')
+    df = calc_eph_minor_body_perturbed(dc.CERES_B1950, eph)
     check_df(df, exp_df, EXP_DIFF_PERTURBED)    
 
-    df = calc_eph_minor_body_perturbed(dc.CERES_J2000, eph, 'body')
+    df = calc_eph_minor_body_perturbed(dc.CERES_J2000, eph)
     check_df(df, exp_df, EXP_DIFF_PERTURBED_J2000)    
 
-    df = calc_eph_by_cowells(dc.CERES_J2000, eph, 'body')   
+    df = calc_eph_by_cowells(dc.CERES_J2000, eph)   
     check_df(df, exp_df, EXP_DIFF_PERTURBED_J2000)    
 
     if TEST_ENCKES :
-        df = calc_eph_by_enckes(dc.CERES_J2000, eph, 'body')   
+        df = calc_eph_by_enckes(dc.CERES_J2000, eph)   
         check_df(df, exp_df, EXP_DIFF_PERT_ENCKES)    
 
 
@@ -215,24 +214,24 @@ def test_ceres_J2000_for_2010():
     exp_df = dc.read_jpl_data(fn)    
     EXP_DIFF = 30586
     EXP_DIFF_PERT = 841
-    EXP_DIFF_PERT_ENCKES = 69
+    EXP_DIFF_PERT_ENCKES = 70
     
     eph = EphemrisInput(from_date="2010.06.27.0",
                         to_date = "2010.07.25.0",
                         step_dd_hh_hhh = "02 00.0",
                         equinox_name = EQX_J2000)
 
-    df = calc_eph_twobody(dc.CERES_J2000, eph, 'body')   
+    df = calc_eph_twobody(dc.CERES_J2000, eph)   
     check_df(df, exp_df, EXP_DIFF)        
 
-    df = calc_eph_minor_body_perturbed(dc.CERES_J2000, eph, 'body')    
+    df = calc_eph_minor_body_perturbed(dc.CERES_J2000, eph)    
     check_df(df, exp_df, EXP_DIFF_PERT)        
 
-    df = calc_eph_by_cowells(dc.CERES_J2000, eph, 'body')   
+    df = calc_eph_by_cowells(dc.CERES_J2000, eph)   
     check_df(df, exp_df, EXP_DIFF_PERT)    
 
     if TEST_ENCKES :
-        df = calc_eph_by_enckes(dc.CERES_J2000, eph, 'body')   
+        df = calc_eph_by_enckes(dc.CERES_J2000, eph)   
         check_df(df, exp_df, EXP_DIFF_PERT_ENCKES)    
 
 
@@ -251,17 +250,17 @@ def test_C2012CH17_J2000_for_2012():
                         step_dd_hh_hhh = "2 00.0",
                         equinox_name = "J2000")
 
-    df = calc_eph_twobody(C2012_CH17, eph, 'comet')
+    df = calc_eph_twobody(C2012_CH17, eph)
     check_df(df, exp_df, EXP_DIFF)        
 
-    df = calc_eph_minor_body_perturbed(C2012_CH17, eph, 'comet')    
+    df = calc_eph_minor_body_perturbed(C2012_CH17, eph)    
     check_df(df, exp_df, EXP_DIFF_PERT)        
 
-    df = calc_eph_by_cowells(C2012_CH17, eph, 'comet')   
+    df = calc_eph_by_cowells(C2012_CH17, eph)   
     check_df(df, exp_df, EXP_DIFF_PERT)    
 
     if TEST_ENCKES :
-        df = calc_eph_by_enckes(C2012_CH17, eph, 'comet')   
+        df = calc_eph_by_enckes(C2012_CH17, eph)   
         check_df(df, exp_df, EXP_DIFF_PERT_ENCKES)    
 
 

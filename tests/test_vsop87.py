@@ -16,7 +16,7 @@ from myorbit.planets.pluto import *
 from myorbit.coord import mk_co_equat2, Coord, EQUAT2_TYPE
 from myorbit.data_catalog import CometElms
 from myorbit.util.timeut import datetime2jd
-from myorbit.orbits.keplerian import _g_rlb_equat_body_j2000
+from myorbit.two_body import _g_rlb_equat_body_j2000
 from myorbit.util import timeut as tc
 
 

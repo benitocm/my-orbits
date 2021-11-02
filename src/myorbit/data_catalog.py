@@ -65,7 +65,11 @@ class BodyElms:
         # Century of the equinox
         self.T_eqx0 = tc.T(self.eqx_name)
         # Period of the body in days
-        self.period_in_days = TWOPI*sqrt(pow(self.a,3)/GM)
+        if self.a < 0 :
+            # Hyperbolic body so there is no period
+            self.period_in_days = None
+        else:
+            self.period_in_days = TWOPI*sqrt(pow(self.a,3)/GM)
         # Matrix 
         self.mtx_PQR = mtx_gauss_vectors(self.Node,self.i,self.w)
 
@@ -200,6 +204,7 @@ class CometElms:
         # Perihelion distance (comets only).
         self.q = q
         # Semimajor axis of the orbit (asteroids only) so in the case of comet we tried to calculate it
+        self.a = None
         if isclose(1-e, 0, abs_tol=1e-6):
             self.a = None
         else :
@@ -452,8 +457,17 @@ CERES_B1950 = BodyElms(name="Ceres",
                 equinox_name = EQX_B1950)
 
 
-CERES_J2000 = read_body_elms_for("Ceres", DF_BODIES)        
-             
+CERES_J2000 = read_body_elms_for("Ceres", DF_BODIES)     
+
+# Elliptical comet
+C2012_CH17 = read_comet_elms_for("C/2012 CH17 (MOSS)", DF_COMETS)   
+
+# Hyperbolic comet
+C_2020_J1_SONEAR = read_comet_elms_for("C/2020 J1 (SONEAR)", DF_COMETS) 
+
+# Parabolic comet:
+C_2018_F3_Johnson = read_comet_elms_for("C/2018 F3 (Johnson)", DF_COMETS) 
+
 
 def change_date_format(date_str):
     datetime_obj = datetime.strptime(date_str, "%Y-%b-%d")

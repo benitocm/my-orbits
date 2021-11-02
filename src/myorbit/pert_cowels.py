@@ -14,10 +14,10 @@ from scipy.integrate import solve_ivp
 from myorbit import coord as co
 import myorbit.coord as co
 from myorbit.util.general import frange
-from myorbit.orbits.keplerian import KeplerianOrbit
 import myorbit.orbits.orbutil as ob
 import myorbit.data_catalog as dc
 from myorbit.orbits.ephemeris_input import EphemrisInput
+from myorbit.orbits.orbit_state import OrbitStateSolver
 from myorbit.util.constants import *
 
 logger = logging.getLogger(__name__)
@@ -94,15 +94,16 @@ def calc_eph_by_cowells (body, eph , obj_type='body', include_osc=False):
     # so the solution will be also ecliptic and precessed.
 
     initial_mjd = body.epoch_mjd  
-
-    if obj_type == 'body' :
-        k_orbit = KeplerianOrbit.for_body(body)
+    if hasattr(body, 'q') :
+        # Comets
+        solver = OrbitStateSolver.make(body.tp_mjd, body.e, body.q, body.a, None, None)
     else :
-        k_orbit = KeplerianOrbit.for_comet(body)
-
-    r0, v0 = k_orbit.calc_rv(initial_mjd)
+        # Asteroids 
+        solver = OrbitStateSolver.make(body.tp_mjd, body.e, None, body.a, body.epoch_mjd, body.M0)
+     
+    xyz0, vxyz0, *other =  solver.calc_rv(initial_mjd)
     
-    y0 = np.concatenate((MTX_J2000_PQR.dot(r0), MTX_J2000_PQR.dot(v0)))  
+    y0 = np.concatenate((MTX_J2000_PQR.dot(xyz0), MTX_J2000_PQR.dot(vxyz0)))  
     
     # The integration is done in the ecliptic plane. First, we propagete the state vector
     # from the epoch of the body (when the data are fresh) up to the start of the ephemeris

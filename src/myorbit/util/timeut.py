@@ -19,7 +19,7 @@ from toolz import compose
 from numpy import deg2rad, rad2deg
 
 # Local application imports
-from .constants import *
+from myorbit.util.constants import *
 
 #
 # Python's built-in float type has double precision
@@ -123,7 +123,7 @@ def norm_rad(rad):
     float 
         The equivalent angle between [0,2*PI)
     """
-    if 0 <= rad < 2*TWOPI :
+    if 0 <= rad < TWOPI :
         return rad
     else :
         return pipe(rad,rad2deg,norm_dg,deg2rad)
@@ -830,6 +830,30 @@ def mjd2epochformat(mjd):
     y,mo, fd= jd2datefd(mjd+2400000.5)
     return f'{y}.{mo}.{fd}'
 
+def quadrant (alpha) :
+    dg = np.rad2deg(alpha)
+    if dg < 0:
+        dg = norm_dg(dg)
+    if 0 <= dg <= 90 :
+        return 1
+    elif 90 < dg <= 180 :
+        return 2
+    elif 180 < dg <= 270 :
+        return 3
+    else :
+        return 4 
+
+def hemisphere (alpha) :
+    dg = np.rad2deg(alpha)
+    if dg < 0:
+        dg = norm_dg(dg)
+    if 0 <= dg <= 180 :
+        return 1
+    else :
+        return 2
+
+
+
 
 def epochformat2jd (epoch_name:str) -> float :
     """ 
@@ -921,6 +945,7 @@ def T (epoch_name:str, from_epoch_name="J2000") -> float :
 
 
 if __name__ == "__main__":
+    print (norm_rad(TWOPI))
     #print (datefd2jd(1957,10,4.81))
     #print (ymdfh2mjd(1805, 9, 5, 24.165))
     #print (datetime2jd(1805,9, 5, hour=24.165) )

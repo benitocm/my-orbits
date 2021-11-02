@@ -309,6 +309,7 @@ def _elliptic_orbit (m_anomaly, a, e):
     print (xdotydot(h, e, sin_f, cos_f))
     print (isclose(h, h3(a,e)))
     print (h,h3(a,e))
+    print (f"Mean Anomaly: {m_anomaly}  Eccentric Anomaly: {e_anomaly}   True Anomaly: {cos_f}   True Anomaly2: {(cos_E-e)/(1-e*cos_E)}")
     
 
     return r,v
