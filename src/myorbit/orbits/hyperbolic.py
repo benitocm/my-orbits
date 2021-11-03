@@ -327,10 +327,10 @@ def _parabolic_orbit (tp, q, e, t, max_iters=15):
             R = q * (1.0 + u_2*c2*e/factor)
             r = np.array([q*(1.0-u_2*c2/factor), q*sqrt((1.0+e)/factor)*u*c1,0.0])
             v = np.array([-cte*r[1]/R, cte*(r[0]/R+e),0.0])
-            return r,v
+            return r,v,1,1,1
     #logger.warning(f"Not converged after {i} iterations")
     logger.error(f'Not converged with q:{q},  e:{e}, t:{t}, t0:{tp} after {i} iterations')
-    return 0,0
+    return 0,0,0,0,0
 
 def quadrant (alpha) :
     dg = np.rad2deg(alpha)

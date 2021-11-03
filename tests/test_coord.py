@@ -8,7 +8,7 @@ from pytest import approx
 import numpy as np
 from numpy.random import default_rng
 
-from myorbit.orbits.orbit_state import _next_E
+from myorbit.orbits.keplerian import _next_E
 # Local application imports
 from myorbit.util.timeut import *
 from myorbit.coord import *

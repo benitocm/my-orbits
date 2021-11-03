@@ -235,8 +235,7 @@ def test_ceres_J2000_for_2010():
         check_df(df, exp_df, EXP_DIFF_PERT_ENCKES)    
 
 
-
-def test_C2012CH17_J2000_for_2012():
+def test_elliptical_C2012CH17_J2000_for_2012():
     # This comet  has an eccentricity of 0.999991
     fn = TEST_DATA_PATH.joinpath('jpl_C2012CH17_2012-Sep-27_2012-Nov-27.csv')
     exp_df = dc.read_jpl_data(fn)    
@@ -244,23 +243,22 @@ def test_C2012CH17_J2000_for_2012():
     EXP_DIFF_PERT = 103
     EXP_DIFF_PERT_ENCKES = 103
 
-    C2012_CH17 = dc.read_comet_elms_for("C/2012 CH17 (MOSS)", dc.DF_COMETS)        
     eph = EphemrisInput(from_date="2012.09.27.0",
                         to_date = "2012.11.27.0",
                         step_dd_hh_hhh = "2 00.0",
                         equinox_name = "J2000")
 
-    df = calc_eph_twobody(C2012_CH17, eph)
+    df = calc_eph_twobody(dc.C2012_CH17, eph)
     check_df(df, exp_df, EXP_DIFF)        
 
-    df = calc_eph_minor_body_perturbed(C2012_CH17, eph)    
+    df = calc_eph_minor_body_perturbed(dc.C2012_CH17, eph)    
     check_df(df, exp_df, EXP_DIFF_PERT)        
 
-    df = calc_eph_by_cowells(C2012_CH17, eph)   
+    df = calc_eph_by_cowells(dc.C2012_CH17, eph)   
     check_df(df, exp_df, EXP_DIFF_PERT)    
 
     if TEST_ENCKES :
-        df = calc_eph_by_enckes(C2012_CH17, eph)   
+        df = calc_eph_by_enckes(dc.C2012_CH17, eph)   
         check_df(df, exp_df, EXP_DIFF_PERT_ENCKES)    
 
 
@@ -300,5 +298,71 @@ def test_body_with_twobodys():
     assert calc_diff_seconds(df, exp_df) < 2.4
 
     
-    
+
+# Elliptical comet
+C2012_CH17 = read_comet_elms_for("C/2012 CH17 (MOSS)", DF_COMETS)   
+
+# Hyperbolic comet
+C_2020_J1_SONEAR = read_comet_elms_for("C/2020 J1 (SONEAR)", DF_COMETS) 
+
+# Parabolic comet:
+C_2018_F3_Johnson = read_comet_elms_for("C/2018 F3 (Johnson)", DF_COMETS) 
+
+
+
 """
+
+def test_parabollic_C_2018_F3_Johnson_J2000_for_2017():
+    # This comet follows a parabolic orbit, e=1
+    fn = TEST_DATA_PATH.joinpath('jpl-C2018_F3_Johnson-Ago-01_2017-Ago-30.csv')
+    exp_df = dc.read_jpl_data(fn)    
+    EXP_DIFF = 219
+    EXP_DIFF_PERT = 9
+    EXP_DIFF_PERT_ENCKES = 9
+
+    eph = EphemrisInput(from_date="2017.8.01.0",
+                        to_date = "2017.8.30.0",
+                        step_dd_hh_hhh = "2 00.0",
+                        equinox_name = "J2000")
+
+    df = calc_eph_twobody(dc.C_2018_F3_Johnson, eph)
+    check_df(df, exp_df, EXP_DIFF)        
+
+    df = calc_eph_minor_body_perturbed(dc.C_2018_F3_Johnson, eph)    
+    check_df(df, exp_df, EXP_DIFF_PERT)        
+
+    df = calc_eph_by_cowells(dc.C_2018_F3_Johnson, eph)   
+    check_df(df, exp_df, EXP_DIFF_PERT)    
+
+    if TEST_ENCKES :
+        df = calc_eph_by_enckes(dc.C_2018_F3_Johnson, eph)   
+        check_df(df, exp_df, EXP_DIFF_PERT_ENCKES)    
+
+
+def test_hyperbolical_C_2020_J1_SONEAR_J2000_for_2020():
+    # This comet follows a parabolic orbit, e=1
+    fn = TEST_DATA_PATH.joinpath('jpl-C_2020_J1_SONEAR-Apr-01_2021-May-30.csv')
+    exp_df = dc.read_jpl_data(fn)    
+    EXP_DIFF = 300
+    EXP_DIFF_PERT = 300
+    EXP_DIFF_PERT_ENCKES = 300    
+    obj = dc.C_2020_J1_SONEAR
+
+    eph = EphemrisInput(from_date="2021.04.01.0",
+                        to_date = "2021.05.30.0",
+                        step_dd_hh_hhh = "2 00.0",
+                        equinox_name = "J2000")
+
+    df = calc_eph_twobody(obj, eph)
+    check_df(df, exp_df, EXP_DIFF)        
+
+    df = calc_eph_minor_body_perturbed(obj, eph)    
+    check_df(df, exp_df, EXP_DIFF_PERT)        
+
+    df = calc_eph_by_cowells(obj, eph)   
+    check_df(df, exp_df, EXP_DIFF_PERT)    
+
+    if TEST_ENCKES :
+        df = calc_eph_by_enckes(obj, eph)   
+        check_df(df, exp_df, EXP_DIFF_PERT_ENCKES)    
+

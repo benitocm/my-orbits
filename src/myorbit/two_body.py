@@ -21,8 +21,8 @@ from myorbit.util.timeut import CENTURY, JD_J2000, dg2h, h2hms, dg2dgms, T_given
 import myorbit.orbits.orbutil as ob
 import myorbit.data_catalog as dc
 from myorbit.orbits.ephemeris_input import EphemrisInput
-from myorbit.planets import g_xyz_equat_sun_j2000, g_rlb_eclip_sun_eqxdate
-from myorbit.orbits.orbit_state import OrbitStateSolver
+from myorbit.planets import g_xyz_equat_sun_j2000
+from myorbit.orbits.keplerian import KeplerianStateSolver
 from myorbit.orbits.ellipitical import calc_rv_for_elliptic_orbit, calc_M
 
 from myorbit.util.constants import *
@@ -107,10 +107,10 @@ def calc_eph_twobody(body, eph):
 
     if hasattr(body, 'q') :
         # Comets
-        solver = OrbitStateSolver.make(body.tp_mjd, body.e, body.q, body.a, None, None)
+        solver = KeplerianStateSolver.make(body.tp_mjd, body.e, body.q, body.a, None, None)
     else :
         # Asteroids 
-        solver = OrbitStateSolver.make(body.tp_mjd, body.e, None, body.a, body.epoch_mjd, body.M0)
+        solver = KeplerianStateSolver.make(body.tp_mjd, body.e, None, body.a, body.epoch_mjd, body.M0)
      
     result = dict()
     # Angular momentums in the orbit
@@ -174,10 +174,10 @@ def calc_eph_minor_body_perturbed (body, eph ,include_osc=False):
     initial_mjd = body.epoch_mjd  
     if hasattr(body, 'q') :
         # Comets
-        solver = OrbitStateSolver.make(body.tp_mjd, body.e, body.q, body.a, None, None)
+        solver = KeplerianStateSolver.make(body.tp_mjd, body.e, body.q, body.a, None, None)
     else :
         # Asteroids 
-        solver = OrbitStateSolver.make(body.tp_mjd, body.e, None, body.a, body.epoch_mjd, body.M0)
+        solver = KeplerianStateSolver.make(body.tp_mjd, body.e, None, body.a, body.epoch_mjd, body.M0)
      
     xyz0, vxyz0, *other =  solver.calc_rv(initial_mjd)
      
@@ -326,8 +326,8 @@ def test_jupiter():
 
 
 if __name__ == "__main__":
-    test_1()
+    #test_1()
     test_2()
-    test_3()
+    #test_3()
     #test_jupiter()
     

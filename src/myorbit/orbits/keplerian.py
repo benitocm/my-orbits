@@ -13,7 +13,7 @@ from numpy import sqrt
 
 # Local application imports
 from myorbit.orbits.parabolic import calc_rv_for_parabolic_orbit
-from myorbit.orbits.hyperbolic import calc_rv_for_hyperbolic_orbit
+from myorbit.orbits.hyperbolic import calc_rv_for_hyperbolic_orbit, _parabolic_orbit
 from myorbit.orbits.ellipitical import calc_rv_for_elliptic_orbit, calc_M_for_body, calc_M
 from myorbit.util.timeut import hemisphere
 import myorbit.data_catalog as dc
@@ -48,19 +48,19 @@ def _next_E (e, m_anomaly, E) :
     den = 1 - e * np.cos(E)
     return E - num/den
 
-
-class OrbitStateSolver(ABC):
+#See https://www.giacomodebidda.com/posts/factory-method-and-abstract-factory-in-python/
+class KeplerianStateSolver(ABC):
     @classmethod
     def make(cls, tp_mjd, e, q, a, epoch, M_at_epoch):    
         if isclose(e, 1, abs_tol=1e-6):
             # Comets have q (distance to perihelion but asteroids do not have)
             if q is None :
-                msg=f'A parabolic cannot be calculated because we dont have q (distance to perihelion)'
+                msg=f'A parabolic orbitt cannot be calculated because q (distance to perihelion) is unknown'
                 print (msg)
                 logger.error(msg)    
                 return 
             else :
-                msg=f'Doing parabolic orbit for e={e}, q={q} [AU]'
+                msg=f'Doing parabolic orbit for tp={tp_mjd}, e={e}, q={q} [AU]'
                 print(msg)
                 logger.info(msg)                  
                 return ParabolicalStateSolver(tp_mjd, q)              
@@ -76,12 +76,27 @@ class OrbitStateSolver(ABC):
             if a is None:
                 a = q / (1-e) 
                 print (f'Semi-major axis (a) not provided, calculated with value {a} [AU]')
-            msg = f'Doing hyperbolical orbit for  a={a} [AU], e={e}'
+            msg = f'Doing hyperbolical orbit for tp={tp_mjd}, a={a} [AU], e={e}'
             logger.warning(msg)
             print(msg)
-            return HyperbolicalState(tp_mjd, a, e)
+            return HyperbolicalState(tp_mjd, a, e, q)
 
-    def calc_rv (self, t_mjd):        
+    def calc_rv (self, t_mjd): 
+        """ Template method pattern, that will call the concrete method calc_rv_basic in
+        the specific subclass (depeding on the orbit type) and after that
+        it will do the velocity and angular momentum checks that should hold
+
+        Parameters
+        ----------
+        t_mjd : float
+            Time of computation
+
+        Returns
+        -------
+        Tuple 
+            (r_xyz, rdot_xyz, r, h) where
+
+        """         
         r_xyz, rdot_xyz, r, h, *others = self.calc_rv_basic (t_mjd)
         check_velocity(self.v(r), rdot_xyz)
         check_angular_momentum(h, r_xyz, rdot_xyz)
@@ -112,7 +127,7 @@ def check_angular_momentum(h, r_xyz, rdot_xyz):
             print(msg)
             logger.error(msg)
 
-class EllipticalStateSolver(OrbitStateSolver) :
+class EllipticalStateSolver(KeplerianStateSolver) :
     """[summary]
 
     Parameters
@@ -149,8 +164,7 @@ class EllipticalStateSolver(OrbitStateSolver) :
          return sqrt(2*(self.energy()+(GM/r)))
 
 
-class ParabolicalStateSolver(OrbitStateSolver) :
-
+class ParabolicalStateSolver(KeplerianStateSolver) :
     def __init__(self, tp_mjd, q):    
         self.tp_mjd = tp_mjd
         self.q = q
@@ -165,16 +179,19 @@ class ParabolicalStateSolver(OrbitStateSolver) :
     def v(self, r) :
         return np.sqrt(2*GM/r)
 
-class HyperbolicalState(OrbitStateSolver) :
+class HyperbolicalState(KeplerianStateSolver) :
     
-    def __init__(self, tp_mjd, a, e):    
+    def __init__(self, tp_mjd, a, e, q):    
         self.tp_mjd = tp_mjd
         self.a = a
         self.e = e
+        self.q = q
         self.the_energy = -GM/(2*self.a)
 
     def calc_rv_basic(self, t_mjd):
-        return calc_rv_for_hyperbolic_orbit(self.tp_mjd, self.a, self.e, t_mjd)
+        #return calc_rv_for_hyperbolic_orbit(self.tp_mjd, self.a, self.e, t_mjd)
+        return _parabolic_orbit (self.tp_mjd, self.q, self.e, t_mjd, max_iters=15)
+
 
     def energy(self):
         return self.the_energy
@@ -183,7 +200,7 @@ class HyperbolicalState(OrbitStateSolver) :
         return sqrt(2*(self.energy()+(GM/r)))
 
 def test_elliptical():
-    state = OrbitStateSolver.make(56198.22249000007, 0.99999074, 1.29609218, None, None, None)    
+    state = KeplerianStateSolver.make(56198.22249000007, 0.99999074, 1.29609218, None, None, None)    
     T0_MJD = 56197.0
     for dt in range(0,10):
         t_mjd = T0_MJD + dt
@@ -191,7 +208,7 @@ def test_elliptical():
         print (f'r_xyz={r_xyz}, rdot_xyz={rdot_xyz}')
 
 def test_hyperbolical():
-    state = OrbitStateSolver.make(59311.54326000018, 1.06388423, 3.20746664, None, None, None)    
+    state = KeplerianStateSolver.make(59311.54326000018, 1.06388423, 3.20746664, None, None, None)    
     T0_MJD = 56197.0
     for dt in range(0,10):
         t_mjd = T0_MJD + dt
@@ -200,7 +217,7 @@ def test_hyperbolical():
 
 
 def test_parabolical():
-    state = OrbitStateSolver.make(57980.231000000145, 1.0, 2.48315593, None, None, None)    
+    state = KeplerianStateSolver.make(57980.231000000145, 1.0, 2.48315593, None, None, None)    
     T0_MJD = 56197.0
     for dt in range(0,10):
         t_mjd = T0_MJD + dt

@@ -17,7 +17,7 @@ from myorbit.util.general import frange
 import myorbit.orbits.orbutil as ob
 import myorbit.data_catalog as dc
 from myorbit.orbits.ephemeris_input import EphemrisInput
-from myorbit.orbits.orbit_state import OrbitStateSolver
+from myorbit.orbits.keplerian import KeplerianStateSolver
 from myorbit.util.constants import *
 
 logger = logging.getLogger(__name__)
@@ -96,10 +96,10 @@ def calc_eph_by_cowells (body, eph , obj_type='body', include_osc=False):
     initial_mjd = body.epoch_mjd  
     if hasattr(body, 'q') :
         # Comets
-        solver = OrbitStateSolver.make(body.tp_mjd, body.e, body.q, body.a, None, None)
+        solver = KeplerianStateSolver.make(body.tp_mjd, body.e, body.q, body.a, None, None)
     else :
         # Asteroids 
-        solver = OrbitStateSolver.make(body.tp_mjd, body.e, None, body.a, body.epoch_mjd, body.M0)
+        solver = KeplerianStateSolver.make(body.tp_mjd, body.e, None, body.a, body.epoch_mjd, body.M0)
      
     xyz0, vxyz0, *other =  solver.calc_rv(initial_mjd)
     

@@ -19,7 +19,7 @@ from myorbit.util.timeut import epochformat2jd, jd2mjd, T, mjd2jd, jd2str_date, 
 from myorbit.planets import g_xyz_equat_sun_j2000, g_rlb_eclip_sun_eqxdate
 from myorbit.util.general import mu_by_name, mu_Sun, my_range, measure
 from myorbit.orbits.orbutil import calc_perturbed_accelaration
-from myorbit.orbits.orbit_state import OrbitStateSolver
+from myorbit.orbits.keplerian import KeplerianStateSolver
 import myorbit.orbits.orbutil as ob
 import myorbit.data_catalog as dc
 from myorbit.orbits.ephemeris_input import EphemrisInput
@@ -143,10 +143,10 @@ def calc_eph_by_enckes (body, eph, obj_type='body'):
     initial_mjd = body.epoch_mjd  
     if hasattr(body, 'q') :
         # Comets
-        solver = OrbitStateSolver.make(body.tp_mjd, body.e, body.q, body.a, None, None)
+        solver = KeplerianStateSolver.make(body.tp_mjd, body.e, body.q, body.a, None, None)
     else :
         # Asteroids 
-        solver = OrbitStateSolver.make(body.tp_mjd, body.e, None, body.a, body.epoch_mjd, body.M0)
+        solver = KeplerianStateSolver.make(body.tp_mjd, body.e, None, body.a, body.epoch_mjd, body.M0)
      
     xyz0, vxyz0, *other =  solver.calc_rv(initial_mjd)
 

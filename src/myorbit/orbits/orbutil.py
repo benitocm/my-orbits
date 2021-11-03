@@ -291,10 +291,11 @@ def process_solution(tpoints, MTX_J2000_Teqx, MTX_equatFeclip, eph_eqx_name, inc
         h_xyz = MTX_J2000_Teqx.dot(r_v[0])
         h_vxyz = MTX_J2000_Teqx.dot(r_v[1])
 
-        oscul_elms = calc_osculating_orb_elmts(h_xyz, h_vxyz, clock_mjd, eph_eqx_name)
-        row.update(oscul_elms.as_dict())
-        if len(oscul_keys) == 0 :
-           oscul_keys = list(oscul_elms.as_dict().keys())
+        if include_osc :
+            oscul_elms = calc_osculating_orb_elmts(h_xyz, h_vxyz, clock_mjd, eph_eqx_name)
+            row.update(oscul_elms.as_dict())
+            if len(oscul_keys) == 0 :
+                oscul_keys = list(oscul_elms.as_dict().keys())
 
 
         h_xyz_equat_body = MTX_equatFeclip.dot(h_xyz)
