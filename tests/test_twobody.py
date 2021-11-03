@@ -240,8 +240,8 @@ def test_elliptical_C2012CH17_J2000_for_2012():
     fn = TEST_DATA_PATH.joinpath('jpl_C2012CH17_2012-Sep-27_2012-Nov-27.csv')
     exp_df = dc.read_jpl_data(fn)    
     EXP_DIFF = 184
-    EXP_DIFF_PERT = 103
-    EXP_DIFF_PERT_ENCKES = 103
+    EXP_DIFF_PERT = 106
+    EXP_DIFF_PERT_ENCKES = 106
 
     eph = EphemrisInput(from_date="2012.09.27.0",
                         to_date = "2012.11.27.0",
@@ -260,8 +260,6 @@ def test_elliptical_C2012CH17_J2000_for_2012():
     if TEST_ENCKES :
         df = calc_eph_by_enckes(dc.C2012_CH17, eph)   
         check_df(df, exp_df, EXP_DIFF_PERT_ENCKES)    
-
-
     
 """
 def test_comet_with_twobodys_J2000():    
@@ -316,9 +314,9 @@ def test_parabollic_C_2018_F3_Johnson_J2000_for_2017():
     # This comet follows a parabolic orbit, e=1
     fn = TEST_DATA_PATH.joinpath('jpl-C2018_F3_Johnson-Ago-01_2017-Ago-30.csv')
     exp_df = dc.read_jpl_data(fn)    
-    EXP_DIFF = 219
-    EXP_DIFF_PERT = 9
-    EXP_DIFF_PERT_ENCKES = 9
+    EXP_DIFF = 222
+    EXP_DIFF_PERT = 20
+    EXP_DIFF_PERT_ENCKES = 20
 
     eph = EphemrisInput(from_date="2017.8.01.0",
                         to_date = "2017.8.30.0",
@@ -343,9 +341,9 @@ def test_hyperbolical_C_2020_J1_SONEAR_J2000_for_2020():
     # This comet follows a parabolic orbit, e=1
     fn = TEST_DATA_PATH.joinpath('jpl-C_2020_J1_SONEAR-Apr-01_2021-May-30.csv')
     exp_df = dc.read_jpl_data(fn)    
-    EXP_DIFF = 300
-    EXP_DIFF_PERT = 300
-    EXP_DIFF_PERT_ENCKES = 300    
+    EXP_DIFF = 82
+    EXP_DIFF_PERT = 81
+    EXP_DIFF_PERT_ENCKES = 81
     obj = dc.C_2020_J1_SONEAR
 
     eph = EphemrisInput(from_date="2021.04.01.0",

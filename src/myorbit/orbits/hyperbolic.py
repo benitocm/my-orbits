@@ -9,15 +9,11 @@ from math import isclose
 
 # Third party imports
 import numpy as np
-from numpy import sqrt, cos, sin, cosh, sinh, tan, arctan, tanh
+from numpy import sqrt, cos, sin, cosh, sinh,  arctan, tanh
 from scipy.optimize import newton
 
 # Local application imports
-from myorbit.util.timeut import  T, norm_dg
-from myorbit import coord as co
-
-np.set_printoptions(precision=12)
-
+from myorbit.util.timeut import  norm_dg
 from myorbit.util.constants import *
 
 logger = logging.getLogger(__name__)
@@ -332,18 +328,6 @@ def _parabolic_orbit (tp, q, e, t, max_iters=15):
     logger.error(f'Not converged with q:{q},  e:{e}, t:{t}, t0:{tp} after {i} iterations')
     return 0,0,0,0,0
 
-def quadrant (alpha) :
-    dg = np.rad2deg(alpha)
-    if dg < 0:
-        dg = norm_dg(dg)
-    if 0 <= dg <= 90 :
-        return 1
-    elif 90 < dg <= 180 :
-        return 2
-    elif 180 < dg <= 270 :
-        return 3
-    else :
-        return 4 
 
 def test_comet():
     # For comets, we have Perihelion distance (q or rp) instead of semimajor axis (a)

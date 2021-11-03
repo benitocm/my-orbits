@@ -16,9 +16,6 @@ from myorbit.orbits.parabolic import calc_rv_for_parabolic_orbit
 from myorbit.orbits.hyperbolic import calc_rv_for_hyperbolic_orbit, _parabolic_orbit
 from myorbit.orbits.ellipitical import calc_rv_for_elliptic_orbit, calc_M_for_body, calc_M
 from myorbit.util.timeut import hemisphere
-import myorbit.data_catalog as dc
-
-np.set_printoptions(precision=12)
 
 from myorbit.util.constants import *
 
@@ -49,13 +46,14 @@ def _next_E (e, m_anomaly, E) :
     return E - num/den
 
 #See https://www.giacomodebidda.com/posts/factory-method-and-abstract-factory-in-python/
+
 class KeplerianStateSolver(ABC):
     @classmethod
     def make(cls, tp_mjd, e, q, a, epoch, M_at_epoch):    
         if isclose(e, 1, abs_tol=1e-6):
             # Comets have q (distance to perihelion but asteroids do not have)
             if q is None :
-                msg=f'A parabolic orbitt cannot be calculated because q (distance to perihelion) is unknown'
+                msg=f'A parabolic orbit cannot be calculated because q (distance to perihelion) is unknown'
                 print (msg)
                 logger.error(msg)    
                 return 
@@ -132,7 +130,7 @@ class EllipticalStateSolver(KeplerianStateSolver) :
 
     Parameters
     ----------
-    OrbitState : [type]
+    KeplerianStateSolver : [type]
         [description]
     """
 
@@ -140,6 +138,7 @@ class EllipticalStateSolver(KeplerianStateSolver) :
         self.tp_mjd = tp_mjd
         self.a = a
         self.e = e
+        # The energy is a invariant of the orbit 
         self.the_energy = -GM/(2*self.a)
         self.epoch_mjd = epoch_mjd
         self.M_at_epoch = M_at_epoch
@@ -189,8 +188,8 @@ class HyperbolicalState(KeplerianStateSolver) :
         self.the_energy = -GM/(2*self.a)
 
     def calc_rv_basic(self, t_mjd):
-        #return calc_rv_for_hyperbolic_orbit(self.tp_mjd, self.a, self.e, t_mjd)
-        return _parabolic_orbit (self.tp_mjd, self.q, self.e, t_mjd, max_iters=15)
+        return calc_rv_for_hyperbolic_orbit(self.tp_mjd, self.a, self.e, t_mjd)
+        #return _parabolic_orbit (self.tp_mjd, self.q, self.e, t_mjd, max_iters=15)
 
 
     def energy(self):
@@ -199,35 +198,7 @@ class HyperbolicalState(KeplerianStateSolver) :
     def v(self, r) :
         return sqrt(2*(self.energy()+(GM/r)))
 
-def test_elliptical():
-    state = KeplerianStateSolver.make(56198.22249000007, 0.99999074, 1.29609218, None, None, None)    
-    T0_MJD = 56197.0
-    for dt in range(0,10):
-        t_mjd = T0_MJD + dt
-        r_xyz, rdot_xyz, *other = state.calc_rv(t_mjd)
-        print (f'r_xyz={r_xyz}, rdot_xyz={rdot_xyz}')
-
-def test_hyperbolical():
-    state = KeplerianStateSolver.make(59311.54326000018, 1.06388423, 3.20746664, None, None, None)    
-    T0_MJD = 56197.0
-    for dt in range(0,10):
-        t_mjd = T0_MJD + dt
-        r_xyz, rdot_xyz, *other = state.calc_rv(t_mjd)
-        print (f'r_xyz={r_xyz}, rdot_xyz={rdot_xyz}')
-
-
-def test_parabolical():
-    state = KeplerianStateSolver.make(57980.231000000145, 1.0, 2.48315593, None, None, None)    
-    T0_MJD = 56197.0
-    for dt in range(0,10):
-        t_mjd = T0_MJD + dt
-        r_xyz, rdot_xyz, *other = state.calc_rv(t_mjd)
-        print (f'r_xyz={r_xyz}, rdot_xyz={rdot_xyz}')
-
 
 if __name__ == "__main__" :
-    test_elliptical()
-    test_hyperbolical()
-    test_parabolical()
-
+    None
 

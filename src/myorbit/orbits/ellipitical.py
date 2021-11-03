@@ -1,5 +1,9 @@
-"""This module contains functions related to the calculation of Keplerian orbits.
-It is based on the book "Astronomy on the Personal Computer" by Montenbruck, Pfleger.
+"""This module contains functions related to the calculation of elliptical orbits
+It is based on the books 
+     "Orbital Mechanichs for engineering students"
+     "Astronomy on the Personal Computer" by Montenbruck, Pfleger.
+and also in 
+    "Spacecraft Dynamics and Control" lectures of Mattew M. Peet
 """
 # Standard library imports
 from math import isclose
@@ -13,12 +17,8 @@ from numpy import sqrt, cos, sin
 from scipy.optimize import newton
 
 # Local application imports
-from myorbit.util.timeut import norm_dg, norm_rad
+from myorbit.util.timeut import  norm_rad
 from myorbit.util.general import pow
-from myorbit import coord as co
-
-np.set_printoptions(precision=12)
-
 from myorbit.util.constants import *
 
 logger = logging.getLogger(__name__)
@@ -33,19 +33,19 @@ logger = logging.getLogger(__name__)
 
 def calc_M_for_body(t_mjd, epoch_mjd, a, M_at_epoch) :
     
-    """Computes the mean anomaly based on the data of BodyElms, in this case,
-    uses the period (calculated) and the Mean anomaly at epoch.
+    """Computes the mean anomaly as a function of time (t_mjd). This method is used
+    when the Time of perihelion passage is unknown (for asteroids). 
 
     Parameters
     ----------
     t_mjd : float
-        Time of the computation as Modified Julian Day
+        Time of the computation [Modified Julian day]
     epoch_mjd : float
-        The Epoch considered
-    period_in_days : float
-         period of the orbit [days]
+        Epoch of the orbital elemnts [Modified Julian day]
+    a : float
+        Semimajor axis of the orbit [AU]
     M_at_epoch : float
-        The mean anomaly at epoch [radians]
+        The mean anomaly at the time of epoch (epoch_mjd) [radians]
 
     Returns
     -------
@@ -58,19 +58,18 @@ def calc_M_for_body(t_mjd, epoch_mjd, a, M_at_epoch) :
     return norm_rad(M)
 
 def calc_M (t_mjd, tp_mjd, a):
-    """Computes Mean Anomaly as function of time [summary]
+    """Computes the mean anomaly as a function of time (t_mjd). This method is used
+    when the Time of perihelion passage is known (for comets)
 
     Parameters
     ----------
     t_mjd : float
-        Time of the computation (Modified Julian day)
+        Time of the computation [Modified Julian day]
     tp_mjd : float
-        Time of periapse (Modified Julian day)
+        Time of perihelion passage [Modified Julian day]
     a : float
         Semimajor axis [AU]
-    """
-
-    """
+    
     Returns
     -------
     float
@@ -90,14 +89,14 @@ def _F(e, M, E):
     e : float
         Eccentricity
     M : float
-        Mean anomaly
+        Mean anomaly [radians]
     E : float
-        Eccentric anomaly
+        Eccentric anomaly [radians]
 
     Returns
     -------
     float
-        The Eccentric anomaly 
+        The Eccentric anomaly [radians]
     """
     return E-e*sin(E)- M
 
@@ -110,7 +109,7 @@ def _Fprime(e, E):
     e : float
         Eccentricity
     E : float
-        Eccentric anomaly
+        Eccentric anomaly [radians]
 
     Returns
     -------
@@ -128,7 +127,7 @@ def _Fprime2(e, E):
     e : float
         Eccentricity
     E : float
-        Eccentric anomaly
+        Eccentric anomaly [radians]
 
     Returns
     -------
@@ -138,16 +137,16 @@ def _Fprime2(e, E):
     return e*sin(E)    
 
 def solve_kepler_eq(e, M, E0):
-    """Solve the Kepler equation
+    """Solve the Kepler equation numerically
 
     Parameters
     ----------
     e : float
         Eccentricity
     M : float
-        Mean anomaly
+        Mean anomaly [radians]
     E0 : float
-        The initial Eccentric anomaly
+        The initial Eccentric anomaly [radians]
 
     Returns
     -------
@@ -155,8 +154,8 @@ def solve_kepler_eq(e, M, E0):
         A tuple (x,root) where:
             x is The Eccentric anomaly that solves the Kepler equation
             root is a structure with information about how the calculation was, including a flag
-            for signaling if the method converged or not.
-            In case of the solution does not coverge, the last value obtained is returned
+                for signaling if the method converged or not.
+        In case of the solution does not coverge, the last value obtained is returned
 
     """
     # The two first parameters of F are bounded, so we end up with f(E)
@@ -185,21 +184,19 @@ def _calc_E0(e, M):
     e : float
         Eccentricity
     M : float
-        Mean anomaly (radians)
+        Mean anomaly [radians]
 
     Returns
     -------
     float
-        The inital value of the Eccentric anomaly to solve the Kepler equation
+        The inital value of the Eccentric anomaly to solve the Kepler equation [radians]
     """
     mu = M+e
     num = M*(1 - np.sin(mu) ) + mu*np.sin(M)
     den = 1 + np.sin(M) - np.sin(mu)
     return num/den
 
-
-def calc_rv_for_elliptic_orbit (M, a, e):
-    """[summary]
+"""Computes the state vector and other quantities 
 
     Parameters
     ----------
@@ -226,15 +223,39 @@ def calc_rv_for_elliptic_orbit (M, a, e):
         r : Modulus of the radio vector of the object [AU]
     """
 
-    # Mean anomaly as a function of time (t_mjd) is calculated
-    #M = calc_M(t_mjd, tp_mjd, a)
+def calc_rv_for_elliptic_orbit (M, a, e):
+    """Computes the state vector and other quantities. The time evolution comes from M (Mean anomaly).
+    The computation of the mean anomaly is outside of this method because it depends on the object (asteroids or
+    comets)
 
-    # After that we need to solve the Kepler equation to obtain
-    # the Eccentric Anomaly. For that purpose, we need to provide
-    # an initial guess for E, i.e, E0
+    Parameters
+    ----------
+    M : float 
+        Mean anomaly at computation time [radians]
+    a : float
+        Semimajor axis of the orbit [AU]
+    e : float
+        Eccentricity
+
+    Returns
+    -------
+    tuple (r_xyz, rdot_xyz, M, f, E, h, r):
+        r_xyz: is a np.array[3] that contains the radio vector (cartesian) from the Sun to the body 
+            with respect to the orbital plane (perifocal frame) [AU]
+        rdot_xyz: is a np.array[3] that contains the velocity vector (cartesian) of the body
+            with respect to the orbital plane (perifocal frame) [AU/days]
+        r : Modulus of the radio vector of the object (r_xyz) but calculated following the polar equation [AU]    
+        h : Angular momentum (deduced from geometic properties)
+        M : Mean anomaly at time of computation [radians]
+        f : True anomaly at time of computation [radians]
+        E : Eccentric anomaly at time of computation [radians]
+    """
+    # Once the mean anomaly is known (depends of the time of computation), it is
+    # needed to solve the Kepler equation to obtain the Eccentric Anomaly. For that purpose,
+    # we need to provide an initial guess for E, i.e, E0
     E0 =  _calc_E0(e, M) 
 
-    # The Kepler equation is solved so Eccentric Anomaly is obtained
+    # The Kepler equation is solved so Eccentric Anomaly to obtain Eccentric Anomaly
     E, root = solve_kepler_eq(e, M, E0)
     if not root.converged :
         msg = f"Not converged: {root}"
@@ -245,77 +266,41 @@ def calc_rv_for_elliptic_orbit (M, a, e):
     cos_f = (cos(E) - e)/(1 - e*cos(E))
     f = np.arccos(cos_f)
     # Because arccos returns an angle between [0,PI] and True Anomaly goes
-    # between [0,2*PI) we need to solve the quadrant ambiguity. Because
-    # Mean Anomaly and True Anomaly are in the same quadrant we can use 
+    # between [0,2*PI) we need to solve the hemisphere ambiguity. Because
+    # Mean Anomaly and True Anomaly are in the same hemisphere we can use 
     # that fact to resolve it.
     if PI <= M < TWOPI:
         f = TWOPI - f
 
     sin_f = np.sin(f) 
     
-    # Once we have f, we can calculate the modulus of the position vector r
-    # using the orbit polar equation 
+    # Once f (true anomaly) has been calculated, the modulus of the position vector r
+    # can be calculated using the orbit polar equation (valid for the three conics)
     r = a*(1-e*e)/(1+e*cos_f)
 
-    # At this point, we have the polar coordinates of the body w.r.t the
-    # Perifocal Frame
-
-    # We move from Polar to cartesian in the Perifocal Frame, the z coordinate is 0 because
-    # we are in the Perifocal Frame
+    # The polar coordinates of the body w.r.t the Perifocal Frame are r and f
+    # We move from polar to cartesian inside the Perifocal Frame, the z coordinate is 0 because
+    # we are in a plane
     r_xyz = np.array([r*cos_f, r*sin_f, 0.0])  
 
     # To calculate the velocity (in cartesian coordinates) we use the formula in Orbital Mechanics for 
-    # Students (eq. 2.123 y 2.124). For that, we need first the 
-    # Angular Momentum
+    # Students (eq. 2.123 y 2.124). For that, we need first to compute the Angular Momentum using
+    # geometric properties
     h = np.sqrt(GM*a*(1-e*e))
 
     rdot_xyz = np.array([-GM*sin_f/h,GM*(e+cos_f)/h , 0.0]) 
 
     # Double checking:
     #   The Angular Momentum h should be constant during the orbit
-    #   The modulus of rdot_xyz should be the same to the one calculated from the Energy velocty:
+    #   For each calculation, the modulus of rdot_xyz should be the same to the 
+    #   one calculated from the Energy velocity:
     #        - Energy = - GM/(2*a)
     #        - v = sqrt(2*(Energy+(GM/r)))
     #   The Angular momentum h should be the sames r x v   {np.cross(r_xyz,rdot_xyz)}")
-    #)
 
     return r_xyz, rdot_xyz, r, h, M, f, E
 
-def test_comet():
-    # For comets, we have Perihelion distance (q or rp) instead of semimajor axis (a)
-    # For asteroids, we have the semimajor axis (a)    t_mjd = 56197.0
-    e = 0.99999074
-    TP_MJD = 56198.22249000007
-    T0_MJD = 56197.0
-    q = 1.29609218 # Perihelion distance
-    a = None
-    if a is None :
-        a = q / (1-e) 
-    hs= []
-    for dt in range(0,10):
-        t_mjd = T0_MJD + dt
-        r_xyz, rdot_xyz, M, f, E, h_geo, r = calc_rv_for_elliptic_orbit(TP_MJD, a, e)
-        #print (r_xyz, rdot_xyz, np.rad2deg(M), np.rad2deg(f), np.rad2deg(E)) 
-        h_rv = np.cross(r_xyz,rdot_xyz)
-        #print (h_geo, h_rv[2], isclose(h_geo, h_rv[2], abs_tol=1e-12))
-        hs.append(h_rv[2])
-        print (np.rad2deg(f),np.rad2deg(M))
-        print (quadrant(f), quadrant(M))
-        Energy = - GM/(2*a)
-        v = sqrt(2*(Energy+(GM/r)))
-        #print (v, np.linalg.norm(rdot_xyz), isclose(v,np.linalg.norm(rdot_xyz),abs_tol=1e-12))
-    is_h_cte = all(isclose(h, hs[0], abs_tol=1e-12) for h in hs)
-    print (is_h_cte)
-
-def test_body():
-     None   
-
-
-    
-
-
-
 
 if __name__ == "__main__" :
-    test_comet()
+    None
     
