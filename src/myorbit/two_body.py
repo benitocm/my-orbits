@@ -16,7 +16,7 @@ from toolz import pipe
 # Local application imports
 import myorbit.planets as pl
 from myorbit import coord as co
-from myorbit.util.general import frange
+from myorbit.util.general import frange, my_range, pow
 from myorbit.util.timeut import CENTURY, JD_J2000, dg2h, h2hms, dg2dgms, T_given_mjd, mjd2jd, jd2str_date
 import myorbit.orbits.orbutil as ob
 import myorbit.data_catalog as dc
@@ -287,31 +287,75 @@ def _g_rlb_equat_body_j2000(jd, body):
     g_xyz_equat_body = g_xyz_equat_sun + h_xyz_equat_body
     return co.polarFcartesian(g_xyz_equat_body)
 
+def calc_tp(M0, a, epoch):
+    deltaT = TWOPI*np.sqrt(pow(a,3)/GM)*(1-M0/TWOPI)
+    return deltaT + epoch
+
+def test_ceres():
+    body = dc.CERES_J2000
+    solver = KeplerianStateSolver.make(e=body.e, a=body.a, epoch=body.epoch_mjd, M_at_epoch=body.M0)    
+    clock_mjd = calc_tp(body.M0, body.a, body.epoch_mjd)
+    r_xyz, rdot_xyz, r, h = solver.calc_rv(clock_mjd) 
 
 
-
-def test_1():
-    # Eliptical almost Parabolical
-    eph = EphemrisInput(from_date="2012.09.27.0",
-                        to_date = "2012.11.27.0",
-                        step_dd_hh_hhh = "2 00.0",
-                        equinox_name = "J2000")
-    print (calc_eph_twobody(dc.C2012_CH17, eph))
-
-def test_2():  
-    eph = EphemrisInput(from_date="2021.04.01.0",
-                        to_date = "2021.04.27.0",
-                        step_dd_hh_hhh = "2 00.0",
-                        equinox_name = "J2000")
-    print (calc_eph_twobody(dc.C_2020_J1_SONEAR, eph))
-
-def test_3():
-    eph = EphemrisInput(from_date="2017.8.01.0",
-                        to_date = "2017.8.30.0",
-                        step_dd_hh_hhh = "2 00.0",
-                        equinox_name = "J2000")
-    print (calc_eph_twobody(dc.C_2018_F3_Johnson, eph))
+def test_all_comets():
+    DELTA_DAYS=50
+    #df = dc.DF_COMETS.query("0.999 < e < 1.001")
+    df = dc.DF_COMETS
+    not_converged=[]
+    for idx, name in enumerate(df['Name']): 
+        obj = dc.read_comet_elms_for(name,df)
+        msg = f'Testing Object: {obj.name}'
+        print (msg)
+        logger.info(msg)
+        if hasattr(obj,'M0') :
+            M_at_epoch = obj.M0
+        else :
+            M_at_epoch = None
+        # from 20 days before perihelion passage to 20 days after 20 days perihelion passage
+        solver = KeplerianStateSolver.make(e=obj.e, a=obj.a, tp_mjd=obj.tp_mjd, q=obj.q, epoch=obj.epoch_mjd, M_at_epoch=M_at_epoch)
+        hs = []
+        try :
+            for clock_mjd in my_range(obj.tp_mjd-DELTA_DAYS, obj.tp_mjd+DELTA_DAYS, 2):        
+                r_xyz, rdot_xyz, r, h = solver.calc_rv(clock_mjd)
+                hs.append(h)
+            if not all(isclose(h, hs[0], abs_tol=1e-12) for h in hs):
+                msg = f'The angular momentum is NOT constant in the orbit'
+                print (msg)
+                logger.error(msg)
+        except RuntimeError :
+            print (f"===========> NOT converged for object {name}")
+            not_converged.append(name)            
+    print (not_converged)
     
+def test_all_bodies():
+    DELTA_DAYS=25
+    df = dc.DF_BODIES
+    not_converged=[]
+    for idx, name in enumerate(df['Name']): 
+        body = dc.read_body_elms_for(name,df)
+        msg = f'Testing Object: {body.name}'
+        #print (msg)
+        #logger.info(msg)
+        solver = KeplerianStateSolver.make(e=body.e, a=body.a, epoch=body.epoch_mjd, M_at_epoch=body.M0)    
+        tp = calc_tp(body.M0, body.a, body.epoch_mjd) 
+        hs = []
+        try :
+            for clock_mjd in my_range(tp-DELTA_DAYS, tp+DELTA_DAYS, 2):        
+                r_xyz, rdot_xyz, r, h = solver.calc_rv(clock_mjd)
+                hs.append(h)
+            if not all(isclose(h, hs[0], abs_tol=1e-12) for h in hs):
+                msg = f'The angular momentum is NOT constant in the orbit'
+                print (msg)
+                logger.error(msg)
+        except RuntimeError :
+            print (f"===========> NOT converged for object {name}")
+            not_converged.append(name)    
+        if idx % 1000 == 0 :
+            print (f"================================================>> {idx}")
+    print (not_converged)
+
+
 
 
 def test_jupiter():
@@ -326,8 +370,8 @@ def test_jupiter():
 
 
 if __name__ == "__main__":
-    #test_1()
-    test_2()
-    #test_3()
     #test_jupiter()
+    #test_all_comets()
+    #test_all_bodies()
+    test_ceres()
     

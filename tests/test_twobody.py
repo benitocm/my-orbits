@@ -233,12 +233,10 @@ def test_ceres_J2000_for_2010():
 
     df = calc_eph_by_cowells(dc.CERES_J2000, eph)   
     check_df(df, exp_df, EXP_DIFF_PERT)    
-
     
     if TEST_ENCKES :
         df = calc_eph_by_enckes(dc.CERES_J2000, eph)   
-        check_df(df, exp_df, EXP_DIFF_PERT_ENCKES)    
-    
+        check_df(df, exp_df, EXP_DIFF_PERT_ENCKES)      
 
 
 def test_elliptical_C2012CH17_J2000_for_2012():
@@ -310,7 +308,6 @@ def test_hyperbolical_C_2020_J1_SONEAR_J2000_for_2020():
                         step_dd_hh_hhh = "2 00.0",
                         equinox_name = "J2000")
 
-    """
     df = calc_eph_twobody(obj, eph)
     check_df(df, exp_df, EXP_DIFF)        
 
@@ -319,8 +316,7 @@ def test_hyperbolical_C_2020_J1_SONEAR_J2000_for_2020():
 
     df = calc_eph_by_cowells(obj, eph)   
     check_df(df, exp_df, EXP_DIFF_PERT)    
-    """
-
+    
     if TEST_ENCKES :
         df = calc_eph_by_enckes(obj, eph)   
         check_df(df, exp_df, EXP_DIFF_PERT_ENCKES)    

@@ -93,14 +93,14 @@ class KeplerianStateSolver(ABC):
                 print (f'Semi-major axis (a) not provided, calculated with value {a} [AU]')
             msg=f'Doing elliptical orbit tp={tp_mjd}, a={a} [AU], e={e}'
             print(msg)
-            logger.warning(msg)            
+            logger.info(msg)            
             return EllipticalStateSolver(tp_mjd= tp_mjd, a=a, e=e, epoch_mjd = epoch, M_at_epoch=M_at_epoch)
         else :
             if a is None:
                 a = q / (1-e) 
                 print (f'Semi-major axis (a) not provided, calculated with value {a} [AU]')
             msg = f'Doing hyperbolical orbit for tp={tp_mjd}, a={a} [AU], e={e}'
-            logger.warning(msg)
+            logger.info(msg)
             print(msg)
             return HyperbolicalState(tp_mjd=tp_mjd, a=a, e=e)
 

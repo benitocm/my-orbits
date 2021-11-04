@@ -1,5 +1,9 @@
-"""This module contains functions related to the calculation of Keplerian orbits.
-It is based on the book "Astronomy on the Personal Computer" by Montenbruck, Pfleger.
+"""This module contains functions related to the calculation of hyperbolic orbits
+It is based on the books 
+     "Orbital Mechanichs for engineering students"
+     "Astronomy on the Personal Computer" by Montenbruck, Pfleger.
+and also in 
+    "Spacecraft Dynamics and Control" lectures of Mattew M. Peet
 """
 # Standard library imports
 from math import isclose
@@ -18,17 +22,22 @@ from myorbit.util.constants import *
 
 logger = logging.getLogger(__name__)
 
-# For an elliptic orbit:
-#   (Energy <0) 
-#   0 < eccentricity  < 1
-
 # For an hyperbolic orbit:
 #   (Energy > 0) 
 #   eccentricity > 1
-
+#
+#  True Anomaly is still the angle the position vector r^ makes with the
+#  eccentricity vector, e^, measured counter-clockwise
+#
+# The orbit does not repeat (no period, T ), we can't use it. 
+# No reference circle so Eccentric Anomly is undefined
+#
+# Hyperbolic anomaly (H) is the hyperbolic angle using the area enclosed by the
+# center of the hyperbola, the point of perifocus and the point on the reference
+# hyperbola directly above the position vector
 
 def calc_M (t_mjd, tp_mjd, a):
-    """Computes Mean Anomaly as function of time [summary]
+    """Computes the mean anomaly as a function of time (t_mjd).
 
     Parameters
     ----------
@@ -38,9 +47,7 @@ def calc_M (t_mjd, tp_mjd, a):
         Time of periapse (Modified Julian day)
     a : float
         Semimajor axis [AU]
-    """
-
-    """
+    
     Returns
     -------
     float
@@ -60,27 +67,27 @@ def _F(e, M, H):
     e : float
         Eccentricity
     M : float
-        Mean anomaly
+        Mean anomaly [radians]
     H : float
-        Hyperbolic Anomaly
+        Hyperbolic Anomaly  [radians]
 
     Returns
     -------
     float
-        The Eccentric anomaly 
+        Hyperbolic Anomaly 
     """
     return e*sinh(H)-H-M
 
 def _Fprime(e, H):
-    """First derivative with respect to E of the Kepler equation. It is needed for
+    """First derivative with respect to H of the Kepler equation. It is needed for
     solving the Kepler equation more efficently
 
     Parameters
     ----------
     e : float
         Eccentricity
-    E : float
-        Eccentric anomaly
+    H : float
+        Hyperbolic Anomaly  [radians]
 
     Returns
     -------
@@ -90,7 +97,7 @@ def _Fprime(e, H):
     return e*cosh(H)-1
 
 def _Fprime2(e, H):
-    """Second derivative with respect to E of the Kepler equation. It is needed for
+    """Second derivative with respect to H of the Kepler equation. It is needed for
     solving the Kepler equation more efficently
 
     Parameters
@@ -98,7 +105,7 @@ def _Fprime2(e, H):
     e : float
         Eccentricity
     E : float
-        Eccentric anomaly
+        Hyperbolic Anomaly  [radians]
 
     Returns
     -------
@@ -115,9 +122,9 @@ def solve_kepler_eq(e, M, H0):
     e : float
         Eccentricity
     M : float
-        Mean anomaly
-    E0 : float
-        The initial Eccentric anomaly
+        Mean anomaly [radians]
+    H0 : float
+        The initial Hyperbolic anomaly [radians]
 
     Returns
     -------
@@ -129,13 +136,13 @@ def solve_kepler_eq(e, M, H0):
             In case of the solution does not coverge, the last value obtained is returned
 
     """
-    # The two first parameters of F are bounded, so we end up with f(E)
-    # So f(E) = 0 is the equation that is desired to solve (the kepler equation)
+    # The two first parameters of F are bounded, so we end up with f(H)
+    # So f(H) = 0 is the equation that is desired to solve (the kepler equation)
     f = partial(_F, e , M)
-    # The first parameter of Fprime is bounded, so we end up with fprime(E)
+    # The first parameter of Fprime is bounded, so we end up with fprime(H)
     # According to the newton method, it is better if the first derivative of f is available
     fprime = partial (_Fprime, e)
-    # The first parameter of Fprime2 is bounded, so we end up with fprime2(E)
+    # The first parameter of Fprime2 is bounded, so we end up with fprime2(H)
     # According to the newton method, it is better if the second derivative of f is available
     # If the second derivative is provided, the method used for newton method is Halley method
     # is applied that converged in a cubic way
@@ -155,32 +162,46 @@ def _calc_H0(e, M):
     e : float
         Eccentricity
     M : float
-        Mean anomaly (radians)
+        Mean anomaly [radians]
 
     Returns
     -------
     float
-        The inital value of the Eccentric anomaly to solve the Kepler equation
+        The inital value of the Hyperbolic anomaly to solve the Kepler equation
     """
     return M
 
 def calc_f (H, e):
+    """Computes the True anomaly given the Hyperbolic anomaly
+
+    Parameters
+    ----------
+    H : float
+        Hyperbolic anomaly [radians]
+    e : float
+        Eccentricity
+
+    Returns
+    -------
+    float
+        The true anomaly [radians]
+    """
     tan_fdiv2 = np.sqrt((e+1)/(e-1))*tanh(H/2)
     return 2*arctan(tan_fdiv2)
 
 def calc_rv_for_hyperbolic_orbit (tp_mjd, a_neg, e, t_mjd):
-    """[summary]
+    """Computes the state vector and other quantities. The time evolution comes from M (Mean anomaly).
+    The computation of the mean anomaly is outside of this method because it depends on the type of object (asteroids or
+    comets)
 
     Parameters
     ----------
-    t_mjd : [type]
-        [description]
-    tp_mjd : [type]
-        [description]
-    a : [type]
-        [description]
-    e : [type]
-        [description]
+    M : float 
+        Mean anomaly at computation time [radians]
+    a : float
+        Semimajor axis of the orbit [AU]
+    e : float
+        Eccentricity
 
     Returns
     -------
@@ -193,7 +214,7 @@ def calc_rv_for_hyperbolic_orbit (tp_mjd, a_neg, e, t_mjd):
         h : Angular momentum (deduced from geometic properties)
         M : Mean anomaly at time of computation [radians]
         f : True anomaly at time of computation [radians]
-        H : Hyperbolic anomaly [radians]
+        H : Hyperbolic anomaly at time of computation [radians]
     """
     cte = sqrt(GM/-a_neg)
     # I have done the calculation and it is right
@@ -216,15 +237,30 @@ def calc_rv_for_hyperbolic_orbit (tp_mjd, a_neg, e, t_mjd):
         print (msg)
         logger.error(msg)
 
+    # From H, we obtain the True Anomaly as f
     f = calc_f(H,e)   
+    # The polar coordinates of the body w.r.t the Perifocal Frame are r and f
+    # We move from polar to cartesian inside the Perifocal Frame, the z coordinate is 0 because
+    # we are in a plane# 
+    # The polar equation of the orbit is used to calculate the modulus of r^
     r = a_neg*(1-e*e)/(1+e*cos(f))
+    # The polar coordinates of the body w.r.t the Perifocal Frame are r and f
+    # We move from polar to cartesian inside the Perifocal Frame, the z coordinate is 0 because
+    # we are in a plane# 
     r_xyz = np.array([r*cos(f), r*sin(f), 0.0])
-    # Semi-latus rectum. Valid for Parabolae, Hyperbolae and Ellipses
-    p = a_neg*(1-e*e)
+    # Semi-latus rectum. Valid for Parabolae, Hyperbolae and Ellipses.
+    # is computed to calculte the angular momentum 
+    p = a_neg*(1-e*e)    
+    # The modulus of angular momentum is computed from from geometric data
     h = np.sqrt(p*GM)
-    rdot_xyz = np.array([-GM*np.sin(f)/h,GM*(e+np.cos(f))/h , 0.0]) 
 
-    # Alternative computation
+    # To calculate the velocity (in cartesian coordinates) we use the formula in Orbital Mechanics for 
+    # Students (eq. 2.123 y 2.124) based on the modulus of angular momentum and true anomaly
+    rdot_xyz = np.array([-GM*np.sin(f)/h,GM*(e+np.cos(f))/h , 0.0]) 
+    
+    # Alternative computation described in the book
+    #   "Astronomy on the Personal Computer" by Montenbruck, Pfleger.
+
     cosh_H = cosh(H)
     sinh_H = sinh(H)
 
@@ -235,10 +271,10 @@ def calc_rv_for_hyperbolic_orbit (tp_mjd, a_neg, e, t_mjd):
     r1dot_xyz = np.array([-cte*sinh_H/rho, cte*fac*cosh_H/rho,0.0])
 
     if not np.allclose(r_xyz, r1_xyz, atol=1e-012):
-        print (f'Differences between r1: {r} and r2:{r1}')   
+        logger.warning (f'Differences between r1: {r} and r2:{r1}')   
 
     if not np.allclose(rdot_xyz, r1dot_xyz, atol=1e-012):
-        print (f'Differences between r1: {rdot_xyz} and r2:{r1dot_xyz}')
+        logger.warning (f'Differences between r1: {rdot_xyz} and r2:{r1dot_xyz}')
 
     return r_xyz, rdot_xyz, r, h, M, f, H
 

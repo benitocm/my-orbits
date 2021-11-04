@@ -31,6 +31,27 @@ logger = logging.getLogger(__name__)
 #   (Energy > 0) 
 #   eccentricity > 1
 
+def calc_tp(M_at_epoch, a, epoch):
+    """Compute the perihelion passage given Mean anomaly and the epoch
+
+    Parameters
+    ----------
+    M_at_epoch : [type]
+        [description]
+    a : [type]
+        [description]
+    epoch : [type]
+        [description]
+
+    Returns
+    -------
+    [type]
+        [description]
+    """
+    # Time taken to go from the Mean anomaly at epoch up to the perihelion
+    deltaT = TWOPI*np.sqrt(pow(a,3)/GM)*(1-M_at_epoch/TWOPI)    
+    return deltaT + epoch
+
 def calc_M_for_body(t_mjd, epoch_mjd, a, M_at_epoch) :
     
     """Computes the mean anomaly as a function of time (t_mjd). This method is used
