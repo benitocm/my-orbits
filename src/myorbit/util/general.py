@@ -217,12 +217,10 @@ def my_range (start, stop, step, include_start = True, include_end = True):
     if include_end :         
         if result[-1] != stop :
             result.append(stop)
-    else :
-        if result[-1] == stop :
-            result = result[:-1]
     if not include_start :         
         result = result[1:]
     return result
     
 if __name__ == "__main__" :
-   None
+   print(my_range(46384,46405,10,include_end=False))
+        

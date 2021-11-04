@@ -2,7 +2,7 @@
 It is based on the book "Astronomy on the Personal Computer" by Montenbruck, Pfleger.
 """
 # Standard library imports
-from math import isclose
+from math import isclose, sqrt
 import logging
 from math import isclose
 
@@ -11,7 +11,6 @@ import numpy as np
 from numpy import cos, sin, arctan
 
 # Local application imports
-from myorbit.util.timeut import norm_dg
 from myorbit.util.general import pow
 from myorbit.util.constants import *
 
@@ -27,7 +26,7 @@ logger = logging.getLogger(__name__)
 
 
 def calc_Mp (q, t_mjd, tp_mjd):
-    """Computes Mean Anomaly as function of time [summary]
+    """Computes Mean Anomaly as function of time 
 
     Parameters
     ----------
@@ -37,9 +36,7 @@ def calc_Mp (q, t_mjd, tp_mjd):
         Time of periapse (Modified Julian day)
     a : float
         Semimajor axis [AU]
-    """
 
-    """
     Returns
     -------
     float
@@ -66,18 +63,18 @@ def calc_rv_for_parabolic_orbit (tp_mjd, q, t_mjd):
 
     Returns
     -------
-    tuple (r_xyz, rdot_xyz, M, f, E, h, r):
+    tuple (r_xyz, rdot_xyz, r, h, Mp, f, E):
         r_xyz: is a np.array[3] that contains the radio vector (cartesian) from the Sun to the body 
-            with respect to the orbital plane [AU]
+            with respect to the orbital plane (perifocal frame) [AU]
         rdot_xyz: is a np.array[3] that contains the velocity vector (cartesian) of the body
-            with respect to the orbital plane [AU/days]
-        M : Mean anomaly at time of computation [rads]
-        f : True anomaly at time of computation [rads]
-        E : Eccentric anomaly at time of computation [rads]
-        h : Angular momentum (deudced from geometic properties)
-        r : Modulus of the radio vector of the object [AU]
+            with respect to the orbital plane (perifocal frame) [AU/days]
+        r : Modulus of the radio vector of the object (r_xyz) but calculated following the polar equation [AU]    
+        h : Angular momentum (deduced from geometic properties)
+        Mp : Mean anomaly at time of computation [radians]
+        f : True anomaly at time of computation [radians]
+        E : None
     """
-
+ 
     # The Parabolic Mean Anomaly is calculated as a function of time
     Mp = calc_Mp(q, t_mjd, tp_mjd)
 
@@ -100,21 +97,100 @@ def calc_rv_for_parabolic_orbit (tp_mjd, q, t_mjd):
     #    print (f'Differences between r1: {rdot_xyz} and r2:{r1dot_xyz}')
 
     return r_xyz, rdot_xyz, r, h, Mp, f, None
+
+#
+# An alternative approach using Stumpff functions 
+# according to the book
+#       "Astronomy on the Personal Computer" by Montenbruck, Pfleger.
+# 
   
+def _calc_stumpff_values(E_2, epsilon=1e-7, max_iters=100):    
+    """Computes the values for the Stumpff functions C1, C2, C3 following
+    an iterative procedure
 
+    Parameters
+    ----------
+    E_2 : float
+        Square of eccentric anomaly [radians^2]
+    epsilon : float, optional
+        Relative accuracy, by default 1e-7
+    max_iters : int, optional
+        Maximum number of iterations, by default 100
 
-def quadrant (alpha) :
-    dg = np.rad2deg(alpha)
-    if dg < 0:
-        dg = norm_dg(dg)
-    if 0 <= dg <= 90 :
-        return 1
-    elif 90 < dg <= 180 :
-        return 2
-    elif 180 < dg <= 270 :
-        return 3
-    else :
-        return 4 
+    Returns
+    -------
+    tuple (C1, C2, C3)
+        The three stumpff values [float]
+    """
+
+    c1, c2, c3 = 0.0, 0.0, 0.0
+    to_add = 1.0
+    for n in range(1 ,max_iters):
+        c1 += to_add
+        to_add /= (2.0*n)
+        c2 += to_add
+        to_add /= (2.0*n+1.0)
+        c3 += to_add
+        to_add *= -E_2
+        if isclose(to_add, 0, abs_tol=epsilon) :
+        #if np.isclose(to_add,epsilon,atol=epsilon):
+            return c1, c2, c3
+    logger.error(f"Not converged after {n} iterations")
+    return c1, c2, c3
+
+def calc_rv_for_parabolic_orbit_stumpff (tp_mjd, q, e, t_mjd, max_iters=30):
+    """Computes the position (r) and velocity (v) vectors for parabolic orbits using
+    an iterative method (Newton's method) for solving the Kepler equation.
+    (pg 66 of Astronomy on the Personal Computer book). The m_anomaly is
+    the one that varies with time so the result of this function will also vary with time.
+
+    Parameters
+    ----------
+    tp : float
+        Time of perihelion passage in Julian centuries since J2000
+    q : float
+        Perihelion distance [AU]
+    e : float
+        Eccentricity of the orbit
+    t : float
+        Time of the computation in Julian centuries since J2000
+    max_iters : int, optional
+        Maximum number of iterations, by default 15
+
+    Returns
+    -------
+        tuple (r_xyz, rdot_xyz, M, f, E, h, r):
+            r_xyz: is a np.array[3] that contains the radio vector (cartesian) from the Sun to the body 
+                with respect to the orbital plane (perifocal frame) [AU]
+            rdot_xyz: is a np.array[3] that contains the velocity vector (cartesian) of the body
+                with respect to the orbital plane (perifocal frame) [AU/days]
+            r : Modulus of the radio vector of the object (r_xyz) but calculated following the polar equation [AU]    
+            h : Angular momentum (deduced from geometic properties)
+    """
+    E_2 = 0.0    
+    factor = 0.5 * e
+    cte = sqrt(GM/(q*(1.0+e)))
+    tau = sqrt(GM)*(t_mjd-tp_mjd)
+    EPSILON = 1e-7
+
+    for i in range(max_iters):
+        E20 = E_2 
+        A = 1.5 * sqrt(factor/(q*q*q))*tau
+        B = np.cbrt(sqrt(A*A+1.0)+A)
+        u = B - 1.0/B 
+        u_2 = u*u
+        E_2 = u_2*(1.0-e)/factor 
+        c1, c2, c3 = _calc_stumpff_values(E_2)
+        factor = 3.0*e*c3 
+        if isclose(E_2, E20, abs_tol=EPSILON) :
+            R = q * (1.0 + u_2*c2*e/factor)
+            r_xyz = np.array([q*(1.0-u_2*c2/factor), q*sqrt((1.0+e)/factor)*u*c1,0.0])
+            rdot_xyz = np.array([-cte*r_xyz[1]/R, cte*(r_xyz[0]/R+e),0.0])
+            return r_xyz, rdot_xyz, np.linalg.norm(r_xyz), np.linalg.norm(np.cross(r_xyz, rdot_xyz))
+    #logger.warning(f"Not converged after {i} iterations")
+    logger.error(f'Not converged with q:{q},  e:{e}, t:{t_mjd}, t0:{tp_mjd} after {i} iterations')
+    return np.array([0,0,0]), np.array([0,0,0]), 0, np.array([0,0,0])
+
 
 def test_comet():
     # For comets, we have Perihelion distance (q or rp) instead of semimajor axis (a)
@@ -140,15 +216,6 @@ def test_comet():
         print (v, np.linalg.norm(rdot_xyz), isclose(v,np.linalg.norm(rdot_xyz),abs_tol=1e-12))
     is_h_cte = all(isclose(h, hs[0], abs_tol=1e-12) for h in hs)
     print (is_h_cte)
-
-def test_body():
-     None   
-
-
-    
-
-
-
 
 if __name__ == "__main__" :
     test_comet()

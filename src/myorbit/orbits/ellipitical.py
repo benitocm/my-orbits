@@ -196,36 +196,9 @@ def _calc_E0(e, M):
     den = 1 + np.sin(M) - np.sin(mu)
     return num/den
 
-"""Computes the state vector and other quantities 
-
-    Parameters
-    ----------
-    t_mjd : [type]
-        [description]
-    tp_mjd : [type]
-        [description]
-    a : [type]
-        [description]
-    e : [type]
-        [description]
-
-    Returns
-    -------
-    tuple (r_xyz, rdot_xyz, M, f, E, h, r):
-        r_xyz: is a np.array[3] that contains the radio vector (cartesian) from the Sun to the body 
-            with respect to the orbital plane [AU]
-        rdot_xyz: is a np.array[3] that contains the velocity vector (cartesian) of the body
-            with respect to the orbital plane [AU/days]
-        M : Mean anomaly at time of computation [rads]
-        f : True anomaly at time of computation [rads]
-        E : Eccentric anomaly at time of computation [rads]
-        h : Angular momentum (deudced from geometic properties)
-        r : Modulus of the radio vector of the object [AU]
-    """
-
 def calc_rv_for_elliptic_orbit (M, a, e):
     """Computes the state vector and other quantities. The time evolution comes from M (Mean anomaly).
-    The computation of the mean anomaly is outside of this method because it depends on the object (asteroids or
+    The computation of the mean anomaly is outside of this method because it depends on the type of object (asteroids or
     comets)
 
     Parameters
@@ -239,7 +212,7 @@ def calc_rv_for_elliptic_orbit (M, a, e):
 
     Returns
     -------
-    tuple (r_xyz, rdot_xyz, M, f, E, h, r):
+    tuple (r_xyz, rdot_xyz, r, h, M, f, E):
         r_xyz: is a np.array[3] that contains the radio vector (cartesian) from the Sun to the body 
             with respect to the orbital plane (perifocal frame) [AU]
         rdot_xyz: is a np.array[3] that contains the velocity vector (cartesian) of the body

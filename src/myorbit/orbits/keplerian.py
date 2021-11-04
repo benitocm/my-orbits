@@ -12,12 +12,14 @@ from numpy import sqrt
 
 
 # Local application imports
-from myorbit.orbits.parabolic import calc_rv_for_parabolic_orbit
-from myorbit.orbits.hyperbolic import calc_rv_for_hyperbolic_orbit, _parabolic_orbit
+from myorbit.orbits.parabolic import calc_rv_for_parabolic_orbit, calc_rv_for_parabolic_orbit_stumpff
+from myorbit.orbits.hyperbolic import calc_rv_for_hyperbolic_orbit
 from myorbit.orbits.ellipitical import calc_rv_for_elliptic_orbit, calc_M_for_body, calc_M
 from myorbit.util.timeut import hemisphere
 
 from myorbit.util.constants import *
+
+USE_STUMPFF_IMPLEMENTATION=False
 
 logger = logging.getLogger(__name__)
 
@@ -54,36 +56,37 @@ class KeplerianStateSolver(ABC):
 
         Parameters
         ----------
-        tp_mjd : [type]
-            [description]
         e : [type]
             [description]
-        q : [type]
-            [description]
-        a : [type]
-            [description]
-        epoch : [type]
-            [description]
-        M_at_epoch : [type]
-            [description]
+        a : [type], optional
+            [description], by default None
+        tp_mjd : [type], optional
+            [description], by default None
+        q : [type], optional
+            [description], by default None
+        epoch : [type], optional
+            [description], by default None
+        M_at_epoch : [type], optional
+            [description], by default None
 
         Returns
         -------
         [type]
             [description]
         """
+        
         if isclose(e, 1, abs_tol=1e-6):
             # Comets have q (distance to perihelion but asteroids do not have)
             if q is None :
                 msg=f'A parabolic orbit cannot be calculated because q (distance to perihelion) is unknown'
                 print (msg)
                 logger.error(msg)    
-                return 
+                return None
             else :
                 msg=f'Doing parabolic orbit for tp={tp_mjd}, e={e}, q={q} [AU]'
                 print(msg)
                 logger.info(msg)                  
-                return ParabolicalStateSolver(tp_mjd=tp_mjd, q=q)              
+                return ParabolicalStateSolver(tp_mjd=tp_mjd, q=q, e=e)              
         elif 0<= e < 1 :
             if a is None:
                 a = q / (1-e) 
@@ -99,12 +102,12 @@ class KeplerianStateSolver(ABC):
             msg = f'Doing hyperbolical orbit for tp={tp_mjd}, a={a} [AU], e={e}'
             logger.warning(msg)
             print(msg)
-            return HyperbolicalState(tp_mjd=tp_mjd, a=a, e=e, q=q)
+            return HyperbolicalState(tp_mjd=tp_mjd, a=a, e=e)
 
     def calc_rv (self, t_mjd): 
         """ Template method pattern, that will call the concrete method calc_rv_basic in
         the specific subclass (depeding on the orbit type) and after that
-        it will do the velocity and angular momentum checks that should hold
+        it will do the velocity and angular momentum checks that should hold on each t
 
         Parameters
         ----------
@@ -160,8 +163,8 @@ class EllipticalStateSolver(KeplerianStateSolver) :
         self.a = a
         self.e = e
         self.tp_mjd = tp_mjd
-        # The energy is a invariant of the orbit 
-        self.the_energy = -GM/(2*self.a)
+        # The energy is an invariant of the orbit. In this case, it is negative
+        self.the_energy = - GM/(2*self.a)
         self.epoch_mjd = epoch_mjd
         self.M_at_epoch = M_at_epoch
 
@@ -187,13 +190,18 @@ class EllipticalStateSolver(KeplerianStateSolver) :
 
 
 class ParabolicalStateSolver(KeplerianStateSolver) :
-    def __init__(self, tp_mjd, q):    
+    def __init__(self, tp_mjd, q, e):    
         self.tp_mjd = tp_mjd
         self.q = q
+        self.e = e
+        # The energy is an invariant of the orbit. In this case, it is 0
         self.the_energy = 0
 
     def calc_rv_basic(self, t_mjd):
-        return calc_rv_for_parabolic_orbit (self.tp_mjd, self.q, t_mjd)
+        if USE_STUMPFF_IMPLEMENTATION :
+            return calc_rv_for_parabolic_orbit_stumpff (tp_mjd= self.tp_mjd, q=self.q, e = self.e, t_mjd= t_mjd)
+        else :
+            return calc_rv_for_parabolic_orbit (tp_mjd= self.tp_mjd, q=self.q, t_mjd= t_mjd)          
 
     def energy(self):
         return self.the_energy
@@ -203,24 +211,21 @@ class ParabolicalStateSolver(KeplerianStateSolver) :
 
 class HyperbolicalState(KeplerianStateSolver) :
     
-    def __init__(self, tp_mjd, a, e, q):    
+    def __init__(self, tp_mjd, a, e):    
         self.tp_mjd = tp_mjd
         self.a = a
         self.e = e
-        self.q = q
+        # The energy is an invariant of the orbit. In this case, it is < 0 
         self.the_energy = -GM/(2*self.a)
 
     def calc_rv_basic(self, t_mjd):
-        return calc_rv_for_hyperbolic_orbit(self.tp_mjd, self.a, self.e, t_mjd)
-        #return _parabolic_orbit (self.tp_mjd, self.q, self.e, t_mjd, max_iters=15)
-
+        return calc_rv_for_hyperbolic_orbit(tp_mjd= self.tp_mjd, a_neg=self.a, e=self.e, t_mjd=t_mjd)
 
     def energy(self):
         return self.the_energy
         
     def v(self, r) :
         return sqrt(2*(self.energy()+(GM/r)))
-
 
 if __name__ == "__main__" :
     None

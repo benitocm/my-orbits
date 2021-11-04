@@ -109,7 +109,7 @@ def apply_enckes(eph, t_range, r0, v0):
     return result
 
 
-def calc_eph_by_enckes (body, eph, obj_type='body'):
+def calc_eph_by_enckes (body, eph):
     """
     Computes the ephemeris for a minor body using the Enckes method. This has more precission that
     the Cowells but it takes more time to be calculated.
@@ -178,9 +178,9 @@ def calc_eph_by_enckes (body, eph, obj_type='body'):
             t_range_1.append(eph.from_mjd)
         """
         # [initial, from] 
-        t_range_1 = my_range(initial_mjd, eph.from_mjd, eph.step)
+        t_range_1 = my_range(initial_mjd, eph.from_mjd-eph.step, eph.step)
         # [from+step, to]
-        t_range_2 = my_range(eph.from_mjd+eph.step, eph.to_mjd, eph.step)
+        t_range_2 = my_range(eph.from_mjd, eph.to_mjd, eph.step, include_end=False)
 
         """
         t_range_2 = list(ut.frange(eph.from_mjd+eph.step, eph.to_mjd, eph.step))
@@ -190,6 +190,8 @@ def calc_eph_by_enckes (body, eph, obj_type='body'):
             t_range_2.append(eph.to_mjd)
         """
         solution = apply_enckes(eph, t_range_1 + t_range_2, r0, v0)
+        #Only the t's in the from-to is included
+        solution = tz.keyfilter(lambda k : k in t_range_2, solution)
     else :
         # If the epoch is in the future, we need to integrate backwards
         # goes from the epoch backward toward the end value from 
@@ -214,9 +216,11 @@ def calc_eph_by_enckes (body, eph, obj_type='body'):
             t_range_2 = t_range_2[0:-1]
         t_range = list(reversed(t_range_1)) + list(reversed(t_range_2))
         """
-        t_range_2 = my_range(eph.from_mjd, eph.to_mjd-eph.step, eph.step)
+        t_range_2 = my_range(eph.from_mjd, eph.to_mjd, eph.step, include_end=False)        
         t_range = list(reversed(t_range_2+t_range_1))
         solution = apply_enckes(eph, t_range, r0, v0)
+        #Only the t's in the from-to is included
+        solution = tz.keyfilter(lambda k : k in t_range_2, solution)
 
     solution = {t:solution[t] for t in sorted(solution.keys())}
         
@@ -258,7 +262,7 @@ def test_comet():
                         equinox_name = "J2000")                    
 
 
-    df = calc_eph_by_enckes(dc.HALLEY_J2000, eph, 'comet')
+    df = calc_eph_by_enckes(dc.HALLEY_J2000, eph)
 
     print (df[df.columns[0:8]])
     
@@ -278,7 +282,7 @@ def test_all_comets():
         body = dc.read_comet_elms_for(name,dc.DF_COMETS)
         eph = EphemrisInput.from_mjds( body.epoch_mjd-25, body.epoch_mjd+25, "02 00.0", "J2000" )
         print (f"{idx+1} Calculating for {name} ")
-        print (calc_eph_by_enckes(body, eph, 'comet')) 
+        print (calc_eph_by_enckes(body, eph)) 
 
 def test_several_comets():
     names = [#"C/1988 L1 (Shoemaker-Holt-Rodriquez)",   # Parabolic
@@ -289,7 +293,7 @@ def test_several_comets():
         body = dc.read_comet_elms_for(name,dc.DF_COMETS)
         eph = EphemrisInput.from_mjds( body.epoch_mjd-50, body.epoch_mjd+50, "02 00.0", "J2000" )
         print (f"Calculating for {name} ")
-        df = calc_eph_by_enckes(body, eph, 'comet')
+        df = calc_eph_by_enckes(body, eph)
         print (df[df.columns[0:8]])
         #print (calc_eph_by_enke(body, eph, 'comet')) 
 

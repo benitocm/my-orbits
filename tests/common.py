@@ -13,13 +13,15 @@ from pathlib import Path
 from myorbit import coord as co
 from myorbit.util.general import angular_distance
 
-def calc_diff_seconds(my_df, exp_df):
-    my_df['r_AU_2'] = my_df['r[AU]']
-    my_df['ra_2'] = my_df['ra'].map(co.make_ra)
-    my_df['de_2'] = my_df['dec'].str.replace("'","m").str.replace('"',"s").map(co.make_lon)
+def calc_diff_seconds(result_df, exp_df):
+    df = result_df.copy()
+    exp_df = exp_df.copy()
+    df['r_AU_2'] = df['r[AU]']
+    df['ra_2'] = df['ra'].map(co.make_ra)
+    df['de_2'] = df['dec'].str.replace("'","m").str.replace('"',"s").map(co.make_lon)
     cols=['date','ra_2','de_2','r_AU_2']
-    df = my_df[cols].copy()
-    df = exp_df.merge(my_df, on='date')
+    df = df[cols].copy()
+    df = exp_df.merge(df, on='date')
     df['dist_ss'] = df.apply(lambda x: angular_distance(x['ra_1'],x['de_1'],x['ra_2'],x['de_2']), axis=1).map(np.rad2deg)*3600.0
     print (df['dist_ss'].abs() )
     print ((df['dist_ss'].abs()).sum())
