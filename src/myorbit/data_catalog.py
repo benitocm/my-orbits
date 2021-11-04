@@ -33,10 +33,9 @@ logger = logging.getLogger(__name__)
 
 class BodyElms:
 
-    """Orbital elements for small bodies
+    """Orbital elements for asteroids
     """
-
-    def __init__(self, name="", epoch_name="", a=0.0, e=0.0, i_dg=0.0, Node_dg=0.0, w_dg=0.0, M_dg=0.0, tp_mjd=0.0, equinox_name="J2000"):
+    def __init__(self, name, epoch_name, a, e, i_dg, Node_dg, w_dg, M_dg, tp_mjd=None, equinox_name="J2000"):
         self.name= name
         # Epoch of the elements represented as the Modified Julian Date (MJD), which is defined as the Julian date - 2400000.5
         # In JPL, an example of this datum is 49400 (Halley) that corresponds to the date 1994/02/17. That means that orbital data
@@ -91,29 +90,28 @@ class BodyElms:
         return tc.reduce_rad(M,to_positive=True)        
 
     @classmethod
-    def in_radians(cls, name="", epoch_name="", a=0.0, e=0.0, i_rad=0.0, Node_rad=0.0, w_rad=0.0, M_rad=0.0, equinox_name=""):   
+    def in_radians(cls, name, epoch_name, a, e, i_rad, Node_rad, w_rad, M_rad, equinox_name):   
         """[summary]
-
         Parameters
         ----------
-        name : str, optional
-            [description], by default ""
-        epoch_name : str, optional
-            [description], by default ""
-        a : float, optional
-            [description], by default 0.0
+        name : str
+            [description]
+        epoch_name : str
+            [description]
+        a : float
+            [description]
         e : float, optional
-            [description], by default 0.0
+            [description]
         i_rad : float, optional
-            [description], by default 0.0
-        Node_rad : float, optional
-            [description], by default 0.0
-        w_rad : float, optional
-            [description], by default 0.0
-        M_rad : float, optional
-            [description], by default 0.0
-        equinox_name : str, optional
-            [description], by default ""
+            [description]
+        Node_rad : float
+            [description]
+        w_rad : float
+            [description]
+        M_rad : float
+            [description]
+        equinox_name : str
+            [description]
 
         Returns
         -------
@@ -129,7 +127,6 @@ class BodyElms:
         d['e'] = self.e
         d['i_dg'] = rad2deg(self.i)
         d['Node_dg'] = rad2deg(self.Node)
-        d['w_dg'] = rad2deg(self.w)
         d['w_dg'] = rad2deg(self.w)
         d['epoch_mjd'] = self.epoch_mjd
         return d
@@ -164,27 +161,28 @@ class CometElms:
 
     """[summary]
     """
-    def __init__(self, name="",  epoch_name="", q=0.0, e=0.0, i_dg=0.0, Node_dg=0.0, w_dg=0.0, tp_str="", equinox_name="J2000"):
+
+    def __init__(self, name,  epoch_name, q, e, i_dg, Node_dg, w_dg, tp_str, equinox_name="J2000"):
         """[summary]
 
         Parameters
         ----------
-        name : str, optional
+        name : str
             [description], by default ""
-        epoch_name : str, optional
+        epoch_name : str
             [description], by default ""
         q : float, optional
-            [description], by default 0.0
+            [description]
         e : float, optional
-            [description], by default 0.0
+            [description]
         i_dg : float, optional
-            [description], by default 0.0
+            [description]
         Node_dg : float, optional
-            [description], by default 0.0
+            [description]
         w_dg : float, optional
-            [description], by default 0.0
-        tp_str : str, optional
-            [description], by default ""
+            [description]
+        tp_str : str
+            [description], 
         equinox_name : str, optional
             [description], by default "J2000"
         """
@@ -333,8 +331,6 @@ def read_ELEMENTS_file(fn):
     if 'a' in df.columns:
         cols.append('a')
     df[cols] = df[cols].apply(lambda s : s.astype(np.float64))
-    #df['Tp_jd']= df['Tp'].map(str).map(lambda v: v[0:4]+'.'+v[4:6]+'.'+v[6:8]+v[8:]).map(co.epochformat2jd)
-    #df['epoch_name']= df['Epoch'].map(co.mjd2epochformat)
     return df
 
 
@@ -497,7 +493,7 @@ def read_jpl_data(DATA):
     df['de_1'] = df['sign_de']* df.apply(lambda x: tc.dgms2dg(x['de_dg'],x['de_mm'],x['de_ss'],x['de_sign']), axis=1).map(np.deg2rad)
     cols = ['date','ra_1','de_1','r_AU_1']
     return df[cols].copy()
-    return df
+    
 
 #TESTDATA = StringIO("""col1 col2 col3 col4 col5 col6 col7 col8 
 #0  2018/06/27     95.1  168.3  10.6  2.5640  10h18m45.264s  +20°08'30"  3.01395840

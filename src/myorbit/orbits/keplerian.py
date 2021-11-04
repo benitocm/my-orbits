@@ -50,6 +50,28 @@ def _next_E (e, m_anomaly, E) :
 class KeplerianStateSolver(ABC):
     @classmethod
     def make(cls, tp_mjd, e, q, a, epoch, M_at_epoch):    
+        """[summary]
+
+        Parameters
+        ----------
+        tp_mjd : [type]
+            [description]
+        e : [type]
+            [description]
+        q : [type]
+            [description]
+        a : [type]
+            [description]
+        epoch : [type]
+            [description]
+        M_at_epoch : [type]
+            [description]
+
+        Returns
+        -------
+        [type]
+            [description]
+        """
         if isclose(e, 1, abs_tol=1e-6):
             # Comets have q (distance to perihelion but asteroids do not have)
             if q is None :
@@ -61,7 +83,7 @@ class KeplerianStateSolver(ABC):
                 msg=f'Doing parabolic orbit for tp={tp_mjd}, e={e}, q={q} [AU]'
                 print(msg)
                 logger.info(msg)                  
-                return ParabolicalStateSolver(tp_mjd, q)              
+                return ParabolicalStateSolver(tp_mjd=tp_mjd, q=q)              
         elif 0<= e < 1 :
             if a is None:
                 a = q / (1-e) 
@@ -69,7 +91,7 @@ class KeplerianStateSolver(ABC):
             msg=f'Doing elliptical orbit tp={tp_mjd}, a={a} [AU], e={e}'
             print(msg)
             logger.warning(msg)            
-            return EllipticalStateSolver(tp_mjd, a, e, epoch, M_at_epoch)
+            return EllipticalStateSolver(tp_mjd= tp_mjd, a=a, e=e, epoch_mjd = epoch, M_at_epoch=M_at_epoch)
         else :
             if a is None:
                 a = q / (1-e) 
@@ -77,7 +99,7 @@ class KeplerianStateSolver(ABC):
             msg = f'Doing hyperbolical orbit for tp={tp_mjd}, a={a} [AU], e={e}'
             logger.warning(msg)
             print(msg)
-            return HyperbolicalState(tp_mjd, a, e, q)
+            return HyperbolicalState(tp_mjd=tp_mjd, a=a, e=e, q=q)
 
     def calc_rv (self, t_mjd): 
         """ Template method pattern, that will call the concrete method calc_rv_basic in
@@ -146,9 +168,9 @@ class EllipticalStateSolver(KeplerianStateSolver) :
     def calc_rv_basic (self, t_mjd):
         if (self.tp_mjd is None) or (self.tp_mjd == 0.0) :
             # For asteroids, there is no time at perihelion or distance to periheliion
-            M = calc_M_for_body(t_mjd, self.epoch_mjd, self.a, self.M_at_epoch) 
+            M = calc_M_for_body(t_mjd=t_mjd, epoch_mjd= self.epoch_mjd, a= self.a, M_at_epoch= self.M_at_epoch) 
         else :
-            M = calc_M(t_mjd, self.tp_mjd, self.a)
+            M = calc_M(t_mjd=t_mjd, tp_mjd=self.tp_mjd, a=self.a)
         r_xyz, rdot_xyz, r, h, M, f, E = calc_rv_for_elliptic_orbit (M, self.a, self.e)
         if hemisphere(f) != hemisphere(M):
             msg=f'The hemisphere of True anomaly {np.rad2deg(f)} degress {hemisphere(f)} is different from the hemisphere of Mean anomaly {np.rad2deg(M)} {hemisphere(M)}'
