@@ -49,7 +49,7 @@ def _next_E (e, m_anomaly, E) :
 
 class KeplerianStateSolver(ABC):
     @classmethod
-    def make(cls, tp_mjd, e, q, a, epoch, M_at_epoch):    
+    def make(cls, e, a=None, tp_mjd=None, q=None, epoch=None, M_at_epoch=None):    
         """[summary]
 
         Parameters
@@ -156,20 +156,21 @@ class EllipticalStateSolver(KeplerianStateSolver) :
         [description]
     """
 
-    def __init__(self, tp_mjd, a, e, epoch_mjd, M_at_epoch):    
-        self.tp_mjd = tp_mjd
+    def __init__(self, a, e, tp_mjd=None, epoch_mjd=None, M_at_epoch=None):    
         self.a = a
         self.e = e
+        self.tp_mjd = tp_mjd
         # The energy is a invariant of the orbit 
         self.the_energy = -GM/(2*self.a)
         self.epoch_mjd = epoch_mjd
         self.M_at_epoch = M_at_epoch
 
     def calc_rv_basic (self, t_mjd):
-        if (self.tp_mjd is None) or (self.tp_mjd == 0.0) :
+        if self.tp_mjd is None:
             # For asteroids, there is no time at perihelion or distance to periheliion
             M = calc_M_for_body(t_mjd=t_mjd, epoch_mjd= self.epoch_mjd, a= self.a, M_at_epoch= self.M_at_epoch) 
         else :
+            # For comets, time at perihelion and distance to perihelion is known
             M = calc_M(t_mjd=t_mjd, tp_mjd=self.tp_mjd, a=self.a)
         r_xyz, rdot_xyz, r, h, M, f, E = calc_rv_for_elliptic_orbit (M, self.a, self.e)
         if hemisphere(f) != hemisphere(M):

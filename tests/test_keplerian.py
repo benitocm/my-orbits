@@ -35,7 +35,7 @@ ABS=1e-12
 
 def test_elliptical():
     T0_MJD = 56197.0
-    solver = KeplerianStateSolver.make(56198.22249000007, 0.99999074, 1.29609218, None, None, None)    
+    solver = KeplerianStateSolver.make(tp_mjd=56198.22249000007, e=0.99999074, q=1.29609218)  
     r_xyz, rdot_xyz, r, h = solver.calc_rv(T0_MJD)
     assert r_xyz == approx(np.array([ 1.295960559873, -0.026122099794,0.] ), abs=ABS )
     assert rdot_xyz == approx(np.array([0.000215316642, 0.02136650003, 0.] ), abs=ABS ) 
@@ -43,7 +43,7 @@ def test_elliptical():
     assert h == approx (0.02769576586418702,abs=ABS)
 
 def test_hiperbolical():
-    solver = KeplerianStateSolver.make(59311.54326000018, 1.06388423, 3.20746664, None, None, None)    
+    solver = KeplerianStateSolver.make(tp_mjd=59311.54326000018, e=1.06388423, q=3.20746664)    
     T0_MJD = 56197.0
     r_xyz, rdot_xyz, r, h = solver.calc_rv(T0_MJD)
     assert r_xyz == approx(np.array([-14.33841087853 , -16.519465616568, 0.]), abs=ABS )
@@ -53,7 +53,7 @@ def test_hiperbolical():
 
 
 def test_parabolical():
-    solver = KeplerianStateSolver.make(57980.231000000145, 1.0, 2.48315593, None, None, None)    
+    solver = KeplerianStateSolver.make(tp_mjd=57980.231000000145, e=1.0, q=2.48315593)    
     T0_MJD = 56197.0
     r_xyz, rdot_xyz, r, h = solver.calc_rv(T0_MJD)
     assert r_xyz == approx(np.array([ -9.14778995466 , -10.748293305451,0.]), abs=ABS )

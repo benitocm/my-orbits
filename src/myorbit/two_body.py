@@ -107,11 +107,11 @@ def calc_eph_twobody(body, eph):
 
     if hasattr(body, 'q') :
         # Comets
-        solver = KeplerianStateSolver.make(body.tp_mjd, body.e, body.q, body.a, None, None)
+        solver = KeplerianStateSolver.make(tp_mjd = body.tp_mjd, e=body.e, q= body.q, a=body.a, epoch=None, M_at_epoch=None)
     else :
         # Asteroids 
-        solver = KeplerianStateSolver.make(body.tp_mjd, body.e, None, body.a, body.epoch_mjd, body.M0)
-     
+        solver = KeplerianStateSolver.make(tp_mjd = body.tp_mjd, e=body.e, a=body.a, epoch=body.epoch_mjd, M_at_epoch=body.M0)     
+
     result = dict()
     # Angular momentums in the orbit
     hs = []
@@ -174,11 +174,11 @@ def calc_eph_minor_body_perturbed (body, eph ,include_osc=False):
     initial_mjd = body.epoch_mjd  
     if hasattr(body, 'q') :
         # Comets
-        solver = KeplerianStateSolver.make(body.tp_mjd, body.e, body.q, body.a, None, None)
+        solver = KeplerianStateSolver.make(tp_mjd = body.tp_mjd, e=body.e, q= body.q, a=body.a, epoch=None, M_at_epoch=None)
     else :
         # Asteroids 
-        solver = KeplerianStateSolver.make(body.tp_mjd, body.e, None, body.a, body.epoch_mjd, body.M0)
-     
+        solver = KeplerianStateSolver.make(tp_mjd = body.tp_mjd, e=body.e, a=body.a, epoch=body.epoch_mjd, M_at_epoch=body.M0)     
+        
     xyz0, vxyz0, *other =  solver.calc_rv(initial_mjd)
      
     y0 = np.concatenate((MTX_J2000_PQR.dot(xyz0), MTX_J2000_PQR.dot(vxyz0)))  
