@@ -26,7 +26,7 @@ logger = logging.getLogger(__name__)
 
 
 def calc_Mp (q, t_mjd, tp_mjd):
-    """Computes Mean Anomaly as function of time 
+    """Computes the parabolic Mean Anomaly as function of time 
 
     Parameters
     ----------
@@ -69,7 +69,7 @@ def calc_rv_for_parabolic_orbit (tp_mjd, q, t_mjd):
         rdot_xyz: is a np.array[3] that contains the velocity vector (cartesian) of the body
             with respect to the orbital plane (perifocal frame) [AU/days]
         r : Modulus of the radio vector of the object (r_xyz) but calculated following the polar equation [AU]    
-        h : Angular momentum (deduced from geometic properties)
+        h_xyz : Angular momentum (deduced from geometic properties)
         Mp : Mean anomaly at time of computation [radians]
         f : True anomaly at time of computation [radians]
         E : None
@@ -86,6 +86,7 @@ def calc_rv_for_parabolic_orbit (tp_mjd, q, t_mjd):
     f = 2*arctan(tan_fdiv2)
 
     h = np.sqrt(GM*2*q)
+    h_xyz = np.array([0,0,h])
 
     r = 2*q/(1 + np.cos(f))
 
@@ -96,7 +97,7 @@ def calc_rv_for_parabolic_orbit (tp_mjd, q, t_mjd):
     #if not np.allclose(rdot_xyz,r1dot_xyz,atol=1e-012):
     #    print (f'Differences between r1: {rdot_xyz} and r2:{r1dot_xyz}')
 
-    return r_xyz, rdot_xyz, r, h, Mp, f, None
+    return r_xyz, rdot_xyz, r, h_xyz, Mp, f, None
 
 #
 # An alternative approach using Stumpff functions 

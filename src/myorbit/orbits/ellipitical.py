@@ -31,6 +31,14 @@ logger = logging.getLogger(__name__)
 #   (Energy > 0) 
 #   eccentricity > 1
 
+# For a parabolic orbit:
+#   (Energy = 0) 
+#   eccentricity = 1
+
+
+# Asteroids follows elliptical orbits
+# Comets can follow elliptical, hyperbolic or parabolic orbits
+
 def calc_tp(M_at_epoch, a, epoch):
     """Compute the perihelion passage given Mean anomaly and the epoch
 
@@ -239,7 +247,7 @@ def calc_rv_for_elliptic_orbit (M, a, e):
         rdot_xyz: is a np.array[3] that contains the velocity vector (cartesian) of the body
             with respect to the orbital plane (perifocal frame) [AU/days]
         r : Modulus of the radio vector of the object (r_xyz) but calculated following the polar equation [AU]    
-        h : Angular momentum (deduced from geometic properties)
+        h_xyz : Angular momentum (deduced from geometic properties)
         M : Mean anomaly at time of computation [radians]
         f : True anomaly at time of computation [radians]
         E : Eccentric anomaly at time of computation [radians]
@@ -281,6 +289,8 @@ def calc_rv_for_elliptic_orbit (M, a, e):
     # Students (eq. 2.123 y 2.124). For that, we need first to compute the Angular Momentum using
     # geometric properties
     h = np.sqrt(GM*a*(1-e*e))
+    h_xyz = np.array([0,0,h])
+
 
     rdot_xyz = np.array([-GM*sin_f/h,GM*(e+cos_f)/h , 0.0]) 
 
@@ -292,7 +302,7 @@ def calc_rv_for_elliptic_orbit (M, a, e):
     #        - v = sqrt(2*(Energy+(GM/r)))
     #   The Angular momentum h should be the sames r x v   {np.cross(r_xyz,rdot_xyz)}")
 
-    return r_xyz, rdot_xyz, r, h, M, f, E
+    return r_xyz, rdot_xyz, r, h_xyz, M, f, E
 
 
 if __name__ == "__main__" :

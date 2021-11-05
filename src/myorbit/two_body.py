@@ -115,14 +115,22 @@ def calc_eph_twobody(body, eph):
     result = dict()
     # Angular momentums in the orbit
     hs = []
+    # Eccentricy vector
+    es = []
     for clock_mjd in frange(eph.from_mjd, eph.to_mjd, eph.step):        
-        r_xyz, v_xyz, r, h, *other = solver.calc_rv(clock_mjd)
-        hs.append(h)
+        r_xyz, v_xyz, r, h_xyz, e_xyz, *other = solver.calc_rv(clock_mjd)
+        hs.append(h_xyz)
+        es.append(e_xyz)
         result[clock_mjd] = (MTX_Teqx_PQR.dot(r_xyz), MTX_Teqx_PQR.dot(v_xyz))
-    if not all(isclose(h, hs[0], abs_tol=1e-12) for h in hs):
+    if not all(np.allclose(h_xyz, hs[0], atol=1e-12) for h_xyz in hs):
         msg = f'The angular momentum is NOT constant in the orbit'
         print (msg)
         logger.error(msg)
+    if not all(np.allclose(e_xyz, es[0], atol=1e-12) for e_xyz in es):
+        msg = f'The eccentricy vector is NOT constant in the orbit'
+        print (msg)
+        logger.error(msg)
+
     return ob.process_solution(result, np.identity(3), MTX_equatFecli, eph.eqx_name, False)
 
 
@@ -371,7 +379,7 @@ def test_jupiter():
 
 if __name__ == "__main__":
     #test_jupiter()
-    #test_all_comets()
+    test_all_comets()
     #test_all_bodies()
-    test_ceres()
+    #test_ceres()
     

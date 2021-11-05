@@ -120,10 +120,17 @@ class KeplerianStateSolver(ABC):
             (r_xyz, rdot_xyz, r, h) where
 
         """         
-        r_xyz, rdot_xyz, r, h, *others = self.calc_rv_basic (t_mjd)
+        r_xyz, rdot_xyz, r, h_xyz, *others = self.calc_rv_basic (t_mjd)    
         check_velocity(self.v(r), rdot_xyz)
-        check_angular_momentum(h, r_xyz, rdot_xyz)
-        return r_xyz, rdot_xyz, r, h
+        check_angular_momentum(np.linalg.norm(h_xyz), r_xyz, rdot_xyz)
+        e_xyz = calc_eccentricity_vector(r_xyz, rdot_xyz, h_xyz)
+        e = np.linalg.norm(e_xyz)
+        if isclose(e, self.e, abs_tol=1e-05):
+            msg='The modulus of the eccentricity vector {e} is not equal to the eccentrity {self.e}'
+            print (msg)
+            logger.warning(msg)
+
+        return r_xyz, rdot_xyz, r, h_xyz, e_xyz
 
     @abstractmethod
     def calc_rv_basic(self, t_mjd):
@@ -150,6 +157,10 @@ def check_angular_momentum(h, r_xyz, rdot_xyz):
             print(msg)
             logger.error(msg)
 
+
+def calc_eccentricity_vector(r_xyz, rdot_xyz, h):
+    return  (np.cross(rdot_xyz,h) - (GM*r_xyz/np.linalg.norm(r_xyz)))/GM
+
 class EllipticalStateSolver(KeplerianStateSolver) :
     """[summary]
 
@@ -175,12 +186,12 @@ class EllipticalStateSolver(KeplerianStateSolver) :
         else :
             # For comets, time at perihelion and distance to perihelion is known
             M = calc_M(t_mjd=t_mjd, tp_mjd=self.tp_mjd, a=self.a)
-        r_xyz, rdot_xyz, r, h, M, f, E = calc_rv_for_elliptic_orbit (M, self.a, self.e)
+        r_xyz, rdot_xyz, r, h_xyz, M, f, E = calc_rv_for_elliptic_orbit (M, self.a, self.e)
         if hemisphere(f) != hemisphere(M):
             msg=f'The hemisphere of True anomaly {np.rad2deg(f)} degress {hemisphere(f)} is different from the hemisphere of Mean anomaly {np.rad2deg(M)} {hemisphere(M)}'
             print(msg)
             logger.error(msg)
-        return r_xyz, rdot_xyz, r, h, M, f, E
+        return r_xyz, rdot_xyz, r, h_xyz, M, f, E
 
     def energy(self):
         return self.the_energy

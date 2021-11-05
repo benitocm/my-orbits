@@ -484,7 +484,6 @@ def read_jpl_data(DATA):
     df['col6'] = df['col6'].map(str).str.strip()
     df['sign_de'] = np.where(df['col6'].str[0]=='-',-1,1)
     df['de_dg'] = df['col6'].astype(np.int32).abs()
-    df['de_dg'] = df['de_dg']
     df['de_mm'] = df['col7'].astype(np.int32)
     df['de_ss'] = df['col8'].astype(np.float32)
     df['r_AU_1'] = df['col11'].astype(np.float64)

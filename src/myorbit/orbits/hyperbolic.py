@@ -211,7 +211,7 @@ def calc_rv_for_hyperbolic_orbit (tp_mjd, a_neg, e, t_mjd):
         rdot_xyz: is a np.array[3] that contains the velocity vector (cartesian) of the body
             with respect to the orbital plane (perifocal frame) [AU/days]
         r : Modulus of the radio vector of the object (r_xyz) but calculated following the polar equation [AU]    
-        h : Angular momentum (deduced from geometic properties)
+        h_xyz : Angular momentum (deduced from geometic properties)
         M : Mean anomaly at time of computation [radians]
         f : True anomaly at time of computation [radians]
         H : Hyperbolic anomaly at time of computation [radians]
@@ -253,6 +253,7 @@ def calc_rv_for_hyperbolic_orbit (tp_mjd, a_neg, e, t_mjd):
     p = a_neg*(1-e*e)    
     # The modulus of angular momentum is computed from from geometric data
     h = np.sqrt(p*GM)
+    h_xyz = np.array([0,0,h])
 
     # To calculate the velocity (in cartesian coordinates) we use the formula in Orbital Mechanics for 
     # Students (eq. 2.123 y 2.124) based on the modulus of angular momentum and true anomaly
@@ -276,7 +277,7 @@ def calc_rv_for_hyperbolic_orbit (tp_mjd, a_neg, e, t_mjd):
     if not np.allclose(rdot_xyz, r1dot_xyz, atol=1e-012):
         logger.warning (f'Differences between r1: {rdot_xyz} and r2:{r1dot_xyz}')
 
-    return r_xyz, rdot_xyz, r, h, M, f, H
+    return r_xyz, rdot_xyz, r, h_xyz, M, f, H
 
 if __name__ == "__main__" :
     None
