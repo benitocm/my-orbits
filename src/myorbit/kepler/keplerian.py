@@ -12,10 +12,10 @@ from numpy import sqrt
 
 
 # Local application imports
-from myorbit.orbits.parabolic import calc_rv_for_parabolic_orbit
-from myorbit.orbits.hyperbolic import calc_rv_for_hyperbolic_orbit
-from myorbit.orbits.ellipitical import calc_rv_for_elliptic_orbit, calc_M_for_body, calc_M
-from myorbit.orbits.near_parabolic import calc_rv_by_stumpff
+from myorbit.kepler.parabolic import calc_rv_for_parabolic_orbit
+from myorbit.kepler.hyperbolic import calc_rv_for_hyperbolic_orbit
+from myorbit.kepler.ellipitical import calc_rv_for_elliptic_orbit, calc_M_for_body, calc_M
+from myorbit.kepler.near_parabolic import calc_rv_by_stumpff
 from myorbit.util.timeut import hemisphere, mjd2str_date
 from myorbit.util.general import  NoConvergenceError
 
@@ -159,8 +159,8 @@ def check_angular_momentum(h, r_xyz, rdot_xyz):
             logger.error(msg)
 
 
-def calc_eccentricity_vector(r_xyz, rdot_xyz, h):
-    return  (np.cross(rdot_xyz,h) - (GM*r_xyz/np.linalg.norm(r_xyz)))/GM
+def calc_eccentricity_vector(r_xyz, rdot_xyz, h_xyz):
+    return  (np.cross(rdot_xyz,h_xyz) - (GM*r_xyz/np.linalg.norm(r_xyz)))/GM
 
 
 

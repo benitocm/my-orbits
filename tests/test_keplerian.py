@@ -16,9 +16,8 @@ import myorbit.planets as pl
 from myorbit import coord as co
 from myorbit.util.timeut import EQX_B1950, EQX_J2000
 import myorbit.data_catalog as dc
-from myorbit.orbits.ephemeris_input import EphemrisInput
 import myorbit.util.timeut as ut
-from myorbit.orbits.keplerian import KeplerianStateSolver
+from myorbit.kepler.keplerian import KeplerianStateSolver
 
 # The configuration file is shared between general config and logging config
 CONFIG_INI=Path(__file__).resolve().parents[1].joinpath('conf','config.ini')

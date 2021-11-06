@@ -15,12 +15,12 @@ from pathlib import Path
 from myorbit.util.timeut import EQX_B1950, EQX_J2000, mjd2str_date
 import myorbit.data_catalog as dc
 from myorbit.util.general import  my_range,  NoConvergenceError
-from myorbit.orbits.keplerian import KeplerianStateSolver
-from myorbit.orbits.ephemeris_input import EphemrisInput
+from myorbit.kepler.keplerian import KeplerianStateSolver
+from myorbit.ephemeris_input import EphemrisInput
 from myorbit.two_body import calc_eph_twobody, calc_eph_minor_body_perturbed
 from myorbit.pert_cowels import calc_eph_by_cowells
 from myorbit.pert_enckes import calc_eph_by_enckes
-
+from myorbit.kepler.near_parabolic import calc_stumpff_as_series, calc_stumpff_exact
 
 # The configuration file is shared between general config and logging config
 CONFIG_INI=Path(__file__).resolve().parents[1].joinpath('conf','config.ini')
@@ -31,8 +31,6 @@ logging.config.fileConfig(CONFIG_INI, disable_existing_loggers=False)
 
 
 from common import check_df, TEST_DATA_PATH
-
-
 
 
 ABS=1e-12
@@ -85,4 +83,24 @@ def test_C_2011_W3_Lovejoy_for_2011():
     if TEST_ENCKES :
         df = calc_eph_by_enckes(dc.HALLEY_B1950, eph)   
         check_df(df, exp_df, EXP_DIFF_PERT_ENCKES)    
+
+
+
+def test_stumpff():
+    E=6.2831851329912345    
+    exp_c1, exp_c2, exp_c3 = calc_stumpff_exact(E*E)
+    c1,c2,c3 = calc_stumpff_as_series(E*E, epsilon=1e-10)
+    EPSILON=1e-07
+    assert c1 == approx(exp_c1, abs=EPSILON)
+    assert c2 == approx(exp_c2, abs=EPSILON)
+    assert c3 == approx(exp_c3, abs=EPSILON)
+    print (c1, exp_c1)
+    print (c2, exp_c2)
+    print (c3, exp_c3)
+    assert (c1>0) == (exp_c1>0)
+    # Here the series one returns a negative number when for the input angle 
+    # it should not, c2 cannot be negative for an angle near TWOPPI or 0
+    assert (c2<0) == (exp_c2>0)
+    assert (c3>0) == (exp_c3>0)
+
 

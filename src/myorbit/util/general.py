@@ -5,7 +5,7 @@ This module contains functions related to time conversions
 from functools import wraps
 from itertools import tee
 from time import time
-
+from math import isclose
 # Third party imports
 import numpy as np
 from numpy import cos, sin
@@ -84,7 +84,13 @@ def pow(x,n):
     else :
         return np.power(x,n)
 
-
+def my_isclose(v1, v2, rel_tol=0, abs_tol=1e-8):
+    if v1.shape[0] != v2.shape[0] :
+        return False
+    for i in range(0,v1.shape[0]):
+        if not isclose(v1[i],v2[i], rel_tol=rel_tol, abs_tol=abs_tol) :
+            return False
+    return True
 
 def frange(start, stop, step):
     """Generates a list of integer numbers in a closed interval according to

@@ -17,9 +17,9 @@ import myorbit.planets as pl
 from myorbit import coord as co
 from myorbit.util.timeut import EQX_B1950, EQX_J2000
 import myorbit.data_catalog as dc
-from myorbit.orbits.ephemeris_input import EphemrisInput
+from myorbit.ephemeris_input import EphemrisInput
 import myorbit.util.timeut as ut
-from myorbit.two_body import calc_eph_twobody, calc_eph_minor_body_perturbed
+from myorbit.two_body import calc_eph_twobody, calc_eph_minor_body_perturbed, calc_eph_twobody_universal
 from myorbit.pert_cowels import calc_eph_by_cowells
 from myorbit.pert_enckes import calc_eph_by_enckes
 
@@ -44,23 +44,26 @@ def test_HalleyB1950_for_1985():
     EXP_DIFF_PERT = 757
     EXP_DIFF_PERT_ENCKES = 771
 
-
+    obj=dc.HALLEY_B1950
     eph  = EphemrisInput(from_date="1985.11.15.0",
                         to_date = "1986.04.05.0",
                         step_dd_hh_hhh = "10 00.0",
                         equinox_name = EQX_J2000)
 
-    df = calc_eph_twobody(dc.HALLEY_B1950, eph)   
+    df = calc_eph_twobody(obj, eph)   
     check_df(df, exp_df, EXP_DIFF) 
 
-    df = calc_eph_minor_body_perturbed(dc.HALLEY_B1950, eph)   
+    df = calc_eph_twobody_universal(obj, eph)   
+    check_df(df, exp_df, EXP_DIFF) 
+
+    df = calc_eph_minor_body_perturbed(obj, eph)   
     check_df(df, exp_df, EXP_DIFF_PERT) 
 
-    df = calc_eph_by_cowells(dc.HALLEY_B1950, eph)   
+    df = calc_eph_by_cowells(obj, eph)   
     check_df(df, exp_df, EXP_DIFF_PERT)    
 
     if TEST_ENCKES :
-        df = calc_eph_by_enckes(dc.HALLEY_B1950, eph)   
+        df = calc_eph_by_enckes(obj, eph)   
         check_df(df, exp_df, EXP_DIFF_PERT_ENCKES)    
 
 
@@ -90,6 +93,9 @@ def test_HalleyJ2000_for_1985():
     
     
     df = calc_eph_twobody(dc.HALLEY_J2000, eph)   
+    check_df(df, exp_df, EXP_DIFF) 
+
+    df = calc_eph_twobody_universal(dc.HALLEY_J2000, eph)   
     check_df(df, exp_df, EXP_DIFF) 
 
     df = calc_eph_minor_body_perturbed(dc.HALLEY_J2000, eph)   
@@ -128,6 +134,9 @@ def test_HalleyJ2000_for_1997():
     df = calc_eph_twobody(dc.HALLEY_J2000, eph)   
     check_df(df, exp_df, EXP_DIFF) 
 
+    df = calc_eph_twobody_universal(dc.HALLEY_J2000, eph)   
+    check_df(df, exp_df, EXP_DIFF) 
+
     df = calc_eph_minor_body_perturbed(dc.HALLEY_J2000, eph)   
     check_df(df, exp_df, EXP_DIFF_PERT)     
 
@@ -160,6 +169,9 @@ def test_HalleyJ2000_for_2017():
 
     df = calc_eph_twobody(obj, eph)   
     check_df(df, exp_df, EXP_DIFF) 
+
+    df = calc_eph_twobody_universal(obj, eph)   
+    check_df(df, exp_df, EXP_DIFF)     
 
     df = calc_eph_minor_body_perturbed(obj, eph)   
     check_df(df, exp_df, EXP_DIFF_PERT)     
@@ -196,6 +208,9 @@ def test_ceres_B1950_for_1992():
     df = calc_eph_twobody(obj, eph)   
     check_df(df, exp_df, EXP_DIFF)    
 
+    df = calc_eph_twobody_universal(obj, eph)   
+    check_df(df, exp_df, EXP_DIFF)     
+
     df = calc_eph_minor_body_perturbed(obj, eph)
     check_df(df, exp_df, EXP_DIFF_PERTURBED)    
 
@@ -228,6 +243,10 @@ def test_ceres_J2000_for_2010():
     df = calc_eph_twobody(dc.CERES_J2000, eph)   
     check_df(df, exp_df, EXP_DIFF)        
 
+    df = calc_eph_twobody_universal(dc.CERES_J2000, eph)   
+    check_df(df, exp_df, EXP_DIFF)     
+
+
     df = calc_eph_minor_body_perturbed(dc.CERES_J2000, eph)    
     check_df(df, exp_df, EXP_DIFF_PERT)        
 
@@ -255,6 +274,10 @@ def test_elliptical_C2012CH17_J2000_for_2012():
     df = calc_eph_twobody(dc.C2012_CH17, eph)
     check_df(df, exp_df, EXP_DIFF)        
 
+    df = calc_eph_twobody_universal(dc.C2012_CH17, eph)   
+    check_df(df, exp_df, EXP_DIFF)     
+
+
     df = calc_eph_minor_body_perturbed(dc.C2012_CH17, eph)    
     check_df(df, exp_df, EXP_DIFF_PERT)        
 
@@ -281,7 +304,11 @@ def test_parabollic_C_2018_F3_Johnson_J2000_for_2017():
 
 
     df = calc_eph_twobody(dc.C_2018_F3_Johnson, eph)
-    check_df(df, exp_df, EXP_DIFF)        
+    check_df(df, exp_df, EXP_DIFF)       
+
+    df = calc_eph_twobody_universal(dc.C_2018_F3_Johnson, eph)   
+    check_df(df, exp_df, EXP_DIFF)     
+
 
     df = calc_eph_minor_body_perturbed(dc.C_2018_F3_Johnson, eph)    
     check_df(df, exp_df, EXP_DIFF_PERT)        
@@ -310,6 +337,9 @@ def test_hyperbolical_C_2020_J1_SONEAR_J2000_for_2020():
 
     df = calc_eph_twobody(obj, eph)
     check_df(df, exp_df, EXP_DIFF)        
+
+    df = calc_eph_twobody_universal(obj, eph)   
+    check_df(df, exp_df, EXP_DIFF)     
 
     df = calc_eph_minor_body_perturbed(obj, eph)    
     check_df(df, exp_df, EXP_DIFF_PERT)        

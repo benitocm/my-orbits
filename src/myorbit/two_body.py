@@ -16,14 +16,15 @@ from toolz import pipe
 # Local application imports
 import myorbit.planets as pl
 from myorbit import coord as co
-from myorbit.util.general import frange, my_range, pow, NoConvergenceError
+from myorbit.util.general import frange, NoConvergenceError, mu_Sun
 from myorbit.util.timeut import CENTURY, JD_J2000, dg2h, h2hms, dg2dgms, T_given_mjd, mjd2jd, jd2str_date
 import myorbit.orbits.orbutil as ob
 import myorbit.data_catalog as dc
-from myorbit.orbits.ephemeris_input import EphemrisInput
+from myorbit.ephemeris_input import EphemrisInput
 from myorbit.planets import g_xyz_equat_sun_j2000
-from myorbit.orbits.keplerian import KeplerianStateSolver
-from myorbit.orbits.ellipitical import calc_rv_for_elliptic_orbit, calc_M
+from myorbit.kepler.keplerian import KeplerianStateSolver
+from myorbit.kepler.ellipitical import calc_rv_for_elliptic_orbit, calc_M
+from myorbit.lagrange.lagrange_coeff import rv_from_r0v0
 
 from myorbit.util.constants import *
 
@@ -132,6 +133,89 @@ def calc_eph_twobody(body, eph):
         logger.error(msg)
 
     return ob.process_solution(result, np.identity(3), MTX_equatFecli, eph.eqx_name, False)
+
+def calc_eccentricity_vector(r_xyz, rdot_xyz, h_xyz):
+    """[summary]
+
+    Parameters
+    ----------
+    r_xyz : [type]
+        [description]
+    rdot_xyz : [type]
+        [description]
+    h_xyz : [type]
+        [description]
+
+    Returns
+    -------
+    [type]
+        [description]
+    """
+
+    return  (np.cross(rdot_xyz,h_xyz) - (GM*r_xyz/np.linalg.norm(r_xyz)))/GM
+
+def calc_eph_twobody_universal(body, eph):
+    """ Computes the ephemeris for a small body or comet using the Universal approach
+
+    Parameters
+    ----------
+    body : CometElms, BodyElms
+        Orbital elements of the body which ephemeris is desired to calculate. In case of the
+        body is a comet, the type of this parameter must be CometElms. In case of the boyd is a small body
+        the type of this parameter must be BodyElms.
+    eph : EphemrisInput
+        The entry data of the ephemeris
+
+    Returns
+    -------
+    pd.DataFrame
+        Dataframe with the ephemeris data calculated.
+    """
+
+    # Normally, the equinox of the data of the body will be J2000  and the equinox of the 
+    # ephemeris will also be J2000, so the precession matrix will be the identity matrix
+    # Just in the case of book of Personal Astronomy with your computer pag 81 is used   
+    MTX_Teqx_PQR = co.mtx_eclip_prec(body.T_eqx0, eph.T_eqx).dot(body.mtx_PQR)  
+
+    # Transform from ecliptic to equatorial just depend on desired equinox
+    MTX_equatFecli = co.mtx_equatFeclip(eph.T_eqx)
+
+    if hasattr(body, 'q') :
+        # Comets
+        solver = KeplerianStateSolver.make(tp_mjd = body.tp_mjd, e=body.e, q= body.q, a=body.a, epoch=None, M_at_epoch=None)
+    else :
+        # Asteroids 
+        solver = KeplerianStateSolver.make(tp_mjd = body.tp_mjd, e=body.e, a=body.a, epoch=body.epoch_mjd, M_at_epoch=body.M0)     
+
+    # A Keplerian solver is needed to calculate the r0_xyz and the r0dot_xyz, i.e., the initial radio vector and
+    # the velocity vector at time t0, in this case t0 is eph.from_mjd . Once we have them, the orbit propagation 
+    # is done using the Universal variable approach
+    result = dict()
+    r0_xyz, r0dot_xyz, r0, h0_xyz, *others = solver.calc_rv(eph.from_mjd)
+    result[eph.from_mjd] = (MTX_Teqx_PQR.dot(r0_xyz), MTX_Teqx_PQR.dot(r0dot_xyz))
+    # List Angular momentums in the orbit
+    hs = []
+    # List of eccentricy vector in the orbit
+    es = []
+    for clock_mjd in frange(eph.from_mjd+eph.step, eph.to_mjd, eph.step):  
+        r_xyz, rdot_xyz = rv_from_r0v0(mu_Sun, r0_xyz, r0dot_xyz, clock_mjd-eph.from_mjd)   
+        h_xyz = np.cross(r_xyz, rdot_xyz)   
+        e_xyz = calc_eccentricity_vector(r_xyz, rdot_xyz, h_xyz)
+        hs.append(h_xyz)
+        es.append(e_xyz)
+        result[clock_mjd] = (MTX_Teqx_PQR.dot(r_xyz), MTX_Teqx_PQR.dot(rdot_xyz))
+    if not all(np.allclose(h_xyz, hs[0], atol=1e-12) for h_xyz in hs):
+        msg = f'The angular momentum is NOT constant in the orbit'
+        print (msg)
+        logger.error(msg)
+    if not all(np.allclose(e_xyz, es[0], atol=1e-12) for e_xyz in es):
+        msg = f'The eccentricy vector is NOT constant in the orbit'
+        print (msg)
+        logger.error(msg)
+
+    return ob.process_solution(result, np.identity(3), MTX_equatFecli, eph.eqx_name, False)
+
+
 
 
 def calc_eph_minor_body_perturbed (body, eph ,include_osc=False):

@@ -8,12 +8,11 @@ from pytest import approx
 import numpy as np
 from numpy.random import default_rng
 
-from myorbit.orbits.keplerian import _next_E
+from myorbit.kepler.keplerian import _next_E
 # Local application imports
 from myorbit.util.timeut import *
 from myorbit.coord import *
 
-#from myastro.orbit import *
 import myorbit.orbits.orbutil as ob
 
 def test_polar_cartesian():

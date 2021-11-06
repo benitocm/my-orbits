@@ -19,11 +19,10 @@ from myorbit.util.timeut import epochformat2jd, jd2mjd, T, mjd2jd, jd2str_date, 
 from myorbit.planets import g_xyz_equat_sun_j2000, g_rlb_eclip_sun_eqxdate
 from myorbit.util.general import mu_by_name, mu_Sun, my_range, measure
 from myorbit.orbits.orbutil import calc_perturbed_accelaration
-from myorbit.orbits.keplerian import KeplerianStateSolver
+from myorbit.kepler.keplerian import KeplerianStateSolver
 import myorbit.orbits.orbutil as ob
 import myorbit.data_catalog as dc
-from myorbit.orbits.ephemeris_input import EphemrisInput
-
+from myorbit.ephemeris_input import EphemrisInput
 
 from myorbit.util.constants import *
 

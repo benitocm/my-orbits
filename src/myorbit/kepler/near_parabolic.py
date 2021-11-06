@@ -17,7 +17,6 @@ from myorbit.util.constants import *
 logger = logging.getLogger(__name__)
 
 
-
 #
 # An alternative approach using Stumpff functions 
 # according to the book
@@ -58,9 +57,11 @@ def calc_stumpff_as_series(E_2, epsilon=1e-7, max_iters=100):
     logger.error(f"Not converged after {n} iterations")
     raise NoConvergenceError((c1,c2,c3), n, n, "Stumpff functions does not converge")
 
-def calc_stumpff(E_2):    
-    """Computes the values for the Stumpff functions C1, C2, C3 summing up
-    a infinite series
+def calc_stumpff_exact(E_2):    
+    """Computes the values for the Stumpff functions C1, C2, C3 according to
+    its definition
+
+    I have seen that for value of E=
 
     Parameters
     ----------
@@ -125,7 +126,8 @@ def calc_rv_by_stumpff (tp_mjd, q, e, t_mjd, max_iters=30):
         u = B - 1.0/B 
         u_2 = u*u
         E_2 = u_2*(1.0-e)/factor 
-        c1, c2, c3 = calc_stumpff_as_series(E_2)
+        #c1, c2, c3 = calc_stumpff_as_series(E_2)
+        c1, c2, c3 = calc_stumpff_exact(E_2)
         factor = 3.0*e*c3 
         if isclose(E_2, E20, abs_tol=EPSILON) :
             R = q * (1.0 + u_2*c2*e/factor)
@@ -143,7 +145,7 @@ if __name__ == "__main__" :
     print (E,)
     E1 = norm_rad(E)
 
-    exp_c1, exp_c2, exp_c3 = calc_stumpff(E*E)
+    exp_c1, exp_c2, exp_c3 = calc_stumpff_exact(E*E)
     c1,c2,c3 = calc_stumpff_as_series(E*E, epsilon=1e-10)
     print (f'c1={c1}, exp_c1={exp_c1}, {isclose(c1,exp_c1,abs_tol=1e-9)}')
     print (f'c2={c2}, exp_c2={exp_c2}, {isclose(c2,exp_c2,abs_tol=1e-9)}')

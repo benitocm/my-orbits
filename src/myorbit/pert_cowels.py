@@ -16,8 +16,8 @@ import myorbit.coord as co
 from myorbit.util.general import frange
 import myorbit.orbits.orbutil as ob
 import myorbit.data_catalog as dc
-from myorbit.orbits.ephemeris_input import EphemrisInput
-from myorbit.orbits.keplerian import KeplerianStateSolver
+from myorbit.ephemeris_input import EphemrisInput
+from myorbit.kepler.keplerian import KeplerianStateSolver
 from myorbit.util.constants import *
 
 logger = logging.getLogger(__name__)
