@@ -17,14 +17,23 @@ from numpy import sqrt, cos, sin, cosh, sinh,  arctan, tanh
 from scipy.optimize import newton
 
 # Local application imports
-from myorbit.util.timeut import  norm_dg
+from myorbit.util.general import NoConvergenceError
 from myorbit.util.constants import *
 
 logger = logging.getLogger(__name__)
 
+# For an elliptic orbit:
+#   (Energy <0) 
+#   0 < eccentricity  < 1
+
 # For an hyperbolic orbit:
 #   (Energy > 0) 
 #   eccentricity > 1
+
+# For a parabolic orbit:
+#   (Energy = 0) 
+#   eccentricity = 1
+
 #
 #  True Anomaly is still the angle the position vector r^ makes with the
 #  eccentricity vector, e^, measured counter-clockwise
@@ -54,7 +63,9 @@ def calc_M (t_mjd, tp_mjd, a):
         The mean anomaly [radians]
     """    
 
-    M = np.sqrt(GM/np.power(a,3)) * (t_mjd - tp_mjd)
+    #M = np.sqrt(GM/np.power(a,3)) * (t_mjd - tp_mjd)
+
+    M = sqrt(GM/a)*(t_mjd - tp_mjd)/a
     return M
 
 def _F(e, M, H):
@@ -148,9 +159,10 @@ def solve_kepler_eq(e, M, H0):
     # is applied that converged in a cubic way
     fprime2= partial (_Fprime2, e)
     x, root = newton(f, H0, fprime, tol=1e-12, maxiter=50, fprime2=fprime2, full_output=True)
-    if not root.converged:
+    if not root.converged:        
        logger.error(f'Not converged with root:{root}') 
-    return x, root 
+       raise NoConvergenceError(x, root.function_calls, root.iterations)
+    return x, root      
 
 def _calc_H0(e, M):
     """According to Orbital Mechanics (Conway) pg 32, this is a better
@@ -169,7 +181,11 @@ def _calc_H0(e, M):
     float
         The inital value of the Hyperbolic anomaly to solve the Kepler equation
     """
-    return M
+    if M>=0 :
+        return np.abs(np.log(1.8+(2*M/e)))
+    else :
+        return -np.log(1.8-(2*M/e))
+    #return M
 
 def calc_f (H, e):
     """Computes the True anomaly given the Hyperbolic anomaly
@@ -220,21 +236,20 @@ def calc_rv_for_hyperbolic_orbit (tp_mjd, a_neg, e, t_mjd):
     # I have done the calculation and it is right
     # 2*pi/T == cte/a  so this is equivalent to the mean calculation done previously
     # Mean anomaly for the hyperbolic orbit
-    Mh = cte*(t_mjd-tp_mjd)/-a_neg 
+    #Mh = cte*(t_mjd-tp_mjd)/-a_neg 
     
     # Mean anomaly as a function of time (t_mjd) is calculated
-    M = calc_M(t_mjd, tp_mjd, np.abs(a_neg))
+    Mh = calc_M(t_mjd, tp_mjd, np.abs(a_neg))
 
     # After that we need to solve the Kepler equation to obtain
     # the Hyperbolic Anomaly. For that purpose, we need to provide
     # an initial guess for H, i.e, H0
-    H0 =  _calc_H0(e, M) 
+    H0 =  _calc_H0(e, Mh) 
 
     # The Kepler equation is solved so Eccentric Anomaly is obtained
-    H, root = solve_kepler_eq(e, M, H0)
+    H, root = solve_kepler_eq(e, Mh, H0)
     if not root.converged :
         msg = f"Not converged: {root}"
-        print (msg)
         logger.error(msg)
 
     # From H, we obtain the True Anomaly as f
@@ -259,8 +274,8 @@ def calc_rv_for_hyperbolic_orbit (tp_mjd, a_neg, e, t_mjd):
     # Students (eq. 2.123 y 2.124) based on the modulus of angular momentum and true anomaly
     rdot_xyz = np.array([-GM*np.sin(f)/h,GM*(e+np.cos(f))/h , 0.0]) 
     
-    # Alternative computation described in the book
-    #   "Astronomy on the Personal Computer" by Montenbruck, Pfleger.
+    # Alternative computation without calculating directly the true anomaly 
+    # described in the book "Astronomy on the Personal Computer" by Montenbruck, Pfleger (pag. 80)
 
     cosh_H = cosh(H)
     sinh_H = sinh(H)
@@ -269,7 +284,7 @@ def calc_rv_for_hyperbolic_orbit (tp_mjd, a_neg, e, t_mjd):
     rho = e*cosh_H - 1.0
     r1 = a_neg*(1-e*cosh_H)    
     r1_xyz = np.array([np.abs(a_neg)*(e-cosh_H), np.abs(a_neg)*fac*sinh_H, 0.0])
-    r1dot_xyz = np.array([-cte*sinh_H/rho, cte*fac*cosh_H/rho,0.0])
+    r1dot_xyz = np.array([-cte*sinh_H/rho, cte*fac*cosh_H/rho, 0.0])
 
     if not np.allclose(r_xyz, r1_xyz, atol=1e-012):
         logger.warning (f'Differences between r1: {r} and r2:{r1}')   
@@ -277,7 +292,7 @@ def calc_rv_for_hyperbolic_orbit (tp_mjd, a_neg, e, t_mjd):
     if not np.allclose(rdot_xyz, r1dot_xyz, atol=1e-012):
         logger.warning (f'Differences between r1: {rdot_xyz} and r2:{r1dot_xyz}')
 
-    return r_xyz, rdot_xyz, r, h_xyz, M, f, H
+    return r_xyz, rdot_xyz, r, h_xyz, Mh, f, H
 
 if __name__ == "__main__" :
     None

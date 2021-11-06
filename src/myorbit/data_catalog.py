@@ -464,6 +464,11 @@ C_2020_J1_SONEAR = read_comet_elms_for("C/2020 J1 (SONEAR)", DF_COMETS)
 # Parabolic comet:
 C_2018_F3_Johnson = read_comet_elms_for("C/2018 F3 (Johnson)", DF_COMETS) 
 
+# Near parabolic comet:
+C_2011_W3_Lovejoy = read_comet_elms_for("C/2011 W3 (Lovejoy)", DF_COMETS) 
+
+
+
 
 def change_date_format(date_str):
     datetime_obj = datetime.strptime(date_str, "%Y-%b-%d")

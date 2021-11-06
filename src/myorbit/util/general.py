@@ -40,6 +40,24 @@ mu_by_name = valmap(to_AU_days,mu_m3s_2__by_name)
 
 mu_Sun = mu_by_name["Sun"]
 
+
+class NoConvergenceError(Exception):
+    """Exception raised when the newton method does not converge
+
+    Attributes:
+        root -- value of the root after the number of iterations
+        functions_calls -- 
+        
+    """
+
+    def __init__(self, root, function_calls,iterations, M=-1000, message="No convergence error"):
+        self.message = message
+        self.M = M
+        self.root = root
+        self.function_calls = function_calls
+        self.iterations = iterations
+        super().__init__(self.message)
+
 def pow(x,n):
     """Computes x^n 
 
@@ -65,6 +83,8 @@ def pow(x,n):
         return x*x*x
     else :
         return np.power(x,n)
+
+
 
 def frange(start, stop, step):
     """Generates a list of integer numbers in a closed interval according to

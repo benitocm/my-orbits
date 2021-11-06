@@ -6,7 +6,7 @@ and also in
     "Spacecraft Dynamics and Control" lectures of Mattew M. Peet
 """
 # Standard library imports
-from math import isclose
+from math import e, isclose
 import logging
 from functools import partial
 from math import isclose
@@ -18,7 +18,7 @@ from scipy.optimize import newton
 
 # Local application imports
 from myorbit.util.timeut import  norm_rad
-from myorbit.util.general import pow
+from myorbit.util.general import pow, NoConvergenceError
 from myorbit.util.constants import *
 
 logger = logging.getLogger(__name__)
@@ -198,9 +198,10 @@ def solve_kepler_eq(e, M, E0):
     # If the second derivative is provided, the method used for newton method is Halley method
     # is applied that converged in a cubic way
     fprime2= partial (_Fprime2, e)
-    x, root = newton(f, E0, fprime, tol=1e-12, maxiter=50, fprime2=fprime2, full_output=True)
-    if not root.converged:
+    x, root = newton(f, E0, fprime, tol=1e-12, maxiter=100, fprime2=fprime2, full_output=True, disp=False)
+    if not root.converged:        
        logger.error(f'Not converged with root:{root}') 
+       raise NoConvergenceError(x, root.function_calls, root.iterations, M)
     return x, root 
 
 def _calc_E0(e, M):
@@ -259,10 +260,6 @@ def calc_rv_for_elliptic_orbit (M, a, e):
 
     # The Kepler equation is solved so Eccentric Anomaly to obtain Eccentric Anomaly
     E, root = solve_kepler_eq(e, M, E0)
-    if not root.converged :
-        msg = f"Not converged: {root}"
-        print (msg)
-        logger.error(msg)
 
     # From E, we obtain the True Anomaly as f
     cos_f = (cos(E) - e)/(1 - e*cos(E))

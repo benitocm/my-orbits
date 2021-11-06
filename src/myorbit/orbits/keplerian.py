@@ -12,14 +12,15 @@ from numpy import sqrt
 
 
 # Local application imports
-from myorbit.orbits.parabolic import calc_rv_for_parabolic_orbit, calc_rv_for_parabolic_orbit_stumpff
+from myorbit.orbits.parabolic import calc_rv_for_parabolic_orbit
 from myorbit.orbits.hyperbolic import calc_rv_for_hyperbolic_orbit
 from myorbit.orbits.ellipitical import calc_rv_for_elliptic_orbit, calc_M_for_body, calc_M
-from myorbit.util.timeut import hemisphere
+from myorbit.orbits.near_parabolic import calc_rv_by_stumpff
+from myorbit.util.timeut import hemisphere, mjd2str_date
+from myorbit.util.general import  NoConvergenceError
 
 from myorbit.util.constants import *
 
-USE_STUMPFF_IMPLEMENTATION=False
 
 logger = logging.getLogger(__name__)
 
@@ -94,7 +95,7 @@ class KeplerianStateSolver(ABC):
             msg=f'Doing elliptical orbit tp={tp_mjd}, a={a} [AU], e={e}'
             print(msg)
             logger.info(msg)            
-            return EllipticalStateSolver(tp_mjd= tp_mjd, a=a, e=e, epoch_mjd = epoch, M_at_epoch=M_at_epoch)
+            return EllipticalStateSolver(q=q, tp_mjd= tp_mjd, a=a, e=e, epoch_mjd = epoch, M_at_epoch=M_at_epoch)
         else :
             if a is None:
                 a = q / (1-e) 
@@ -125,8 +126,8 @@ class KeplerianStateSolver(ABC):
         check_angular_momentum(np.linalg.norm(h_xyz), r_xyz, rdot_xyz)
         e_xyz = calc_eccentricity_vector(r_xyz, rdot_xyz, h_xyz)
         e = np.linalg.norm(e_xyz)
-        if isclose(e, self.e, abs_tol=1e-05):
-            msg='The modulus of the eccentricity vector {e} is not equal to the eccentrity {self.e}'
+        if not isclose(e, self.e, rel_tol=0, abs_tol=1e-05):
+            msg=f'The modulus of the eccentricity vector {e} is not equal to the eccentrity {self.e}'
             print (msg)
             logger.warning(msg)
 
@@ -146,7 +147,7 @@ class KeplerianStateSolver(ABC):
                 
 def check_velocity(v, rdot_xyz):
     if not isclose(v,np.linalg.norm(rdot_xyz),abs_tol=1e-12):
-        msg=f'The velocity does not match v_energy={v}, modulus of rdot_xyz={np.linalg.norm(rdot_xyz)}'
+        msg=f'The velocity does not match,  v_energy={v}, modulus of rdot_xyz={np.linalg.norm(rdot_xyz)}'
         print(msg)
         logger.error(msg)
 
@@ -161,6 +162,12 @@ def check_angular_momentum(h, r_xyz, rdot_xyz):
 def calc_eccentricity_vector(r_xyz, rdot_xyz, h):
     return  (np.cross(rdot_xyz,h) - (GM*r_xyz/np.linalg.norm(r_xyz)))/GM
 
+
+
+# There are a set of comets with an eccentricity like 0.999986, 0.999914 (elliptical orbits)
+# that near the perihelion passage, i.e., Mean Anomaly close to TWOPI or 0, the calculation of
+# Eccentric anomaly does not converge. In those specific points, the near parabolic will be used.
+
 class EllipticalStateSolver(KeplerianStateSolver) :
     """[summary]
 
@@ -170,9 +177,10 @@ class EllipticalStateSolver(KeplerianStateSolver) :
         [description]
     """
 
-    def __init__(self, a, e, tp_mjd=None, epoch_mjd=None, M_at_epoch=None):    
+    def __init__(self, a, e, q=None, tp_mjd=None, epoch_mjd=None, M_at_epoch=None):    
         self.a = a
         self.e = e
+        self.q = q
         self.tp_mjd = tp_mjd
         # The energy is an invariant of the orbit. In this case, it is negative
         self.the_energy = - GM/(2*self.a)
@@ -186,12 +194,22 @@ class EllipticalStateSolver(KeplerianStateSolver) :
         else :
             # For comets, time at perihelion and distance to perihelion is known
             M = calc_M(t_mjd=t_mjd, tp_mjd=self.tp_mjd, a=self.a)
-        r_xyz, rdot_xyz, r, h_xyz, M, f, E = calc_rv_for_elliptic_orbit (M, self.a, self.e)
-        if hemisphere(f) != hemisphere(M):
-            msg=f'The hemisphere of True anomaly {np.rad2deg(f)} degress {hemisphere(f)} is different from the hemisphere of Mean anomaly {np.rad2deg(M)} {hemisphere(M)}'
-            print(msg)
+        try :
+            r_xyz, rdot_xyz, r, h_xyz, M, f, E = calc_rv_for_elliptic_orbit (M, self.a, self.e)
+            if hemisphere(f) != hemisphere(M):
+                msg=f'The hemisphere of True anomaly {np.rad2deg(f)} degress {hemisphere(f)} is different from the hemisphere of Mean anomaly {np.rad2deg(M)} {hemisphere(M)}'
+                print(msg)
+                logger.error(msg)
+            return r_xyz, rdot_xyz, r, h_xyz, M, f, E
+        except NoConvergenceError as ex:
+            msg = f'NOT converged, for M={M} at time={mjd2str_date(t_mjd)} with root={ex.root}'
+            print (msg)
             logger.error(msg)
-        return r_xyz, rdot_xyz, r, h_xyz, M, f, E
+            msg = f'Trying with the near parabolical method with tp={self.tp_mjd}, q={self.q} AU, e={self.e} at time {mjd2str_date(t_mjd)} '
+            print (msg)
+            logger.error(msg)
+            r_xyz, rdot_xyz, r, h_xyz =  calc_rv_by_stumpff (self.tp_mjd, self.q, self.e, t_mjd)
+            return r_xyz, rdot_xyz, r, h_xyz, -100, -100, -100
 
     def energy(self):
         return self.the_energy
@@ -209,10 +227,7 @@ class ParabolicalStateSolver(KeplerianStateSolver) :
         self.the_energy = 0
 
     def calc_rv_basic(self, t_mjd):
-        if USE_STUMPFF_IMPLEMENTATION :
-            return calc_rv_for_parabolic_orbit_stumpff (tp_mjd= self.tp_mjd, q=self.q, e = self.e, t_mjd= t_mjd)
-        else :
-            return calc_rv_for_parabolic_orbit (tp_mjd= self.tp_mjd, q=self.q, t_mjd= t_mjd)          
+        return calc_rv_for_parabolic_orbit (tp_mjd= self.tp_mjd, q=self.q, t_mjd= t_mjd)          
 
     def energy(self):
         return self.the_energy
