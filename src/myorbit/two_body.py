@@ -198,7 +198,7 @@ def calc_eph_twobody_universal(body, eph):
     # List of eccentricy vector in the orbit
     es = []
     for clock_mjd in frange(eph.from_mjd+eph.step, eph.to_mjd, eph.step):  
-        r_xyz, rdot_xyz, h_xyz = calc_rv_from_r0v0(mu_Sun, r0_xyz, r0dot_xyz, clock_mjd-eph.from_mjd)   
+        r_xyz, rdot_xyz, h_xyz, f = calc_rv_from_r0v0(mu_Sun, r0_xyz, r0dot_xyz, clock_mjd-eph.from_mjd)   
         #h_xyz = np.cross(r_xyz, rdot_xyz)   
         e_xyz = calc_eccentricity_vector(r_xyz, rdot_xyz, h_xyz)
         hs.append(h_xyz)

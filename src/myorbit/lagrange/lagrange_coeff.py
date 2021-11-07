@@ -136,19 +136,32 @@ def kepler_U_prv(mu, x , dt, ro, vro, inv_a, nMax=500):
     error = 1.0e-8
     n = 0
     ratio = 1
+    f = partial(_F, mu, ro, vro, inv_a, dt)
+    fprime = partial (_Fprime, mu, ro, vro, inv_a)
+    fprime2 = partial (_Fprime2, mu, ro, vro, inv_a)
+    N=5
+    X0 = x
+
     while (abs(ratio) > error) and  (n <= nMax) :
         n = n + 1
-        z = x*x
-        C = stump_C(inv_a*z)
-        S = stump_S(inv_a*z)
-        F = ro*vro/sqrt(mu)*z*C + (1 - inv_a*ro)*z*x*S + ro*x - sqrt(mu)*dt
-        dFdx = ro*vro/sqrt(mu)*x*(1 - inv_a*z*S) + (1 - inv_a*ro)*z*C + ro
-        ratio = F/dFdx
+        #z = x*x
+        #C = stump_C(inv_a*z)
+        #S = stump_S(inv_a*z)
+        #F = ro*vro/sqrt(mu)*z*C + (1 - inv_a*ro)*z*x*S + ro*x - sqrt(mu)*dt
+        #dFdx = ro*vro/sqrt(mu)*x*(1 - inv_a*z*S) + (1 - inv_a*ro)*z*C + ro
+        #ratio = F/dFdx
+        den1 = np.sqrt(np.abs(pow(N-1,2)*pow(fprime(x),2)-N*(N-1)*f(x)*fprime2(x)))
+        if fprime(x)>0 :
+            ratio = N*f(x)/(fprime(x)+den1)
+        else:
+            ratio = N*f(x)/(fprime(x)-den1)
+        #ratio = f(x)/fprime(x)
         x = x - ratio
+
     if n > nMax :
-        return (False,x,ratio)
-    else :
-        return (True,x,ratio)
+       logger.error(f'Universal Kepler equation not converged with root: {x}') 
+       raise NoConvergenceError(x, n, n, X0)
+    return x
 
 LINEAR_GRID = list(np.linspace(2.5,4,16,endpoint=True))
 
@@ -192,7 +205,9 @@ def kepler_U(mu, dt, ro, vro, inv_a, nMax=500):
     return result 
     """
     x = sqrt(mu)*abs(inv_a)*dt
-    return ku.kepler_U(mu, x, dt, ro, vro, inv_a, nMax)
+    #return ku.kepler_U(mu, x, dt, ro, vro, inv_a, nMax)
+    x = kepler_U_prv(mu, x , dt, ro, vro, inv_a, nMax=500)
+    return x
    
 def calc_f_g(mu, x, t, ro, inv_a):
     """Calculates the Lagrange f and g coefficients starting from the initial
@@ -305,9 +320,9 @@ def calc_rv_from_r0v0(mu, r0_xyz, r0dot_xyz, dt, f0=None):
     alpha = 2/r0 - pow(v0,2)/mu
 
     # The kepler equation is solved to obtain the Universal anomaly
-    X, _ = solve_kepler_eq(mu, r0, vr0, alpha, dt)    
+    #X, _ = solve_kepler_eq(mu, r0, vr0, alpha, dt)    
 
-    #x = kepler_U(mu, t, r0, vr0, alpha)
+    X = kepler_U(mu, dt, r0, vr0, alpha)
 
     #Compute the f and g functions:
     f, g = calc_f_g(mu, X, dt, r0, alpha)
@@ -336,7 +351,7 @@ def calc_rv_from_r0v0(mu, r0_xyz, r0dot_xyz, dt, f0=None):
         f = calc_f(p, X, r0, sigma0, alpha, f0)
     else :
         f = None
-        print (f"The true anumaly is {f}")
+    
 
     return r_xyz, rdot_xyz, h_xyz, f
 
@@ -356,7 +371,7 @@ def test1() :
     V0 = np.array([2.6679, 4.6210, 0])
     h0_xyz = np.cross(R0,V0)
     t = 3600
-    r_xyz, rdot_xyz, h_xyz= calc_rv_from_r0v0(mu,R0, V0, t, 2.094432194122138)
+    r_xyz, rdot_xyz, h_xyz, f = calc_rv_from_r0v0(mu,R0, V0, t, 2.094432194122138)
     e0_xyz = calc_eccentricity_vector(R0, V0, h0_xyz, mu)
     e_xyz = calc_eccentricity_vector(r_xyz, rdot_xyz, h_xyz,mu)
     print (h0_xyz, h_xyz)

@@ -175,14 +175,14 @@ def test_universal():
                 
                 if not isclose(f1,f2,rel_tol=0, abs_tol=1e-07):
                     f_failed += 1
-                if not my_isclose(r1_xyz, r2_xyz, abs_tol=1e-08):
+                if not my_isclose(r1_xyz, r2_xyz, abs_tol=1e-07):
                     r_failed += 1
                 if not my_isclose (rdot1_xyz, rdot2_xyz) :
                     v_failed += 1
             except NoConvergenceError :
                 nc_failed += 1
                 print ("kkkkkkkkkkkkkkkkkkkkkkkkkkkk")
-        print (f'>>>>>>>>>>> Object {obj.name} has r_failed:{r_failed} v_failed:{v_failed} f_failed:{f_failed} no_convergences: {nc_failed}')
+        print (f'>>>>>>>>>>>>>>>>>>>>>>>>>>><> Object {obj.name} has r_failed:{r_failed} v_failed:{v_failed} f_failed:{f_failed} no_convergences: {nc_failed}')
     
 
 
