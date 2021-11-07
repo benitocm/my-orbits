@@ -14,7 +14,7 @@ from scipy.integrate import solve_ivp
 
 from myorbit import coord as co
 
-from myorbit.lagrange.lagrange_coeff import rv_from_r0v0
+from myorbit.lagrange.lagrange_coeff import calc_rv_from_r0v0
 from myorbit.util.timeut import epochformat2jd, jd2mjd, T, mjd2jd, jd2str_date, MDJ_J2000, JD_J2000
 from myorbit.planets import g_xyz_equat_sun_j2000, g_rlb_eclip_sun_eqxdate
 from myorbit.util.general import mu_by_name, mu_Sun, my_range, measure
@@ -59,7 +59,7 @@ def my_dfdt(t, y, r0, v0, t0):
     """  
     delta_r = y[0:3]    
     # The two-bodys orbit is calculated starting at r0,v0 and t-t0 as elapsed time
-    r_osc, _ = rv_from_r0v0(mu_Sun, r0, v0, t-t0)    
+    r_osc, *other = calc_rv_from_r0v0(mu_Sun, r0, v0, t-t0)    
     # The radio vector perturbed is the two-bodys plus the delta_r
     r_pert = r_osc + delta_r
     F = 1 - pow(norm(r_osc)/norm(r_pert),3)
@@ -97,7 +97,7 @@ def apply_enckes(eph, t_range, r0, v0):
         #    print (f"Iteration: {idx},  Date : {jd2str_date(tc.mjd2jd(clock_mjd))}")        
         sol = solve_ivp(my_dfdt, (clock_mjd, clock_mjd+step), np.zeros(6), args=(r0, v0, clock_mjd) , rtol = 1e-12)  
         assert sol.success, "Integration was not OK!"
-        r_osc, v_osc = rv_from_r0v0 (mu_Sun, r0, v0, step)
+        r_osc, v_osc, *other = calc_rv_from_r0v0 (mu_Sun, r0, v0, step)
         # The last integration value is taken
         r0 = r_osc + sol.y[:,-1][:3]
         v0 = v_osc + sol.y[:,-1][3:6]

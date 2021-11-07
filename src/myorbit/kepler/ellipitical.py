@@ -259,7 +259,7 @@ def calc_rv_for_elliptic_orbit (M, a, e):
     E0 =  _calc_E0(e, M) 
 
     # The Kepler equation is solved so Eccentric Anomaly to obtain Eccentric Anomaly
-    E, root = solve_kepler_eq(e, M, E0)
+    E, _ = solve_kepler_eq(e, M, E0)
 
     # From E, we obtain the True Anomaly as f
     cos_f = (cos(E) - e)/(1 - e*cos(E))

@@ -2,18 +2,22 @@
 The source comes from the book 'Orbital Mechanics for Engineering Students'
 """
 # Standard library imports
+from functools import partial
 import logging
 
 # Third party imports
 import numpy as np
 from numpy import sin, cos, sqrt,cosh,sinh, sqrt
 from numpy.linalg import norm
+from scipy.optimize import newton
+
+
 
 # Local application imports
 from myorbit.util.general import pow
+from myorbit.util.general import pow, NoConvergenceError
 import  myorbit.lagrange.kepler_u as ku
 from myorbit.util.constants import *
-
 
 logger = logging.getLogger(__name__)
 
@@ -60,6 +64,40 @@ def stump_S(z) :
         return  (sinh(s_z) - s_z)/pow(s_z,3)
     else :
         return 0.1666666666666666
+
+def _F(mu, ro, vro, inv_a, dt, x):
+    z = x*x
+    C = stump_C(inv_a*z)
+    S = stump_S(inv_a*z)
+    return  ro*vro/sqrt(mu)*z*C + (1 - inv_a*ro)*z*x*S + ro*x - sqrt(mu)*dt
+
+def _Fprime(mu, ro, vro, inv_a, x):
+    z = x*x
+    C = stump_C(inv_a*z)
+    S = stump_S(inv_a*z)
+    return ro*vro/sqrt(mu)*x*(1 - inv_a*z*S) + (1 - inv_a*ro)*z*C + ro
+    
+
+def solve_kepler_eq(mu, ro, vro, inv_a, dt):
+    # The first 5 parameters of F are bounded, so we end up with f(x)
+    # So f(x) = 0 is the equation that is desired to solve (the kepler equation)
+    # for universal anomaly
+    f = partial(_F, mu, ro, vro, inv_a, dt)
+
+    # The first 4 parameter of Fprime are bounded, so we end up with fprime(x)
+    # According to the newton method, it is better if the first derivative of f is available
+    fprime = partial (_Fprime, mu, ro, vro, inv_a)
+
+    # The inital value for the universal anomaly is calculated.
+    X0 = np.sqrt(mu)*np.abs(inv_a)*dt
+
+    # Kepler equation is solved
+    x, root = newton(f, X0, fprime, tol=1e-09, maxiter=500,  full_output=True, disp=False)
+    if not root.converged:        
+       logger.error(f'Not converged with root:{root}') 
+       raise NoConvergenceError(x, root.function_calls, root.iterations, X0)
+    return x, root 
+
 
 def kepler_U_prv(mu, x , dt, ro, vro, inv_a, nMax=500):
     """Compute the general anomaly by solving the universal Kepler
@@ -208,7 +246,7 @@ def calc_fdot_gdot(mu, x, r, ro, inv_a) :
     gdot = 1 - pow(x,2)/r*stump_C(z)
     return fdot, gdot
 
-def rv_from_r0v0(mu, R0, V0, t):
+def calc_rv_from_r0v0(mu, r0_xyz, r0dot_xyz, dt):
     """This function computes the state vector (R,V) from the
     initial state vector (R0,V0) and after the elapsed time.
     Internally uses the universal variables and the lagrange coefficients.
@@ -222,52 +260,78 @@ def rv_from_r0v0(mu, R0, V0, t):
     ----------
     mu : float
         Gravitational parameter [AU^3/days^2]
-    R0 : np.array
-        initial position vector [AU]
-    V0 : np.array
-        initial position vector [AU]
-    t : float
-        Elapsed time [days]
+    r0_xyz : np.array
+        initial position vector at t0 [AU]
+    r0dot_xyz : np.array
+        initial position vector at t0 [AU]
+    dt : float
+        Elapsed time from t=t0 [days]
 
     Returns
     -------
     tuple
-        A tuple (R,V) where:
-            R: Final position vector (AU)
-            V: Final position vector (AU/days)
+        A tuple (r_xyz, rdot_xyz) where:
+            r_xyz: Final position vector after dt (AU)
+            rdot_xyz: Final position vector after dt (AU/days)
 
     """
-    #...Magnitudes of R0 and V0:
-    r0 = norm(R0)
-    v0 = norm(V0)
-    #...Initial radial velocity:
-    vr0 = np.dot(R0, V0)/r0
-    #...Reciprocal of the semimajor axis (from the energy equation):
-    alpha = 2/r0 - pow(v0,2)/mu
-    #...Compute the universal anomaly:
-    x = kepler_U(mu, t, r0, vr0, alpha)
-    #...Compute the f and g functions:
-    f, g = calc_f_g(mu, x, t, r0, alpha)
-    #...Compute the final position vector:
-    R = f*R0 + g*V0
-    #...Compute the magnitude of R:
-    r = norm(R)
-    #...Compute the derivatives of f and g:
-    fdot, gdot = calc_fdot_gdot(mu, x, r, r0, alpha)
-    #...Compute the final velocity:
-    V = fdot*R0 + gdot*V0
-    return R, V
+    #The norm of the inital radio vector and velocity vector is calculated
+    r0 = norm(r0_xyz)
+    v0 = norm(r0dot_xyz)
 
+    #The initial radia velocity is calculated
+    vr0 = np.dot(r0_xyz, r0dot_xyz)/r0
+
+    # Reciprocal of the semimajor axis (from the energy equation):
+    alpha = 2/r0 - pow(v0,2)/mu
+
+    # The kepler equation is solved to obtain the Universal anomaly
+    x, _ = solve_kepler_eq(mu, r0, vr0, alpha, dt)    
+
+    #x = kepler_U(mu, t, r0, vr0, alpha)
+
+    #Compute the f and g functions:
+    f, g = calc_f_g(mu, x, dt, r0, alpha)
+
+    #Compute the final position vector:
+    r_xyz = f*r0_xyz + g*r0dot_xyz
+
+    #Compute the magnitude of r_xyz    
+    r = norm(r_xyz)
+
+    #Compute the derivatives of f and g:
+    fdot, gdot = calc_fdot_gdot(mu, x, r, r0, alpha)
+
+    #Compute the final velocity vector
+    rdot_xyz = fdot*r0_xyz + gdot*r0dot_xyz
+
+    return r_xyz, rdot_xyz, np.cross(r_xyz, rdot_xyz)   
+
+def calc_eccentricity_vector(r_xyz, rdot_xyz, h_xyz,mu):
+    return  (np.cross(rdot_xyz,h_xyz) - (mu*r_xyz/np.linalg.norm(r_xyz)))/mu
+
+def angle_between_vectors(v1, v2):
+    unit_vector_1 = v1 / np.linalg.norm(v1)
+    unit_vector_2 = v2 / np.linalg.norm(v2)
+    dot_product = np.dot(unit_vector_1, unit_vector_2)
+    return  np.arccos(dot_product)    
 
 
 def test1() :
     mu = 398600
     R0 = np.array([7000, -12124, 0])
     V0 = np.array([2.6679, 4.6210, 0])
+    h0_xyz = np.cross(R0,V0)
     t = 3600
-    R,V = rv_from_r0v0(mu,R0, V0, t)
-    print ("R: ",R)
-    print ("V: ",V)
+    r_xyz, rdot_xyz, h_xyz= calc_rv_from_r0v0(mu,R0, V0, t)
+    e0_xyz = calc_eccentricity_vector(R0, V0, h0_xyz, mu)
+    e_xyz = calc_eccentricity_vector(r_xyz, rdot_xyz, h_xyz,mu)
+    print (h0_xyz, h_xyz)
+    print (np.linalg.norm(e0_xyz), np.linalg.norm(e_xyz))
+    print (f"True Anomaly at t0 :{angle_between_vectors(e0_xyz, R0)}")
+    print (f"True Anomaly at t :{angle_between_vectors(e_xyz, r_xyz)}")
+    print ("R: ",r_xyz)
+    print ("V: ",rdot_xyz)
 
 
 def test3():

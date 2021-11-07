@@ -20,7 +20,7 @@ from myorbit.util.timeut import mjd2str_date
 from myorbit.planets import g_xyz_equat_sun_j2000
 from myorbit.kepler.keplerian import KeplerianStateSolver, ParabolicalStateSolver, EllipticalStateSolver
 from myorbit.kepler.ellipitical import calc_rv_for_elliptic_orbit, calc_M
-from myorbit.lagrange.lagrange_coeff import rv_from_r0v0
+from myorbit.lagrange.lagrange_coeff import calc_rv_from_r0v0
 from myorbit.util.general import mu_Sun
 
 from myorbit.util.constants import *
@@ -154,8 +154,7 @@ def test_universal():
         r_failed = v_failed = 0
         for dt in range(2,delta_days*2,2):
             #print (f'Time: {T0_MJD+dt}  {mjd2str_date(T0_MJD+dt)}')
-            r1_xyz, rdot1_xyz, r0, h0_xyz, *others = solver.calc_rv(T0_MJD+dt)
-            r2_xyz, rdot2_xyz = rv_from_r0v0(mu_Sun, r0_xyz, rdot0_xyz, dt)
+            r1_xyz, rdot1_xyz, *other = calc_rv_from_r0v0(mu_Sun, r0_xyz, rdot0_xyz, dt)
             print (f'State Keplerian:  r_xyz:{r1_xyz}, rdot_xyz:{rdot1_xyz}')
             print (f'State Universal:  r_xyz:{r2_xyz}, rdot_xyz:{rdot2_xyz}')
             if not my_isclose(r1_xyz, r2_xyz, abs_tol=1e-08):
