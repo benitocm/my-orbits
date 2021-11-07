@@ -19,7 +19,8 @@ from scipy.optimize import newton
 # Local application imports
 from myorbit.util.timeut import  norm_rad
 from myorbit.util.general import pow, NoConvergenceError
-from myorbit.util.constants import *
+from myorbit.util.constants import TWOPI, PI
+from myorbit.util.general import mu_Sun
 
 logger = logging.getLogger(__name__)
 
@@ -39,7 +40,7 @@ logger = logging.getLogger(__name__)
 # Asteroids follows elliptical orbits
 # Comets can follow elliptical, hyperbolic or parabolic orbits
 
-def calc_tp(M_at_epoch, a, epoch):
+def calc_tp(M_at_epoch, a, epoch, mu=mu_Sun):
     """Compute the perihelion passage given Mean anomaly and the epoch
 
     Parameters
@@ -57,10 +58,10 @@ def calc_tp(M_at_epoch, a, epoch):
         [description]
     """
     # Time taken to go from the Mean anomaly at epoch up to the perihelion
-    deltaT = TWOPI*np.sqrt(pow(a,3)/GM)*(1-M_at_epoch/TWOPI)    
+    deltaT = TWOPI*np.sqrt(pow(a,3)/mu_Sun)*(1-M_at_epoch/TWOPI)    
     return deltaT + epoch
 
-def calc_M_for_body(t_mjd, epoch_mjd, a, M_at_epoch) :
+def calc_M_for_body(t_mjd, epoch_mjd, a, M_at_epoch, mu=mu_Sun) :
     
     """Computes the mean anomaly as a function of time (t_mjd). This method is used
     when the Time of perihelion passage is unknown (for asteroids). 
@@ -81,12 +82,12 @@ def calc_M_for_body(t_mjd, epoch_mjd, a, M_at_epoch) :
     float
         The mean anomaly [radians]
     """
-    period_in_days = TWOPI*sqrt(pow(a,3)/GM)
+    period_in_days = TWOPI*sqrt(pow(a,3)/mu)
     M = (t_mjd - epoch_mjd)*TWOPI/period_in_days
     M += M_at_epoch
     return norm_rad(M)
 
-def calc_M (t_mjd, tp_mjd, a):
+def calc_M (t_mjd, tp_mjd, a, mu=mu_Sun):
     """Computes the mean anomaly as a function of time (t_mjd). This method is used
     when the Time of perihelion passage is known (for comets)
 
@@ -105,7 +106,7 @@ def calc_M (t_mjd, tp_mjd, a):
         The mean anomaly [radians]
     """    
 
-    M = np.sqrt(GM/pow(a,3)) * (t_mjd - tp_mjd)
+    M = np.sqrt(mu/pow(a,3)) * (t_mjd - tp_mjd)
     return norm_rad(M)
 
 def _F(e, M, E):
@@ -226,7 +227,7 @@ def _calc_E0(e, M):
     den = 1 + np.sin(M) - np.sin(mu)
     return num/den
 
-def calc_rv_for_elliptic_orbit (M, a, e):
+def calc_rv_for_elliptic_orbit (M, a, e, mu=mu_Sun):
     """Computes the state vector and other quantities. The time evolution comes from M (Mean anomaly).
     The computation of the mean anomaly is outside of this method because it depends on the type of object (asteroids or
     comets)
@@ -285,11 +286,11 @@ def calc_rv_for_elliptic_orbit (M, a, e):
     # To calculate the velocity (in cartesian coordinates) we use the formula in Orbital Mechanics for 
     # Students (eq. 2.123 y 2.124). For that, we need first to compute the Angular Momentum using
     # geometric properties
-    h = np.sqrt(GM*a*(1-e*e))
+    h = np.sqrt(mu*a*(1-e*e))
     h_xyz = np.array([0,0,h])
 
 
-    rdot_xyz = np.array([-GM*sin_f/h,GM*(e+cos_f)/h , 0.0]) 
+    rdot_xyz = np.array([-mu*sin_f/h,mu*(e+cos_f)/h , 0.0]) 
 
     # Double checking:
     #   The Angular Momentum h should be constant during the orbit

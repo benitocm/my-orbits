@@ -76,6 +76,14 @@ def _Fprime(mu, ro, vro, inv_a, x):
     C = stump_C(inv_a*z)
     S = stump_S(inv_a*z)
     return ro*vro/sqrt(mu)*x*(1 - inv_a*z*S) + (1 - inv_a*ro)*z*C + ro
+
+
+def _Fprime2(mu, ro, vro, inv_a, x):
+    z = x*x
+    C = stump_C(inv_a*z)
+    S = stump_S(inv_a*z)
+    return ro*vro/sqrt(mu) - (inv_a*ro*vro/sqrt(mu))*pow(x,2)*C + (1-inv_a*ro)*x-(1-inv_a*ro)*2*inv_a*pow(x,3)*S
+
     
 
 def solve_kepler_eq(mu, ro, vro, inv_a, dt):
@@ -88,16 +96,18 @@ def solve_kepler_eq(mu, ro, vro, inv_a, dt):
     # According to the newton method, it is better if the first derivative of f is available
     fprime = partial (_Fprime, mu, ro, vro, inv_a)
 
+    fprime2 = partial (_Fprime2, mu, ro, vro, inv_a)
+
     # The inital value for the universal anomaly is calculated.
     X0 = np.sqrt(mu)*np.abs(inv_a)*dt
 
     # Kepler equation is solved
-    x, root = newton(f, X0, fprime, tol=1e-09, maxiter=500,  full_output=True, disp=False)
+    x, root = newton(f, X0, fprime=fprime, fprime2=fprime2, tol=1e-09, maxiter=500,  full_output=True, disp=False)
     if not root.converged:        
        logger.error(f'Not converged with root:{root}') 
        raise NoConvergenceError(x, root.function_calls, root.iterations, X0)
+    logger.info(f'Converged in {root.iterations} iterations and {root.function_calls} function_calls for X0={X0}, ro={ro}, vro={vro}, inv_a={inv_a}, dt={dt}  Not converged with root:{root}') 
     return x, root 
-
 
 def kepler_U_prv(mu, x , dt, ro, vro, inv_a, nMax=500):
     """Compute the general anomaly by solving the universal Kepler
@@ -332,6 +342,27 @@ def test1() :
     print (f"True Anomaly at t :{angle_between_vectors(e_xyz, r_xyz)}")
     print ("R: ",r_xyz)
     print ("V: ",rdot_xyz)
+
+def test2():
+    mu = 398600
+    ro =  13999.691
+    vro = -2.6678
+    inv_a = 7.143e-05
+    
+    vro 
+
+    f = partial(_F, mu, ro, vro, inv_a, dt)
+
+    # The first 4 parameter of Fprime are bounded, so we end up with fprime(x)
+    # According to the newton method, it is better if the first derivative of f is available
+    fprime = partial (_Fprime, mu, ro, vro, inv_a)
+
+    fprime2 = partial (_Fprime2, mu, ro, vro, inv_a)    
+    R0 = np.array([7000, -12124, 0])
+    V0 = np.array([2.6679, 4.6210, 0])
+    h0_xyz = np.cross(R0,V0)
+
+
 
 
 def test3():

@@ -10,6 +10,7 @@ from math import isclose
 import logging
 from functools import partial
 from math import isclose
+from typing import MutableSequence
 
 # Third party imports
 import numpy as np
@@ -18,7 +19,8 @@ from scipy.optimize import newton
 
 # Local application imports
 from myorbit.util.general import NoConvergenceError
-from myorbit.util.constants import *
+from myorbit.util.general import mu_Sun
+
 
 logger = logging.getLogger(__name__)
 
@@ -45,7 +47,7 @@ logger = logging.getLogger(__name__)
 # center of the hyperbola, the point of perifocus and the point on the reference
 # hyperbola directly above the position vector
 
-def calc_M (t_mjd, tp_mjd, a):
+def calc_M (t_mjd, tp_mjd, a, mu=mu_Sun):
     """Computes the mean anomaly as a function of time (t_mjd).
 
     Parameters
@@ -65,7 +67,7 @@ def calc_M (t_mjd, tp_mjd, a):
 
     #M = np.sqrt(GM/np.power(a,3)) * (t_mjd - tp_mjd)
 
-    M = sqrt(GM/a)*(t_mjd - tp_mjd)/a
+    M = sqrt(mu/a)*(t_mjd - tp_mjd)/a
     return M
 
 def _F(e, M, H):
@@ -205,7 +207,7 @@ def calc_f (H, e):
     tan_fdiv2 = np.sqrt((e+1)/(e-1))*tanh(H/2)
     return 2*arctan(tan_fdiv2)
 
-def calc_rv_for_hyperbolic_orbit (tp_mjd, a_neg, e, t_mjd):
+def calc_rv_for_hyperbolic_orbit (tp_mjd, a_neg, e, t_mjd, mu=mu_Sun):
     """Computes the state vector and other quantities. The time evolution comes from M (Mean anomaly).
     The computation of the mean anomaly is outside of this method because it depends on the type of object (asteroids or
     comets)
@@ -232,7 +234,7 @@ def calc_rv_for_hyperbolic_orbit (tp_mjd, a_neg, e, t_mjd):
         f : True anomaly at time of computation [radians]
         H : Hyperbolic anomaly at time of computation [radians]
     """
-    cte = sqrt(GM/-a_neg)
+    cte = sqrt(mu/-a_neg)
     # I have done the calculation and it is right
     # 2*pi/T == cte/a  so this is equivalent to the mean calculation done previously
     # Mean anomaly for the hyperbolic orbit
@@ -267,12 +269,12 @@ def calc_rv_for_hyperbolic_orbit (tp_mjd, a_neg, e, t_mjd):
     # is computed to calculte the angular momentum 
     p = a_neg*(1-e*e)    
     # The modulus of angular momentum is computed from from geometric data
-    h = np.sqrt(p*GM)
+    h = np.sqrt(p*mu)
     h_xyz = np.array([0,0,h])
 
     # To calculate the velocity (in cartesian coordinates) we use the formula in Orbital Mechanics for 
     # Students (eq. 2.123 y 2.124) based on the modulus of angular momentum and true anomaly
-    rdot_xyz = np.array([-GM*np.sin(f)/h,GM*(e+np.cos(f))/h , 0.0]) 
+    rdot_xyz = np.array([-mu*np.sin(f)/h,mu*(e+np.cos(f))/h , 0.0]) 
     
     # Alternative computation without calculating directly the true anomaly 
     # described in the book "Astronomy on the Personal Computer" by Montenbruck, Pfleger (pag. 80)

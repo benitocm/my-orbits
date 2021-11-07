@@ -11,7 +11,8 @@ from numpy import cos, sin, arctan
 
 # Local application imports
 from myorbit.util.general import pow, NoConvergenceError
-from myorbit.util.constants import *
+#from myorbit.util.constants import *
+from myorbit.util.general import mu_Sun
 
 logger = logging.getLogger(__name__)
 
@@ -31,7 +32,7 @@ logger = logging.getLogger(__name__)
 #    https://en.wikipedia.org/wiki/Parabolic_trajectory
 
 
-def calc_Mp (q, t_mjd, tp_mjd):
+def calc_Mp (q, t_mjd, tp_mjd, mu=mu_Sun):
     """Computes the parabolic Mean Anomaly as function of time 
 
     Parameters
@@ -49,11 +50,11 @@ def calc_Mp (q, t_mjd, tp_mjd):
         The parabolic mean anomaly [radians]
     """    
 
-    M = np.sqrt(GM/(2*pow(q,3)))*(t_mjd-tp_mjd)
+    M = np.sqrt(mu/(2*pow(q,3)))*(t_mjd-tp_mjd)
     return M
 
 
-def calc_rv_for_parabolic_orbit (tp_mjd, q, t_mjd):
+def calc_rv_for_parabolic_orbit (tp_mjd, q, t_mjd, mu=mu_Sun):
     """[summary]
 
     Parameters
@@ -94,7 +95,7 @@ def calc_rv_for_parabolic_orbit (tp_mjd, q, t_mjd):
     f = 2*arctan(tan_fdiv2)
 
     # The angular momentum is calculated just based on q parameter
-    h = np.sqrt(GM*2*q)
+    h = np.sqrt(mu*2*q)
     h_xyz = np.array([0,0,h])
 
     # The modulus of the radio vector is calculated applying the
@@ -107,7 +108,7 @@ def calc_rv_for_parabolic_orbit (tp_mjd, q, t_mjd):
 
     # The velocity vector is also calculated applying the same equations
     # as for the other types of orbits.
-    rdot_xyz = np.array([-GM*np.sin(f)/h,GM*(1+np.cos(f))/h , 0.0]) 
+    rdot_xyz = np.array([-mu*np.sin(f)/h,mu*(1+np.cos(f))/h , 0.0]) 
 
     return r_xyz, rdot_xyz, r, h_xyz, Mp, f
 

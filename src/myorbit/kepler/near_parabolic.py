@@ -12,7 +12,7 @@ from numpy import cos, sin, arctan
 # Local application imports
 from myorbit.util.general import pow, NoConvergenceError
 from myorbit.util.timeut import norm_rad
-from myorbit.util.constants import *
+from myorbit.util.general import mu_Sun
 
 logger = logging.getLogger(__name__)
 
@@ -84,7 +84,7 @@ def calc_stumpff_exact(E_2):
 
     return c1, c2, c3
 
-def calc_rv_by_stumpff (tp_mjd, q, e, t_mjd, max_iters=30):
+def calc_rv_by_stumpff (tp_mjd, q, e, t_mjd, mu=mu_Sun, max_iters=30):
     """Computes the position (r) and velocity (v) vectors for parabolic orbits using
     an iterative method (Newton's method) for solving the Kepler equation.
     (pg 66 of Astronomy on the Personal Computer book). The m_anomaly is
@@ -115,8 +115,8 @@ def calc_rv_by_stumpff (tp_mjd, q, e, t_mjd, max_iters=30):
     """
     E_2 = 0.0    
     factor = 0.5 * e
-    cte = sqrt(GM/(q*(1.0+e)))
-    tau = sqrt(GM)*(t_mjd-tp_mjd)
+    cte = sqrt(mu/(q*(1.0+e)))
+    tau = sqrt(mu)*(t_mjd-tp_mjd)
     EPSILON = 1e-7
 
     for _ in range(max_iters):
@@ -126,7 +126,6 @@ def calc_rv_by_stumpff (tp_mjd, q, e, t_mjd, max_iters=30):
         u = B - 1.0/B 
         u_2 = u*u
         E_2 = u_2*(1.0-e)/factor 
-        #c1, c2, c3 = calc_stumpff_as_series(E_2)
         c1, c2, c3 = calc_stumpff_exact(E_2)
         factor = 3.0*e*c3 
         if isclose(E_2, E20, abs_tol=EPSILON) :

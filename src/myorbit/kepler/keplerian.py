@@ -19,7 +19,8 @@ from myorbit.kepler.near_parabolic import calc_rv_by_stumpff
 from myorbit.util.timeut import hemisphere, mjd2str_date
 from myorbit.util.general import  NoConvergenceError
 
-from myorbit.util.constants import *
+#from myorbit.util.constants import GM,
+from myorbit.util.general import mu_Sun
 
 
 logger = logging.getLogger(__name__)
@@ -159,8 +160,8 @@ def check_angular_momentum(h, r_xyz, rdot_xyz):
             logger.error(msg)
 
 
-def calc_eccentricity_vector(r_xyz, rdot_xyz, h_xyz):
-    return  (np.cross(rdot_xyz,h_xyz) - (GM*r_xyz/np.linalg.norm(r_xyz)))/GM
+def calc_eccentricity_vector(r_xyz, rdot_xyz, h_xyz, mu=mu_Sun):
+    return  (np.cross(rdot_xyz,h_xyz) - (mu*r_xyz/np.linalg.norm(r_xyz)))/mu
 
 
 
@@ -177,13 +178,13 @@ class EllipticalStateSolver(KeplerianStateSolver) :
         [description]
     """
 
-    def __init__(self, a, e, q=None, tp_mjd=None, epoch_mjd=None, M_at_epoch=None):    
+    def __init__(self, a, e, q=None, tp_mjd=None, epoch_mjd=None, M_at_epoch=None, mu=mu_Sun):    
         self.a = a
         self.e = e
         self.q = q
         self.tp_mjd = tp_mjd
         # The energy is an invariant of the orbit. In this case, it is negative
-        self.the_energy = - GM/(2*self.a)
+        self.the_energy = - mu/(2*self.a)
         self.epoch_mjd = epoch_mjd
         self.M_at_epoch = M_at_epoch
 
@@ -214,8 +215,8 @@ class EllipticalStateSolver(KeplerianStateSolver) :
     def energy(self):
         return self.the_energy
                 
-    def v(self, r) :
-         return sqrt(2*(self.energy()+(GM/r)))
+    def v(self, r, mu=mu_Sun) :
+         return sqrt(2*(self.energy()+(mu/r)))
 
 
 class ParabolicalStateSolver(KeplerianStateSolver) :
@@ -232,17 +233,17 @@ class ParabolicalStateSolver(KeplerianStateSolver) :
     def energy(self):
         return self.the_energy
         
-    def v(self, r) :
-        return np.sqrt(2*GM/r)
+    def v(self, r, mu=mu_Sun) :
+        return np.sqrt(2*mu/r)
 
 class HyperbolicalState(KeplerianStateSolver) :
     
-    def __init__(self, tp_mjd, a, e):    
+    def __init__(self, tp_mjd, a, e, mu=mu_Sun):    
         self.tp_mjd = tp_mjd
         self.a = a
         self.e = e
         # The energy is an invariant of the orbit. In this case, it is < 0 
-        self.the_energy = -GM/(2*self.a)
+        self.the_energy = -mu/(2*self.a)
 
     def calc_rv_basic(self, t_mjd):
         return calc_rv_for_hyperbolic_orbit(tp_mjd= self.tp_mjd, a_neg=self.a, e=self.e, t_mjd=t_mjd)
@@ -250,8 +251,8 @@ class HyperbolicalState(KeplerianStateSolver) :
     def energy(self):
         return self.the_energy
         
-    def v(self, r) :
-        return sqrt(2*(self.energy()+(GM/r)))
+    def v(self, r, mu=mu_Sun) :
+        return sqrt(2*(self.energy()+(mu/r)))
 
 if __name__ == "__main__" :
     None
