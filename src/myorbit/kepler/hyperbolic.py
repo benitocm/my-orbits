@@ -18,8 +18,8 @@ from numpy import sqrt, cos, sin, cosh, sinh,  arctan, tanh
 from scipy.optimize import newton
 
 # Local application imports
-from myorbit.util.general import NoConvergenceError
-from myorbit.util.general import mu_Sun
+from myorbit.util.general import NoConvergenceError, mu_Sun
+from myorbit.util.timeut import norm_rad
 
 
 logger = logging.getLogger(__name__)
@@ -162,7 +162,7 @@ def solve_kepler_eq(e, M, H0):
     fprime2= partial (_Fprime2, e)
     x, root = newton(f, H0, fprime, tol=1e-12, maxiter=50, fprime2=fprime2, full_output=True)
     if not root.converged:        
-       logger.error(f'Not converged with root:{root}') 
+       logger.error(f'Hiperbolical Kepler equation not converged with root:{root}') 
        raise NoConvergenceError(x, root.function_calls, root.iterations)
     return x, root      
 
@@ -190,7 +190,8 @@ def _calc_H0(e, M):
     #return M
 
 def calc_f (H, e):
-    """Computes the True anomaly given the Hyperbolic anomaly
+    """Computes the True anomaly given the Hyperbolic anomaly.
+    The true anomaly must be between [0,2*PI)
 
     Parameters
     ----------
@@ -205,7 +206,7 @@ def calc_f (H, e):
         The true anomaly [radians]
     """
     tan_fdiv2 = np.sqrt((e+1)/(e-1))*tanh(H/2)
-    return 2*arctan(tan_fdiv2)
+    return norm_rad(2*arctan(tan_fdiv2))
 
 def calc_rv_for_hyperbolic_orbit (tp_mjd, a_neg, e, t_mjd, mu=mu_Sun):
     """Computes the state vector and other quantities. The time evolution comes from M (Mean anomaly).
@@ -250,9 +251,6 @@ def calc_rv_for_hyperbolic_orbit (tp_mjd, a_neg, e, t_mjd, mu=mu_Sun):
 
     # The Kepler equation is solved so Eccentric Anomaly is obtained
     H, root = solve_kepler_eq(e, Mh, H0)
-    if not root.converged :
-        msg = f"Not converged: {root}"
-        logger.error(msg)
 
     # From H, we obtain the True Anomaly as f
     f = calc_f(H,e)   

@@ -201,7 +201,7 @@ def solve_kepler_eq(e, M, E0):
     fprime2= partial (_Fprime2, e)
     x, root = newton(f, E0, fprime, tol=1e-12, maxiter=100, fprime2=fprime2, full_output=True, disp=False)
     if not root.converged:        
-       logger.error(f'Not converged with root:{root}') 
+       logger.error(f'Elliptical Kepler equation not converged with root:{root}') 
        raise NoConvergenceError(x, root.function_calls, root.iterations, M)
     return x, root 
 

@@ -84,6 +84,10 @@ def calc_stumpff_exact(E_2):
 
     return c1, c2, c3
 
+def calc_f(e, c1, c2, c3, u):
+    tanf_div2 = np.sqrt((1+e)/(3*e*c3))*c2*u/c1
+    return norm_rad(2*np.arctan(tanf_div2))
+
 def calc_rv_by_stumpff (tp_mjd, q, e, t_mjd, mu=mu_Sun, max_iters=30):
     """Computes the position (r) and velocity (v) vectors for parabolic orbits using
     an iterative method (Newton's method) for solving the Kepler equation.
@@ -132,7 +136,11 @@ def calc_rv_by_stumpff (tp_mjd, q, e, t_mjd, mu=mu_Sun, max_iters=30):
             R = q * (1.0 + u_2*c2*e/factor)
             r_xyz = np.array([q*(1.0-u_2*c2/factor), q*sqrt((1.0+e)/factor)*u*c1,0.0])
             rdot_xyz = np.array([-cte*r_xyz[1]/R, cte*(r_xyz[0]/R+e),0.0])
-            return r_xyz, rdot_xyz, np.linalg.norm(r_xyz), np.cross(r_xyz, rdot_xyz)
+            f = calc_f(e, c1, c2, c3, u)
+            return r_xyz, rdot_xyz, np.linalg.norm(r_xyz), np.cross(r_xyz, rdot_xyz), -1000, f, -1000
+
+
+            
     msg = f'Not converged for q:{q},  e:{e}, t:{t_mjd}, t0:{tp_mjd} after {max_iters} iterations'
     logger.error(msg)
     raise NoConvergenceError(None, max_iters,max_iters, None,message=msg)

@@ -121,8 +121,8 @@ class KeplerianStateSolver(ABC):
         Tuple 
             (r_xyz, rdot_xyz, r, h) where
 
-        """         
-        r_xyz, rdot_xyz, r, h_xyz, *others = self.calc_rv_basic (t_mjd)    
+        """        
+        r_xyz, rdot_xyz, r, h_xyz, _, f, *others = self.calc_rv_basic (t_mjd)    
         check_velocity(self.v(r), rdot_xyz)
         check_angular_momentum(np.linalg.norm(h_xyz), r_xyz, rdot_xyz)
         e_xyz = calc_eccentricity_vector(r_xyz, rdot_xyz, h_xyz)
@@ -132,7 +132,7 @@ class KeplerianStateSolver(ABC):
             print (msg)
             logger.warning(msg)
 
-        return r_xyz, rdot_xyz, r, h_xyz, e_xyz
+        return r_xyz, rdot_xyz, r, h_xyz, e_xyz, f
 
     @abstractmethod
     def calc_rv_basic(self, t_mjd):
@@ -204,13 +204,12 @@ class EllipticalStateSolver(KeplerianStateSolver) :
             return r_xyz, rdot_xyz, r, h_xyz, M, f, E
         except NoConvergenceError as ex:
             msg = f'NOT converged, for M={M} at time={mjd2str_date(t_mjd)} with root={ex.root}'
-            print (msg)
+            #print (msg)
             logger.error(msg)
             msg = f'Trying with the near parabolical method with tp={self.tp_mjd}, q={self.q} AU, e={self.e} at time {mjd2str_date(t_mjd)} '
-            print (msg)
+            #print (msg)
             logger.error(msg)
-            r_xyz, rdot_xyz, r, h_xyz =  calc_rv_by_stumpff (self.tp_mjd, self.q, self.e, t_mjd)
-            return r_xyz, rdot_xyz, r, h_xyz, -100, -100, -100
+            return  calc_rv_by_stumpff (self.tp_mjd, self.q, self.e, t_mjd)
 
     def energy(self):
         return self.the_energy

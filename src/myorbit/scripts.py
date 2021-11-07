@@ -127,6 +127,16 @@ def test_almost_parabolical(delta_days):
             logger.error(msg)
         print (not_converged)
 
+def calc_eccentricity_vector(r_xyz, rdot_xyz, h_xyz, mu=mu_Sun):
+    return  (np.cross(rdot_xyz,h_xyz) - (mu*r_xyz/np.linalg.norm(r_xyz)))/mu        
+
+def angle_between_vectors(v1, v2):
+    unit_vector_1 = v1 / np.linalg.norm(v1)
+    unit_vector_2 = v2 / np.linalg.norm(v2)
+    dot_product = np.dot(unit_vector_1, unit_vector_2)
+    return  np.arccos(dot_product)    
+
+
 def test_universal():
 
     # Elliptical comet
@@ -142,26 +152,37 @@ def test_universal():
     #C_2011_W3_Lovejoy = read_comet_elms_for("C/2011 W3 (Lovejoy)", DF_COMETS) 
 
     #obj = dc.HALLEY_J2000    
-    #OBJS=[dc.C_2020_J1_SONEAR, dc.C2012_CH17, dc.C_2018_F3_Johnson, dc.C_2011_W3_Lovejoy]
+    OBJS=[dc.C_2020_J1_SONEAR, dc.C2012_CH17, dc.C_2018_F3_Johnson, dc.C_2011_W3_Lovejoy]
     #OBJS=[dc.C2012_CH17, dc.C_2011_W3_Lovejoy]
-    OBJS=[dc.C2012_CH17]
-    delta_days = 100
+    #OBJS=[dc.C_2011_W3_Lovejoy]
+    delta_days = 5000
     for obj in OBJS:     
         #print (f"Testing {obj.name} ")
         solver = KeplerianStateSolver.make(e=obj.e, a=obj.a, tp_mjd=obj.tp_mjd, q=obj.q, epoch=obj.epoch_mjd)
         T0_MJD = obj.tp_mjd-delta_days
-        r0_xyz, rdot0_xyz, r0, h0_xyz, *others = solver.calc_rv(T0_MJD)    
-        r_failed = v_failed = 0
+        r0_xyz, rdot0_xyz, r0, h0_xyz, _ , f0 = solver.calc_rv(T0_MJD)    
+        r_failed = v_failed =  f_failed = nc_failed= 0 
         for dt in range(2,delta_days*2,2):
+            r1_xyz, rdot1_xyz, r1, h1_xyz, _ , f1 = solver.calc_rv(T0_MJD+dt)    
             #print (f'Time: {T0_MJD+dt}  {mjd2str_date(T0_MJD+dt)}')
-            r1_xyz, rdot1_xyz, *other = calc_rv_from_r0v0(mu_Sun, r0_xyz, rdot0_xyz, dt)
-            print (f'State Keplerian:  r_xyz:{r1_xyz}, rdot_xyz:{rdot1_xyz}')
-            print (f'State Universal:  r_xyz:{r2_xyz}, rdot_xyz:{rdot2_xyz}')
-            if not my_isclose(r1_xyz, r2_xyz, abs_tol=1e-08):
-                r_failed += 1
-            if not my_isclose (rdot1_xyz, rdot2_xyz) :
-                v_failed += 1
-        print (f'>>>>>>>>>>> Object {obj.name} has r_failed:{r_failed} v_failed:{v_failed}')
+            try :
+                r2_xyz, rdot2_xyz, h_xyz, f2 = calc_rv_from_r0v0(mu_Sun, r0_xyz, rdot0_xyz, dt, f0)
+                #print (f'State Keplerian:  r_xyz:{r1_xyz}, rdot_xyz:{rdot1_xyz}')
+                #print (f'State Universal:  r_xyz:{r2_xyz}, rdot_xyz:{rdot2_xyz}')
+                e_xyz = calc_eccentricity_vector(r1_xyz, rdot1_xyz, h1_xyz)
+                f3 = angle_between_vectors(e_xyz, r1_xyz)
+                #print (f"f Universal: {f2}  f Kepler: {f1}   f Excentricity: {f3}  f Excentricity: {TWOPI-f3}")            
+                
+                if not isclose(f1,f2,rel_tol=0, abs_tol=1e-07):
+                    f_failed += 1
+                if not my_isclose(r1_xyz, r2_xyz, abs_tol=1e-08):
+                    r_failed += 1
+                if not my_isclose (rdot1_xyz, rdot2_xyz) :
+                    v_failed += 1
+            except NoConvergenceError :
+                nc_failed += 1
+                print ("kkkkkkkkkkkkkkkkkkkkkkkkkkkk")
+        print (f'>>>>>>>>>>> Object {obj.name} has r_failed:{r_failed} v_failed:{v_failed} f_failed:{f_failed} no_convergences: {nc_failed}')
     
 
 

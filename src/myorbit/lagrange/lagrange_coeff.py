@@ -11,13 +11,11 @@ from numpy import sin, cos, sqrt,cosh,sinh, sqrt
 from numpy.linalg import norm
 from scipy.optimize import newton
 
-
-
 # Local application imports
 from myorbit.util.general import pow
 from myorbit.util.general import pow, NoConvergenceError
 import  myorbit.lagrange.kepler_u as ku
-from myorbit.util.constants import *
+from myorbit.util.timeut import norm_rad    
 
 logger = logging.getLogger(__name__)
 
@@ -69,20 +67,20 @@ def _F(mu, ro, vro, inv_a, dt, x):
     z = x*x
     C = stump_C(inv_a*z)
     S = stump_S(inv_a*z)
-    return  ro*vro/sqrt(mu)*z*C + (1 - inv_a*ro)*z*x*S + ro*x - sqrt(mu)*dt
+    return  (ro*vro/sqrt(mu))*z*C + (1 - inv_a*ro)*z*x*S + ro*x - sqrt(mu)*dt
 
 def _Fprime(mu, ro, vro, inv_a, x):
     z = x*x
     C = stump_C(inv_a*z)
     S = stump_S(inv_a*z)
-    return ro*vro/sqrt(mu)*x*(1 - inv_a*z*S) + (1 - inv_a*ro)*z*C + ro
+    return (ro*vro/sqrt(mu))*x*(1 - inv_a*z*S) + (1 - inv_a*ro)*z*C + ro
 
 
 def _Fprime2(mu, ro, vro, inv_a, x):
     z = x*x
     C = stump_C(inv_a*z)
     S = stump_S(inv_a*z)
-    return ro*vro/sqrt(mu) - (inv_a*ro*vro/sqrt(mu))*pow(x,2)*C + (1-inv_a*ro)*x-(1-inv_a*ro)*2*inv_a*pow(x,3)*S
+    return ro*vro/sqrt(mu) - (inv_a*ro*vro/sqrt(mu))*pow(x,2)*C + (1-inv_a*ro)*x-(1-inv_a*ro)*inv_a*pow(x,3)*S
 
     
 
@@ -100,11 +98,10 @@ def solve_kepler_eq(mu, ro, vro, inv_a, dt):
 
     # The inital value for the universal anomaly is calculated.
     X0 = np.sqrt(mu)*np.abs(inv_a)*dt
-
     # Kepler equation is solved
-    x, root = newton(f, X0, fprime=fprime, fprime2=fprime2, tol=1e-09, maxiter=500,  full_output=True, disp=False)
+    x, root = newton(f, X0, fprime=fprime, fprime2=fprime2, tol=1e-09, maxiter=700,  full_output=True, disp=False)
     if not root.converged:        
-       logger.error(f'Not converged with root:{root}') 
+       logger.error(f'Universal Kepler equation not converged with root:{root}') 
        raise NoConvergenceError(x, root.function_calls, root.iterations, X0)
     logger.info(f'Converged in {root.iterations} iterations and {root.function_calls} function_calls for X0={X0}, ro={ro}, vro={vro}, inv_a={inv_a}, dt={dt}  Not converged with root:{root}') 
     return x, root 
@@ -256,7 +253,19 @@ def calc_fdot_gdot(mu, x, r, ro, inv_a) :
     gdot = 1 - pow(x,2)/r*stump_C(z)
     return fdot, gdot
 
-def calc_rv_from_r0v0(mu, r0_xyz, r0dot_xyz, dt):
+def calc_f(p, X, r0, sigma0, inv_a, f0):
+    z = X/2
+    alphaz_2 = inv_a*z*z
+    C = stump_C(alphaz_2)
+    S = stump_S(alphaz_2)
+    num = z*np.sqrt(p)*(1-alphaz_2*S)
+    den1 = r0*(1-alphaz_2*C)
+    den2 = sigma0*z*(1-alphaz_2*S)
+    f_f0_div2 = np.arctan2(num, den1+den2)
+    return norm_rad(2*f_f0_div2+f0)
+
+
+def calc_rv_from_r0v0(mu, r0_xyz, r0dot_xyz, dt, f0=None):
     """This function computes the state vector (R,V) from the
     initial state vector (R0,V0) and after the elapsed time.
     Internally uses the universal variables and the lagrange coefficients.
@@ -296,12 +305,12 @@ def calc_rv_from_r0v0(mu, r0_xyz, r0dot_xyz, dt):
     alpha = 2/r0 - pow(v0,2)/mu
 
     # The kepler equation is solved to obtain the Universal anomaly
-    x, _ = solve_kepler_eq(mu, r0, vr0, alpha, dt)    
+    X, _ = solve_kepler_eq(mu, r0, vr0, alpha, dt)    
 
     #x = kepler_U(mu, t, r0, vr0, alpha)
 
     #Compute the f and g functions:
-    f, g = calc_f_g(mu, x, dt, r0, alpha)
+    f, g = calc_f_g(mu, X, dt, r0, alpha)
 
     #Compute the final position vector:
     r_xyz = f*r0_xyz + g*r0dot_xyz
@@ -310,12 +319,26 @@ def calc_rv_from_r0v0(mu, r0_xyz, r0dot_xyz, dt):
     r = norm(r_xyz)
 
     #Compute the derivatives of f and g:
-    fdot, gdot = calc_fdot_gdot(mu, x, r, r0, alpha)
+    fdot, gdot = calc_fdot_gdot(mu, X , r, r0, alpha)
 
     #Compute the final velocity vector
     rdot_xyz = fdot*r0_xyz + gdot*r0dot_xyz
 
-    return r_xyz, rdot_xyz, np.cross(r_xyz, rdot_xyz)   
+    # The angular momentum
+    h_xyz = np.cross(r_xyz, rdot_xyz)   
+
+    if f0 is not None :
+        # The norm of the angular momentum
+        h = np.linalg.norm(h_xyz)
+        # Semi-Latus Rectum
+        p = pow(h,2)/mu
+        sigma0 = r0*vr0/sqrt(mu)
+        f = calc_f(p, X, r0, sigma0, alpha, f0)
+    else :
+        f = None
+        print (f"The true anumaly is {f}")
+
+    return r_xyz, rdot_xyz, h_xyz, f
 
 def calc_eccentricity_vector(r_xyz, rdot_xyz, h_xyz,mu):
     return  (np.cross(rdot_xyz,h_xyz) - (mu*r_xyz/np.linalg.norm(r_xyz)))/mu
@@ -333,7 +356,7 @@ def test1() :
     V0 = np.array([2.6679, 4.6210, 0])
     h0_xyz = np.cross(R0,V0)
     t = 3600
-    r_xyz, rdot_xyz, h_xyz= calc_rv_from_r0v0(mu,R0, V0, t)
+    r_xyz, rdot_xyz, h_xyz= calc_rv_from_r0v0(mu,R0, V0, t, 2.094432194122138)
     e0_xyz = calc_eccentricity_vector(R0, V0, h0_xyz, mu)
     e_xyz = calc_eccentricity_vector(r_xyz, rdot_xyz, h_xyz,mu)
     print (h0_xyz, h_xyz)
@@ -348,21 +371,20 @@ def test2():
     ro =  13999.691
     vro = -2.6678
     inv_a = 7.143e-05
-    
-    vro 
-
+    dt = 3600
+  
     f = partial(_F, mu, ro, vro, inv_a, dt)
-
-    # The first 4 parameter of Fprime are bounded, so we end up with fprime(x)
-    # According to the newton method, it is better if the first derivative of f is available
     fprime = partial (_Fprime, mu, ro, vro, inv_a)
-
     fprime2 = partial (_Fprime2, mu, ro, vro, inv_a)    
-    R0 = np.array([7000, -12124, 0])
-    V0 = np.array([2.6679, 4.6210, 0])
-    h0_xyz = np.cross(R0,V0)
 
+    X=250
+    dX=0.0001
+    print ((fprime(X+dX)-fprime(X))/dX)
+    print (fprime2(X))
 
+    
+    
+   
 
 
 def test3():
