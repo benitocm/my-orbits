@@ -18,6 +18,8 @@ from myorbit.util.timeut import EQX_B1950, EQX_J2000
 import myorbit.data_catalog as dc
 import myorbit.util.timeut as ut
 from myorbit.kepler.keplerian import KeplerianStateSolver
+from myorbit.util.general import my_isclose
+
 
 # The configuration file is shared between general config and logging config
 CONFIG_INI=Path(__file__).resolve().parents[1].joinpath('conf','config.ini')
@@ -29,7 +31,7 @@ logging.config.fileConfig(CONFIG_INI, disable_existing_loggers=False)
 from numpy.testing import assert_array_equal
 from math import isclose
 
-ABS=1e-12
+ABS=1e-08
 
 def test_elliptical():
     T0_MJD = 56197.0
@@ -43,7 +45,7 @@ def test_elliptical():
 def test_hiperbolical():
     solver = KeplerianStateSolver.make(tp_mjd=59311.54326000018, e=1.06388423, q=3.20746664)    
     T0_MJD = 56197.0
-    r_xyz, rdot_xyz, r, h_xyz, e_xyz, f = solver.calc_rv(T0_MJD)
+    r_xyz, rdot_xyz, r, h_xyz, e_xyz, f = solver.calc_rv(T0_MJD)    
     assert r_xyz == approx(np.array([-14.33841087853 , -16.519465616568, 0.]), abs=ABS )
     assert rdot_xyz == approx(np.array([0.005049176396, 0.002730451155, 0.]) , abs=ABS ) 
     assert r == approx (21.87424903347594,abs=ABS)

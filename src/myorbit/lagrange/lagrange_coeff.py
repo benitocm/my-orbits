@@ -10,6 +10,7 @@ import numpy as np
 from numpy import sin, cos, sqrt,cosh,sinh, sqrt
 from numpy.linalg import norm
 from scipy.optimize import newton
+from math import isclose
 
 # Local application imports
 from myorbit.util.general import pow
@@ -106,7 +107,7 @@ def solve_kepler_eq(mu, ro, vro, inv_a, dt):
     logger.info(f'Converged in {root.iterations} iterations and {root.function_calls} function_calls for X0={X0}, ro={ro}, vro={vro}, inv_a={inv_a}, dt={dt}  Not converged with root:{root}') 
     return x, root 
 
-def kepler_U_prv(mu, x , dt, ro, vro, inv_a, nMax=500):
+def solve_kepler_universal_laguerre (mu, x , dt, ro, vro, inv_a, abs_tol=1.0e-10, max_iters=500):
     """Compute the general anomaly by solving the universal Kepler
     function using the Newton's method 
 
@@ -124,7 +125,9 @@ def kepler_U_prv(mu, x , dt, ro, vro, inv_a, nMax=500):
         Initial radial velocity, i.e., when x=0 [AU]
     inv_a : float
         Reciprocal of the semimajor axis [1/AU]
-    nMax : int, optional
+    abs_tol : float, optional
+        The aboluse error tolerance
+    max_iters : int, optional
         Maximum allowable number of iterations, by default 500
 
     Returns
@@ -133,35 +136,23 @@ def kepler_U_prv(mu, x , dt, ro, vro, inv_a, nMax=500):
         The universal anomaly (x) [AU^.5]
     """
 
-    error = 1.0e-8
-    n = 0
     ratio = 1
     f = partial(_F, mu, ro, vro, inv_a, dt)
     fprime = partial (_Fprime, mu, ro, vro, inv_a)
     fprime2 = partial (_Fprime2, mu, ro, vro, inv_a)
     N=5
     X0 = x
-
-    while (abs(ratio) > error) and  (n <= nMax) :
-        n = n + 1
-        #z = x*x
-        #C = stump_C(inv_a*z)
-        #S = stump_S(inv_a*z)
-        #F = ro*vro/sqrt(mu)*z*C + (1 - inv_a*ro)*z*x*S + ro*x - sqrt(mu)*dt
-        #dFdx = ro*vro/sqrt(mu)*x*(1 - inv_a*z*S) + (1 - inv_a*ro)*z*C + ro
-        #ratio = F/dFdx
+    for _ in range(0,max_iters):
+        if isclose(abs(ratio), 0, rel_tol=0, abs_tol=abs_tol):
+            return x
         den1 = np.sqrt(np.abs(pow(N-1,2)*pow(fprime(x),2)-N*(N-1)*f(x)*fprime2(x)))
         if fprime(x)>0 :
             ratio = N*f(x)/(fprime(x)+den1)
         else:
             ratio = N*f(x)/(fprime(x)-den1)
-        #ratio = f(x)/fprime(x)
         x = x - ratio
-
-    if n > nMax :
-       logger.error(f'Universal Kepler equation not converged with root: {x}') 
-       raise NoConvergenceError(x, n, n, X0)
-    return x
+    logger.error(f'Universal Kepler equation not converged with Laguerre with root: {x} and error: {ratio}') 
+    raise NoConvergenceError(x, max_iters, max_iters, X0)
 
 LINEAR_GRID = list(np.linspace(2.5,4,16,endpoint=True))
 
@@ -206,7 +197,7 @@ def kepler_U(mu, dt, ro, vro, inv_a, nMax=500):
     """
     x = sqrt(mu)*abs(inv_a)*dt
     #return ku.kepler_U(mu, x, dt, ro, vro, inv_a, nMax)
-    x = kepler_U_prv(mu, x , dt, ro, vro, inv_a, nMax=500)
+    x = solve_kepler_universal_laguerre(mu, x , dt, ro, vro, inv_a, max_iters=500)
     return x
    
 def calc_f_g(mu, x, t, ro, inv_a):

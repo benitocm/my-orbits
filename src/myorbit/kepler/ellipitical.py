@@ -166,8 +166,8 @@ def _Fprime2(e, E):
     """
     return e*sin(E)    
 
-def solve_kepler_eq(e, M, E0):
-    """Solve the Kepler equation numerically
+def solve_kepler_eq_newton(e, M, E0):
+    """Solve the Kepler equation numerically using Newton method
 
     Parameters
     ----------
@@ -206,65 +206,45 @@ def solve_kepler_eq(e, M, E0):
     return x, root 
 
 
-#def kepler_U_prv(mu, x , dt, ro, vro, inv_a, nMax=500):
-
-def solve_kepler_eq2(e, M, E0, nMax=500):
+def solve_kepler_eq_laguerre(e, M, E0, abs_tol=1.0e-11, max_iters=500):
 
     """Compute the general anomaly by solving the universal Kepler
     function using the Newton's method 
 
-    Parameters
-    ----------
-    mu : float
-        Gravitational parameter [AU^3/days^2]
-    x : float
-        the universal anomaly after time t [km^0.5]
-    dt : float
-        time since x = 0 [days]
-    ro : np.array
-        Initial radial position, i.e., when x=0 [AU]
-    vro : np.array
-        Initial radial velocity, i.e., when x=0 [AU]
-    inv_a : float
-        Reciprocal of the semimajor axis [1/AU]
-    nMax : int, optional
-        Maximum allowable number of iterations, by default 500
+    e : float
+        Eccentricity
+    M : float
+        Mean anomaly [radians]
+    E0 : float
+        The initial Eccentric anomaly [radians]
+    abs_tol : float
+        The absolute error to tolerate
+    max_iters : int
+        the maximun number of iterations
 
     Returns
     -------
     float
-        The universal anomaly (x) [AU^.5]
+        The eccentric anomaly [radians]
     """
-
-    error = 1.0e-12
-    n = 0
     ratio = 1
     f = partial(_F, e , M)
     fprime = partial (_Fprime, e)
     fprime2= partial (_Fprime2, e)
     N=5
     x=E0
-     
-    while (abs(ratio) > error) and  (n <= nMax) :
-        n = n + 1
-        #z = x*x
-        #C = stump_C(inv_a*z)
-        #S = stump_S(inv_a*z)
-        #F = ro*vro/sqrt(mu)*z*C + (1 - inv_a*ro)*z*x*S + ro*x - sqrt(mu)*dt
-        #dFdx = ro*vro/sqrt(mu)*x*(1 - inv_a*z*S) + (1 - inv_a*ro)*z*C + ro
-        #ratio = F/dFdx
+
+    for _ in range(0,max_iters):
+        if isclose(abs(ratio), 0, rel_tol=0, abs_tol=abs_tol):
+            return x, None
         den1 = np.sqrt(np.abs(pow(N-1,2)*pow(fprime(x),2)-N*(N-1)*f(x)*fprime2(x)))
         if fprime(x)>0 :
             ratio = N*f(x)/(fprime(x)+den1)
         else:
             ratio = N*f(x)/(fprime(x)-den1)
-        #ratio = f(x)/fprime(x)
         x = x - ratio
-
-    if n > nMax :
-       logger.error(f'Universal Kepler equation not converged with root: {x}') 
-       raise NoConvergenceError(x, n, n, E0)
-    return x, None
+    logger.error(f'Elliptical Kepler equation not converged with Laguerre with root: {x} and error: {ratio}') 
+    raise NoConvergenceError(x, max_iters, max_iters, E0)
 
 
 def _calc_E0(e, M):
@@ -322,7 +302,10 @@ def calc_rv_for_elliptic_orbit (M, a, e, mu=mu_Sun):
     E0 =  _calc_E0(e, M) 
 
     # The Kepler equation is solved so Eccentric Anomaly to obtain Eccentric Anomaly
-    E, _ = solve_kepler_eq2(e, M, E0)
+    E, _ = solve_kepler_eq_laguerre(e, M, E0)
+    if not isclose(_F(e, M, E), 0.0, rel_tol=0, abs_tol=1e-09):
+        print ("*********** This is not a solutioin**********************")
+
 
     # From E, we obtain the True Anomaly as f
     cos_f = (cos(E) - e)/(1 - e*cos(E))

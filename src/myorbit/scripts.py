@@ -171,8 +171,7 @@ def test_universal():
                 #print (f'State Universal:  r_xyz:{r2_xyz}, rdot_xyz:{rdot2_xyz}')
                 e_xyz = calc_eccentricity_vector(r1_xyz, rdot1_xyz, h1_xyz)
                 f3 = angle_between_vectors(e_xyz, r1_xyz)
-                #print (f"f Universal: {f2}  f Kepler: {f1}   f Excentricity: {f3}  f Excentricity: {TWOPI-f3}")            
-                
+                #print (f"f Universal: {f2}  f Kepler: {f1}   f Excentricity: {f3}  f Excentricity: {TWOPI-f3}")                            
                 if not isclose(f1,f2,rel_tol=0, abs_tol=1e-07):
                     f_failed += 1
                 if not my_isclose(r1_xyz, r2_xyz, abs_tol=1e-07):
@@ -181,7 +180,6 @@ def test_universal():
                     v_failed += 1
             except NoConvergenceError :
                 nc_failed += 1
-                print ("kkkkkkkkkkkkkkkkkkkkkkkkkkkk")
         print (f'>>>>>>>>>>>>>>>>>>>>>>>>>>><> Object {obj.name} has r_failed:{r_failed} v_failed:{v_failed} f_failed:{f_failed} no_convergences: {nc_failed}')
     
 
