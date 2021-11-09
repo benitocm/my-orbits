@@ -15,11 +15,10 @@ import numpy as np
 from numpy import sin, cos, tan, arcsin, arccos, arctan2, arctan, sqrt,cosh,sinh,deg2rad,rad2deg, sqrt, arcsinh
 from toolz import pipe, compose, first, valmap
 
-from myastro.util import pow
-from math import  isclose, fmod
+from math import  isclose
 
-from myastro.log import get_logger
-logger = get_logger(__file__.split('/')[-1])
+logger = logging.getLogger(__name__)
+
 
 def r1 (sigma, rho_0, rho):
     """

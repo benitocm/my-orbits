@@ -13,8 +13,6 @@ from pathlib import Path
 
 
 # Local application imports
-import myorbit.planets as pl
-from myorbit import coord as co
 from myorbit.util.timeut import EQX_B1950, EQX_J2000
 import myorbit.data_catalog as dc
 from myorbit.ephemeris_input import EphemrisInput

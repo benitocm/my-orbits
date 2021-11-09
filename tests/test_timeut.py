@@ -244,6 +244,7 @@ def test_lct2ut():
     *lst, incr = gst2lst(*gst,lon)
     assert tuple(lst) == (1,18,approx(34,abs=1))
 
+"""
 
 def test_lct2ut_kk():    
     year, month, day, lon, is_dst =2000, 7, 5, 60, True
@@ -254,7 +255,7 @@ def test_lct2ut_kk():
     # Here we lost precision so we neded to compare in decimal hours
     assert hms2h(*ut[0:-1]) == approx(hms2h(7,0,0),abs=2)
     assert ut2lon_lct(*ut[0:-1],lon)
-
+"""
 
 def test_equat2horiz():
     None

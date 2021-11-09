@@ -25,17 +25,16 @@ from myorbit.planets import g_xyz_equat_sun_j2000
 from myorbit.kepler.keplerian import KeplerianStateSolver
 from myorbit.kepler.ellipitical import calc_rv_for_elliptic_orbit, calc_M
 from myorbit.lagrange.lagrange_coeff import calc_rv_from_r0v0
+from myorbit.util.constants import INV_C
 
 from pathlib import Path
-CONFIG_INI=Path(__file__).resolve().parents[3].joinpath('conf','config.ini')
+CONFIG_INI=Path(__file__).resolve().parents[2].joinpath('conf','config.ini')
 from configparser import ConfigParser
 cfg = ConfigParser()
 cfg.read(CONFIG_INI)
 H_ABS_TOL = float(cfg.get('general','angular_momentum_abs_tol'))
 E_ABS_TOL= float(cfg.get('general','eccentricity_abs_tol'))
 
-
-from myorbit.util.constants import *
 
 logger = logging.getLogger(__name__)
 
@@ -141,7 +140,7 @@ def calc_eph_twobody(body, eph):
 
     return ob.process_solution(result, np.identity(3), MTX_equatFecli, eph.eqx_name, False)
 
-def calc_eccentricity_vector(r_xyz, rdot_xyz, h_xyz):
+def calc_eccentricity_vector(r_xyz, rdot_xyz, h_xyz, mu=mu_Sun):
     """[summary]
 
     Parameters
@@ -159,7 +158,7 @@ def calc_eccentricity_vector(r_xyz, rdot_xyz, h_xyz):
         [description]
     """
 
-    return  (np.cross(rdot_xyz,h_xyz) - (GM*r_xyz/np.linalg.norm(r_xyz)))/GM
+    return  (np.cross(rdot_xyz,h_xyz) - (mu*r_xyz/np.linalg.norm(r_xyz)))/mu
 
 def calc_eph_twobody_universal(body, eph):
     """ Computes the ephemeris for a small body or comet using the Universal approach
