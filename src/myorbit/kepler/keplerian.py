@@ -18,36 +18,19 @@ from myorbit.kepler.ellipitical import calc_rv_for_elliptic_orbit, calc_M_for_bo
 from myorbit.kepler.near_parabolic import calc_rv_by_stumpff
 from myorbit.util.timeut import hemisphere, mjd2str_date
 from myorbit.util.general import  NoConvergenceError
-
-#from myorbit.util.constants import GM,
 from myorbit.util.general import mu_Sun
+
+from pathlib import Path
+CONFIG_INI=Path(__file__).resolve().parents[3].joinpath('conf','config.ini')
+from configparser import ConfigParser
+cfg = ConfigParser()
+cfg.read(CONFIG_INI)
+H_ABS_TOL = float(cfg.get('general','angular_momentum_abs_tol'))
 
 
 logger = logging.getLogger(__name__)
 
-def _next_E (e, m_anomaly, E) :
-    """Computes the eccentric anomaly for elliptical orbits. This 
-    function will be called by an iterative procedure. Used in the Newton
-    method (Pag 65 of Astronomy of  the personal computer book)
 
-    Parameters
-    ----------
-    e : float
-        Eccentricity of the orbit
-    m_anomaly : float
-        Mean anomaly [radians]
-    E : float
-        The eccentric anomaly (radians)
-
-    Returns
-    -------
-    float
-        The next value of the the eccentric anomaly [radians]
-    """
-
-    num = E - e * np.sin(E) - m_anomaly
-    den = 1 - e * np.cos(E)
-    return E - num/den
 
 #See https://www.giacomodebidda.com/posts/factory-method-and-abstract-factory-in-python/
 
@@ -81,12 +64,12 @@ class KeplerianStateSolver(ABC):
             # Comets have q (distance to perihelion but asteroids do not have)
             if q is None :
                 msg=f'A parabolic orbit cannot be calculated because q (distance to perihelion) is unknown'
-                print (msg)
+                #print (msg)
                 logger.error(msg)    
                 return None
             else :
                 msg=f'Doing parabolic orbit for tp={tp_mjd}, e={e}, q={q} [AU]'
-                print(msg)
+                #print(msg)
                 logger.info(msg)                  
                 return ParabolicalStateSolver(tp_mjd=tp_mjd, q=q, e=e)              
         elif 0<= e < 1 :
@@ -94,7 +77,7 @@ class KeplerianStateSolver(ABC):
                 a = q / (1-e) 
                 print (f'Semi-major axis (a) not provided, calculated with value {a} [AU]')
             msg=f'Doing elliptical orbit tp={tp_mjd}, a={a} [AU], e={e}'
-            print(msg)
+            #print(msg)
             logger.info(msg)            
             return EllipticalStateSolver(q=q, tp_mjd= tp_mjd, a=a, e=e, epoch_mjd = epoch, M_at_epoch=M_at_epoch)
         else :
@@ -103,7 +86,7 @@ class KeplerianStateSolver(ABC):
                 print (f'Semi-major axis (a) not provided, calculated with value {a} [AU]')
             msg = f'Doing hyperbolical orbit for tp={tp_mjd}, a={a} [AU], e={e}'
             logger.info(msg)
-            print(msg)
+            #print(msg)
             return HyperbolicalState(tp_mjd=tp_mjd, a=a, e=e)
 
     def calc_rv (self, t_mjd): 
@@ -129,7 +112,7 @@ class KeplerianStateSolver(ABC):
         e = np.linalg.norm(e_xyz)
         if not isclose(e, self.e, rel_tol=0, abs_tol=1e-05):
             msg=f'The modulus of the eccentricity vector {e} is not equal to the eccentrity {self.e}'
-            print (msg)
+            #print (msg)
             logger.warning(msg)
 
         return r_xyz, rdot_xyz, r, h_xyz, e_xyz, f
@@ -149,14 +132,13 @@ class KeplerianStateSolver(ABC):
 def check_velocity(v, rdot_xyz):
     if not isclose(v,np.linalg.norm(rdot_xyz),abs_tol=1e-12):
         msg=f'The velocity does not match,  v_energy={v}, modulus of rdot_xyz={np.linalg.norm(rdot_xyz)}'
-        print(msg)
+        #print(msg)
         logger.error(msg)
 
 def check_angular_momentum(h, r_xyz, rdot_xyz):
         h_rv = np.cross(r_xyz,rdot_xyz)
-        if not isclose(h_rv[2], h, abs_tol=1e-12):
+        if not isclose(h_rv[2], h, rel_tol=0, abs_tol=H_ABS_TOL):
             msg=f'The angular momentum does not match h_rv={h_rv[2]}, h_geometric={h}'
-            print(msg)
             logger.error(msg)
 
 
@@ -202,14 +184,16 @@ class EllipticalStateSolver(KeplerianStateSolver) :
                 print(msg)
                 logger.error(msg)
             return r_xyz, rdot_xyz, r, h_xyz, M, f, E
-        except NoConvergenceError as ex:
+        except NoConvergenceError as ex:            
             msg = f'NOT converged, for M={M} at time={mjd2str_date(t_mjd)} with root={ex.root}'
-            #print (msg)
             logger.error(msg)
-            msg = f'Trying with the near parabolical method with tp={self.tp_mjd}, q={self.q} AU, e={self.e} at time {mjd2str_date(t_mjd)} '
-            #print (msg)
-            logger.error(msg)
-            return  calc_rv_by_stumpff (self.tp_mjd, self.q, self.e, t_mjd)
+            if 0.99 < self.e < 1.0 :
+                msg = f'Trying with the near parabolical method with tp={self.tp_mjd}, q={self.q} AU, e={self.e} at time {mjd2str_date(t_mjd)} '
+                #print (msg)
+                logger.error(msg)
+                return calc_rv_by_stumpff (self.tp_mjd, self.q, self.e, t_mjd)
+            else :
+                raise ex
 
     def energy(self):
         return self.the_energy

@@ -74,7 +74,7 @@ def reduce_rad(rad, to_positive=False):
         The angle reduced [radians]
     """
     remainder = my_frac(rad/TWOPI)*TWOPI
-    if isclose(remainder, 0, abs_tol=1e-9):
+    if isclose(remainder, 0.0, abs_tol=1e-9):
         return 0.0
     if rad >= 0.0 :
         return remainder
@@ -101,33 +101,21 @@ def norm_dg(degrees):
     frac = my_frac(degrees)
     fix =  my_fix(degrees)
     new_alpha = (np.abs(fix) % 360) + frac    
-    if isclose(new_alpha, 0, abs_tol=1e-9):
+    if isclose(new_alpha, 0, rel_tol=0, abs_tol=1e-9):
         return 0.0
     elif degrees < 0 :
         return 360 - new_alpha        
     else :
         return new_alpha
 
-def norm_rad(rad):
-    """"Given a angle in radians (positve or negative), computes
-    the equivalent angle between [0,2*PI) radians. In case,
-    the angle is negative, the positive version is returned.
-
-    Parameters
-    ----------
-    rad : float
-        angle [radians]
-
-    Returns
-    -------
-    float 
-        The equivalent angle between [0,2*PI)
-    """
-    if 0 <= rad < TWOPI :
-        return rad
-    else :
-        return pipe(rad,rad2deg,norm_dg,deg2rad)
-
+def norm_rad(alpha):
+    cycles = my_fix(alpha/TWOPI)
+    new_alpha = alpha - (cycles*TWOPI)
+    if isclose(new_alpha, 0.0, rel_tol=0, abs_tol=1e-12) or isclose(new_alpha, TWOPI, rel_tol=0, abs_tol=1e-12):
+        return 0.0
+    if alpha < 0 :
+        new_alpha = TWOPI + new_alpha
+    return new_alpha
 
 # angles [-360, 360]
 # time   [0,24]

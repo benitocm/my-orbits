@@ -26,6 +26,15 @@ from myorbit.kepler.keplerian import KeplerianStateSolver
 from myorbit.kepler.ellipitical import calc_rv_for_elliptic_orbit, calc_M
 from myorbit.lagrange.lagrange_coeff import calc_rv_from_r0v0
 
+from pathlib import Path
+CONFIG_INI=Path(__file__).resolve().parents[3].joinpath('conf','config.ini')
+from configparser import ConfigParser
+cfg = ConfigParser()
+cfg.read(CONFIG_INI)
+H_ABS_TOL = float(cfg.get('general','angular_momentum_abs_tol'))
+E_ABS_TOL= float(cfg.get('general','eccentricity_abs_tol'))
+
+
 from myorbit.util.constants import *
 
 logger = logging.getLogger(__name__)
@@ -123,13 +132,11 @@ def calc_eph_twobody(body, eph):
         hs.append(h_xyz)
         es.append(e_xyz)
         result[clock_mjd] = (MTX_Teqx_PQR.dot(r_xyz), MTX_Teqx_PQR.dot(v_xyz))
-    if not all(np.allclose(h_xyz, hs[0], atol=1e-12) for h_xyz in hs):
+    if not all(np.allclose(h_xyz, hs[0], atol=H_ABS_TOL) for h_xyz in hs):
         msg = f'The angular momentum is NOT constant in the orbit'
-        print (msg)
         logger.error(msg)
-    if not all(np.allclose(e_xyz, es[0], atol=1e-12) for e_xyz in es):
+    if not all(np.allclose(e_xyz, es[0], atol=E_ABS_TOL) for e_xyz in es):
         msg = f'The eccentricy vector is NOT constant in the orbit'
-        print (msg)
         logger.error(msg)
 
     return ob.process_solution(result, np.identity(3), MTX_equatFecli, eph.eqx_name, False)

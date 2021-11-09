@@ -132,7 +132,7 @@ def calc_eph_minor_body_perturbed (body, eph , include_osc=False):
     initial_mjd = body.epoch_mjd  
     M = body.calc_M(initial_mjd)
     M0 = 0.1  
-    if ((M < M0) and (np.abs(1.0-body.e) < 0.1)) or isclose(body.e, 1.0,  abs_tol=1e-08) :
+    if ((M < M0) and ((1.0-body.e) < 0.1)) or isclose(body.e, 1.0,  abs_tol=1e-08) :
         logger.warning(f'Doing parabolic orbit for e: {body.e}')
         xyz0, vxyz0 = _parabolic_orbit(body.tp_mjd, body.q, body.e, initial_mjd, 50)
     elif body.e < 1.0 :

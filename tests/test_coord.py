@@ -8,12 +8,36 @@ from pytest import approx
 import numpy as np
 from numpy.random import default_rng
 
-from myorbit.kepler.keplerian import _next_E
 # Local application imports
 from myorbit.util.timeut import *
 from myorbit.coord import *
 
 import myorbit.orbits.orbutil as ob
+
+
+def _next_E (e, m_anomaly, E) :
+    """Computes the eccentric anomaly for elliptical orbits. This 
+    function will be called by an iterative procedure. Used in the Newton
+    method (Pag 65 of Astronomy of  the personal computer book)
+
+    Parameters
+    ----------
+    e : float
+        Eccentricity of the orbit
+    m_anomaly : float
+        Mean anomaly [radians]
+    E : float
+        The eccentric anomaly (radians)
+
+    Returns
+    -------
+    float
+        The next value of the the eccentric anomaly [radians]
+    """
+
+    num = E - e * np.sin(E) - m_anomaly
+    den = 1 - e * np.cos(E)
+    return E - num/den
 
 def test_polar_cartesian():
     xyzs = [np.array([0,0,0]),

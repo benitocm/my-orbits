@@ -6,7 +6,7 @@ and also in
     "Spacecraft Dynamics and Control" lectures of Mattew M. Peet
 """
 # Standard library imports
-from math import e, isclose
+from math import isclose
 import logging
 from functools import partial
 from math import isclose
@@ -21,6 +21,14 @@ from myorbit.util.timeut import  norm_rad
 from myorbit.util.general import pow, NoConvergenceError
 from myorbit.util.constants import TWOPI, PI
 from myorbit.util.general import mu_Sun
+
+from pathlib import Path
+CONFIG_INI=Path(__file__).resolve().parents[3].joinpath('conf','config.ini')
+from configparser import ConfigParser
+cfg = ConfigParser()
+cfg.read(CONFIG_INI)
+LAGUERRE_ABS_TOL = float(cfg.get('general','laguerre_abs_tol'))
+
 
 logger = logging.getLogger(__name__)
 
@@ -39,6 +47,8 @@ logger = logging.getLogger(__name__)
 
 # Asteroids follows elliptical orbits
 # Comets can follow elliptical, hyperbolic or parabolic orbits
+
+
 
 def calc_tp(M_at_epoch, a, epoch, mu=mu_Sun):
     """Compute the perihelion passage given Mean anomaly and the epoch
@@ -206,7 +216,7 @@ def solve_kepler_eq_newton(e, M, E0):
     return x, root 
 
 
-def solve_kepler_eq_laguerre(e, M, E0, abs_tol=1.0e-11, max_iters=500):
+def solve_kepler_eq_laguerre(e, M, E0, abs_tol=LAGUERRE_ABS_TOL, max_iters=500):
 
     """Compute the general anomaly by solving the universal Kepler
     function using the Newton's method 
@@ -234,8 +244,12 @@ def solve_kepler_eq_laguerre(e, M, E0, abs_tol=1.0e-11, max_iters=500):
     N=5
     x=E0
 
-    for _ in range(0,max_iters):
-        if isclose(abs(ratio), 0, rel_tol=0, abs_tol=abs_tol):
+    for i in range(0,max_iters):
+        if isclose(ratio, 0, rel_tol=0, abs_tol=abs_tol) :
+            # the _F is evaluated in the potential solution            
+            if not isclose(f(x), 0.0, rel_tol=0, abs_tol=abs_tol):
+                logger.error(f'Elliptical Kepler equation not solution found with Laguerre with E0:{E0},  root: {x}, error: {ratio}, F(x)={f(x)}') 
+                raise NoConvergenceError(x, i, i, E0)
             return x, None
         den1 = np.sqrt(np.abs(pow(N-1,2)*pow(fprime(x),2)-N*(N-1)*f(x)*fprime2(x)))
         if fprime(x)>0 :
@@ -303,9 +317,6 @@ def calc_rv_for_elliptic_orbit (M, a, e, mu=mu_Sun):
 
     # The Kepler equation is solved so Eccentric Anomaly to obtain Eccentric Anomaly
     E, _ = solve_kepler_eq_laguerre(e, M, E0)
-    if not isclose(_F(e, M, E), 0.0, rel_tol=0, abs_tol=1e-09):
-        print ("*********** This is not a solutioin**********************")
-
 
     # From E, we obtain the True Anomaly as f
     cos_f = (cos(E) - e)/(1 - e*cos(E))

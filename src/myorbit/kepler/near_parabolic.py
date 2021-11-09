@@ -14,6 +14,14 @@ from myorbit.util.general import pow, NoConvergenceError
 from myorbit.util.timeut import norm_rad
 from myorbit.util.general import mu_Sun
 
+from pathlib import Path
+CONFIG_INI=Path(__file__).resolve().parents[3].joinpath('conf','config.ini')
+from configparser import ConfigParser
+cfg = ConfigParser()
+cfg.read(CONFIG_INI)
+NEAR_PARABOLIC_ABS_TOL = float(cfg.get('general','near_parabollic_abs_tol'))
+
+
 logger = logging.getLogger(__name__)
 
 
@@ -23,7 +31,7 @@ logger = logging.getLogger(__name__)
 #       "Astronomy on the Personal Computer" by Montenbruck, Pfleger.
 # 
   
-def calc_stumpff_as_series(E_2, epsilon=1e-7, max_iters=100):    
+def calc_stumpff_as_series(E_2, epsilon=NEAR_PARABOLIC_ABS_TOL, max_iters=100):    
     """Computes the values for the Stumpff functions C1, C2, C3 summing up
     a infinite series
 
@@ -88,7 +96,7 @@ def calc_f(e, c1, c2, c3, u):
     tanf_div2 = np.sqrt((1+e)/(3*e*c3))*c2*u/c1
     return norm_rad(2*np.arctan(tanf_div2))
 
-def calc_rv_by_stumpff (tp_mjd, q, e, t_mjd, mu=mu_Sun, max_iters=30):
+def calc_rv_by_stumpff (tp_mjd, q, e, t_mjd, mu=mu_Sun, abs_tol=NEAR_PARABOLIC_ABS_TOL, max_iters=30):
     """Computes the position (r) and velocity (v) vectors for parabolic orbits using
     an iterative method (Newton's method) for solving the Kepler equation.
     (pg 66 of Astronomy on the Personal Computer book). The m_anomaly is
@@ -121,8 +129,6 @@ def calc_rv_by_stumpff (tp_mjd, q, e, t_mjd, mu=mu_Sun, max_iters=30):
     factor = 0.5 * e
     cte = sqrt(mu/(q*(1.0+e)))
     tau = sqrt(mu)*(t_mjd-tp_mjd)
-    EPSILON = 1e-7
-
     for _ in range(max_iters):
         E20 = E_2 
         A = 1.5 * sqrt(factor/(q*q*q))*tau
@@ -132,16 +138,13 @@ def calc_rv_by_stumpff (tp_mjd, q, e, t_mjd, mu=mu_Sun, max_iters=30):
         E_2 = u_2*(1.0-e)/factor 
         c1, c2, c3 = calc_stumpff_exact(E_2)
         factor = 3.0*e*c3 
-        if isclose(E_2, E20, abs_tol=EPSILON) :
+        if isclose(E_2, E20, rel_tol=0, abs_tol=abs_tol) :
             R = q * (1.0 + u_2*c2*e/factor)
             r_xyz = np.array([q*(1.0-u_2*c2/factor), q*sqrt((1.0+e)/factor)*u*c1,0.0])
             rdot_xyz = np.array([-cte*r_xyz[1]/R, cte*(r_xyz[0]/R+e),0.0])
             f = calc_f(e, c1, c2, c3, u)
             return r_xyz, rdot_xyz, np.linalg.norm(r_xyz), np.cross(r_xyz, rdot_xyz), -1000, f, -1000
-
-
-            
-    msg = f'Not converged for q:{q},  e:{e}, t:{t_mjd}, t0:{tp_mjd} after {max_iters} iterations'
+    msg = f'Near parabolical method not converged for q:{q},  e:{e}, t:{t_mjd}, t0:{tp_mjd}, error:{np.abs(E_2-E20)} after {max_iters} iterations'
     logger.error(msg)
     raise NoConvergenceError(None, max_iters,max_iters, None,message=msg)
     

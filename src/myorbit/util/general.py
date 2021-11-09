@@ -92,6 +92,46 @@ def my_isclose(v1, v2, rel_tol=0, abs_tol=1e-8):
             return False
     return True
 
+def calc_eccentricity_vector(r_xyz, rdot_xyz, h_xyz, mu=mu_Sun):
+    """[summary]
+
+    Parameters
+    ----------
+    r_xyz : [type]
+        [description]
+    rdot_xyz : [type]
+        [description]
+    h_xyz : [type]
+        [description]
+    mu : [type]
+        [description]
+
+    Returns
+    -------
+    [type]
+        [description]
+    """
+    return  (np.cross(rdot_xyz,h_xyz) - (mu*r_xyz/np.linalg.norm(r_xyz)))/mu
+
+def angle_between_vectors(v1, v2):
+    """[summary]
+
+    Parameters
+    ----------
+    v1 : [type]
+        [description]
+    v2 : [type]
+        [description]
+
+    Returns
+    -------
+    [type]
+        [description]
+    """
+    uv1 = v1 / np.linalg.norm(v1)
+    uv2 = v2 / np.linalg.norm(v2)
+    return  np.arccos(np.dot(uv1, uv2))        
+
 def frange(start, stop, step):
     """Generates a list of integer numbers in a closed interval according to
     a step

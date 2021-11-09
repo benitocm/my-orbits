@@ -581,29 +581,19 @@ class KeplerianOrbit:
             inv_a = np.abs(1.0-self.e)/self.q
             M = _calc_M_for_comet(t_mjd, self.tp_mjd, inv_a)
 
-        """
-        if ((M < M_min) and (np.abs(1.0-self.e) < 0.1)): #or isclose(self.e, 1.0, abs_tol=1e-04) :
-            #logger.warning(f'Doing parabolic orbit for e: {self.e} and M: {M}')
-            print(f'Doing parabolic orbit for e: {self.e} and M: {M}')
-            xyz, vxyz = _parabolic_orbit(self.tp_mjd, self.q, self.e, t_mjd, 50)
-        """
-
-        if isclose(np.abs(1.0-self.e), 0, abs_tol=1e-8) :
+        if isclose(self.e, 1.0, rel_tol=0, abs_tol=1e-8) :
             # The eccentricity is close to 1
-            logger.warning(f'Doing parabollic orbit for e: {self.e} and M: {M}')
-            print(f'Doing parabolic orbit for e: {self.e} and M: {M}')
-            #xyz, vxyz = _parabolic_orbit(self.tp_mjd, self.q, self.e, t_mjd, 50)
+            msg=f'Doing parabollic orbit for e: {self.e} and M: {M}'
+            logger.info(msg)
             xyz, vxyz, kk1, kk2, kk3, kk4 =  calc_rv_for_parabolic_orbit(t_mjd, self.tp_mjd, self.q)
         elif self.e < 1.0 :
             a = self.q/(1.0-self.e) if self.a is None else self.a
-            #ogger.warning(f'Doing elliptic orbit for e: {self.e} and M: {M}')
-            print(f'Doing elliptic orbit for e: {self.e} and M: {M}')
+            logger.info(f'Doing elliptic orbit for e: {self.e} and M: {M}')
             xyz, vxyz = _elliptic_orbit(M, a, self.e)
         else :
             logger.warning(f'Doing hyperbolic orbit for e: {self.e} and M: {M}')
             print(f'Doing hyperbolic orbit for e: {self.e} and M: {M}')
             a = self.q/np.abs(1.0-self.e) if self.a is None else self.a
-            #xyz, vxyz =  _hyperpolic_orbit (self.tp_mjd, _next_H, a, self.e, t_mjd)
 
         #print (xyz,vxyz,np.cross(xyz,vxyz))
 

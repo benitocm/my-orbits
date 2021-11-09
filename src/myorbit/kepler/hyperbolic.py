@@ -164,6 +164,11 @@ def solve_kepler_eq(e, M, H0):
     if not root.converged:        
        logger.error(f'Hiperbolical Kepler equation not converged with root:{root}') 
        raise NoConvergenceError(x, root.function_calls, root.iterations)
+    # Checking the solution 
+    if not isclose(f(x), 0.0, rel_tol=0, abs_tol=1e-08):
+        msg = f'Hiperbolical Kepler equation not solution found with Laguerre with root: {x} and error: {abs_tol}'
+        logger.error(msg) 
+        raise NoConvergenceError(x, root.iterations, root.iterations, H0)
     return x, root      
 
 def _calc_H0(e, M):
@@ -187,7 +192,6 @@ def _calc_H0(e, M):
         return np.abs(np.log(1.8+(2*M/e)))
     else :
         return -np.log(1.8-(2*M/e))
-    #return M
 
 def calc_f (H, e):
     """Computes the True anomaly given the Hyperbolic anomaly.
@@ -250,7 +254,7 @@ def calc_rv_for_hyperbolic_orbit (tp_mjd, a_neg, e, t_mjd, mu=mu_Sun):
     H0 =  _calc_H0(e, Mh) 
 
     # The Kepler equation is solved so Eccentric Anomaly is obtained
-    H, root = solve_kepler_eq(e, Mh, H0)
+    H, _ = solve_kepler_eq(e, Mh, H0)
 
     # From H, we obtain the True Anomaly as f
     f = calc_f(H,e)   
@@ -287,10 +291,9 @@ def calc_rv_for_hyperbolic_orbit (tp_mjd, a_neg, e, t_mjd, mu=mu_Sun):
     r1dot_xyz = np.array([-cte*sinh_H/rho, cte*fac*cosh_H/rho, 0.0])
 
     if not np.allclose(r_xyz, r1_xyz, atol=1e-012):
-        logger.warning (f'Differences between r1: {r} and r2:{r1}')   
-
+        logger.warning (f'Difference in r_xyz between the two alternatives ={np.linalg.norm(r_xyz- r1_xyz)}')   
     if not np.allclose(rdot_xyz, r1dot_xyz, atol=1e-012):
-        logger.warning (f'Differences between r1: {rdot_xyz} and r2:{r1dot_xyz}')
+        logger.warning (f'Difference in rdot_xyz between the two alternatives ={np.linalg.norm(rdot_xyz- r1dot_xyz)}')   
 
     return r_xyz, rdot_xyz, r, h_xyz, Mh, f, H
 

@@ -203,7 +203,7 @@ class CometElms:
         self.q = q
         # Semimajor axis of the orbit (asteroids only) so in the case of comet we tried to calculate it
         self.a = None
-        if isclose(1-e, 0, abs_tol=1e-6):
+        if isclose(1-e, 0, rel_tol=0.0,  abs_tol=1.e-6):
             self.a = None
         else :
             self.a = q / (1-e)

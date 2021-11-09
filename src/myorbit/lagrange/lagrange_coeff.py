@@ -11,12 +11,19 @@ from numpy import sin, cos, sqrt,cosh,sinh, sqrt
 from numpy.linalg import norm
 from scipy.optimize import newton
 from math import isclose
+from myorbit.util.constants import TWOPI
 
 # Local application imports
-from myorbit.util.general import pow
 from myorbit.util.general import pow, NoConvergenceError
 import  myorbit.lagrange.kepler_u as ku
 from myorbit.util.timeut import norm_rad    
+
+from pathlib import Path
+CONFIG_INI=Path(__file__).resolve().parents[3].joinpath('conf','config.ini')
+from configparser import ConfigParser
+cfg = ConfigParser()
+cfg.read(CONFIG_INI)
+LAGUERRE_ABS_TOL = float(cfg.get('general','laguerre_abs_tol'))
 
 logger = logging.getLogger(__name__)
 
@@ -64,50 +71,49 @@ def stump_S(z) :
     else :
         return 0.1666666666666666
 
-def _F(mu, ro, vro, inv_a, dt, x):
+def _F(mu, r0, vr0, inv_a, dt, x):
     z = x*x
     C = stump_C(inv_a*z)
     S = stump_S(inv_a*z)
-    return  (ro*vro/sqrt(mu))*z*C + (1 - inv_a*ro)*z*x*S + ro*x - sqrt(mu)*dt
+    return  (r0*vr0/sqrt(mu))*z*C + (1 - inv_a*r0)*z*x*S + r0*x - sqrt(mu)*dt
 
-def _Fprime(mu, ro, vro, inv_a, x):
+def _Fprime(mu, r0, vr0, inv_a, x):
     z = x*x
     C = stump_C(inv_a*z)
     S = stump_S(inv_a*z)
-    return (ro*vro/sqrt(mu))*x*(1 - inv_a*z*S) + (1 - inv_a*ro)*z*C + ro
+    return (r0*vr0/sqrt(mu))*x*(1 - inv_a*z*S) + (1 - inv_a*r0)*z*C + r0
 
 
-def _Fprime2(mu, ro, vro, inv_a, x):
+def _Fprime2(mu, r0, vr0, inv_a, x):
     z = x*x
     C = stump_C(inv_a*z)
     S = stump_S(inv_a*z)
-    return ro*vro/sqrt(mu) - (inv_a*ro*vro/sqrt(mu))*pow(x,2)*C + (1-inv_a*ro)*x-(1-inv_a*ro)*inv_a*pow(x,3)*S
+    return r0*vr0/sqrt(mu) - (inv_a*r0*vr0/sqrt(mu))*pow(x,2)*C + (1-inv_a*r0)*x-(1-inv_a*r0)*inv_a*pow(x,3)*S
 
     
 
-def solve_kepler_eq(mu, ro, vro, inv_a, dt):
+def solve_kepler_eq(X0, mu, r0, vr0, inv_a, dt):
     # The first 5 parameters of F are bounded, so we end up with f(x)
     # So f(x) = 0 is the equation that is desired to solve (the kepler equation)
     # for universal anomaly
-    f = partial(_F, mu, ro, vro, inv_a, dt)
+    f = partial(_F, mu, r0, vr0, inv_a, dt)
 
     # The first 4 parameter of Fprime are bounded, so we end up with fprime(x)
     # According to the newton method, it is better if the first derivative of f is available
-    fprime = partial (_Fprime, mu, ro, vro, inv_a)
+    fprime = partial (_Fprime, mu, r0, vr0, inv_a)
 
-    fprime2 = partial (_Fprime2, mu, ro, vro, inv_a)
+    # The first 4 parameter of Fprime2 are bounded, so we end up with fprime2(x)
+    # According to the newton method, it is better if the second derivative of f is available
+    fprime2 = partial (_Fprime2, mu, r0, vr0, inv_a)
 
-    # The inital value for the universal anomaly is calculated.
-    X0 = np.sqrt(mu)*np.abs(inv_a)*dt
-    # Kepler equation is solved
     x, root = newton(f, X0, fprime=fprime, fprime2=fprime2, tol=1e-09, maxiter=700,  full_output=True, disp=False)
     if not root.converged:        
        logger.error(f'Universal Kepler equation not converged with root:{root}') 
        raise NoConvergenceError(x, root.function_calls, root.iterations, X0)
-    logger.info(f'Converged in {root.iterations} iterations and {root.function_calls} function_calls for X0={X0}, ro={ro}, vro={vro}, inv_a={inv_a}, dt={dt}  Not converged with root:{root}') 
+    logger.info(f'Converged in {root.iterations} iterations and {root.function_calls} function_calls for X0={X0}, ro={r0}, vro={vr0}, inv_a={inv_a}, dt={dt}  Not converged with root:{root}') 
     return x, root 
 
-def solve_kepler_universal_laguerre (mu, x , dt, ro, vro, inv_a, abs_tol=1.0e-10, max_iters=500):
+def solve_kepler_universal_laguerre (mu, dt, r0, vr0, inv_a, abs_tol=LAGUERRE_ABS_TOL, max_iters=600):
     """Compute the general anomaly by solving the universal Kepler
     function using the Newton's method 
 
@@ -137,13 +143,16 @@ def solve_kepler_universal_laguerre (mu, x , dt, ro, vro, inv_a, abs_tol=1.0e-10
     """
 
     ratio = 1
-    f = partial(_F, mu, ro, vro, inv_a, dt)
-    fprime = partial (_Fprime, mu, ro, vro, inv_a)
-    fprime2 = partial (_Fprime2, mu, ro, vro, inv_a)
+    f = partial(_F, mu, r0, vr0, inv_a, dt)
+    fprime = partial (_Fprime, mu, r0, vr0, inv_a)
+    fprime2 = partial (_Fprime2, mu, r0, vr0, inv_a)
+
+    X0 = sqrt(mu)*abs(inv_a)*dt
+    x = X0
     N=5
-    X0 = x
-    for _ in range(0,max_iters):
-        if isclose(abs(ratio), 0, rel_tol=0, abs_tol=abs_tol):
+    for i in range(0,max_iters):
+        if isclose(ratio, 0, rel_tol=0, abs_tol=abs_tol):
+            logger.debug(f"The laguerre method in Universal variables converged with {i} iterations")
             return x
         den1 = np.sqrt(np.abs(pow(N-1,2)*pow(fprime(x),2)-N*(N-1)*f(x)*fprime2(x)))
         if fprime(x)>0 :
@@ -151,7 +160,7 @@ def solve_kepler_universal_laguerre (mu, x , dt, ro, vro, inv_a, abs_tol=1.0e-10
         else:
             ratio = N*f(x)/(fprime(x)-den1)
         x = x - ratio
-    logger.error(f'Universal Kepler equation not converged with Laguerre with root: {x} and error: {ratio}') 
+    logger.error(f'Universal Kepler equation not converged with Laguerre with X0: {X0}, root: {x} error: {ratio} F(x)={f(x)}') 
     raise NoConvergenceError(x, max_iters, max_iters, X0)
 
 LINEAR_GRID = list(np.linspace(2.5,4,16,endpoint=True))
@@ -195,9 +204,9 @@ def kepler_U(mu, dt, ro, vro, inv_a, nMax=500):
     logger.error(f"Number max iteration reached but not converged, ratios: {','.join(ratios)}")
     return result 
     """
-    x = sqrt(mu)*abs(inv_a)*dt
+    
     #return ku.kepler_U(mu, x, dt, ro, vro, inv_a, nMax)
-    x = solve_kepler_universal_laguerre(mu, x , dt, ro, vro, inv_a, max_iters=500)
+    x = solve_kepler_universal_laguerre(mu, dt, ro, vro, inv_a, max_iters=500)
     return x
    
 def calc_f_g(mu, x, t, ro, inv_a):
@@ -260,6 +269,29 @@ def calc_fdot_gdot(mu, x, r, ro, inv_a) :
     return fdot, gdot
 
 def calc_f(p, X, r0, sigma0, inv_a, f0):
+    """ Compute the true anomaly from Universal anomaly plus
+    another data according to the formalul in Conway pg. 40
+
+    Parameters
+    ----------
+    p : float 
+        Semi Latus Rectum [AU]
+    X : float
+        Universal Anomaly
+    r0 : float
+        Modulus of the initial radio vector
+    sigma0 : float
+        r0*vr0/sqrt(mu)
+    inv_a : float
+        Reciprocal of the semimajor axis 
+    f0 : float
+        Initial true anomaly [radians]
+
+    Returns
+    -------
+    float
+        True anomaly [radians]
+    """
     z = X/2
     alphaz_2 = inv_a*z*z
     C = stump_C(alphaz_2)
@@ -268,12 +300,18 @@ def calc_f(p, X, r0, sigma0, inv_a, f0):
     den1 = r0*(1-alphaz_2*C)
     den2 = sigma0*z*(1-alphaz_2*S)
     f_f0_div2 = np.arctan2(num, den1+den2)
-    return norm_rad(2*f_f0_div2+f0)
+    f = 2*f_f0_div2+f0
+    f = norm_rad(f)
+    if isclose(f, TWOPI, rel_tol=0, abs_tol=1e-5):
+        return 0.0 
+    else :
+        return f
+
 
 
 def calc_rv_from_r0v0(mu, r0_xyz, r0dot_xyz, dt, f0=None):
-    """This function computes the state vector (R,V) from the
-    initial state vector (R0,V0) and after the elapsed time.
+    """This function computes the state vector (r_xyz, rdot_xyz) from the
+    initial state vector (r0_xyz, r0dot_xyz) and after the elapsed time (dt)
     Internally uses the universal variables and the lagrange coefficients.
     Although according to the book, this is used in the perifocal plane 
     (i.e. the orbital plane), in the enckle method I used in the ecliptic 
@@ -281,24 +319,30 @@ def calc_rv_from_r0v0(mu, r0_xyz, r0dot_xyz, dt, f0=None):
     orbital plane does not change only it is rotated according to the
     Gauss angles.
 
+    To solve the universal variables equation, the Laguerre method is used. It works
+    very nice with a mininmun number of non-convergences. It is better than Netwon's method
+
     Parameters
     ----------
     mu : float
         Gravitational parameter [AU^3/days^2]
     r0_xyz : np.array
-        initial position vector at t0 [AU]
+        Initial position vector at t=0 [AU]
     r0dot_xyz : np.array
-        initial position vector at t0 [AU]
+        Initial position vector at t=0 [AU]
     dt : float
         Elapsed time from t=t0 [days]
+    f0 :  float, optional
+        Initial true anomaly (needed to compute the true anomaly at t=dt)
 
     Returns
     -------
     tuple
-        A tuple (r_xyz, rdot_xyz) where:
-            r_xyz: Final position vector after dt (AU)
-            rdot_xyz: Final position vector after dt (AU/days)
-
+        A tuple (r_xyz, rdot_xyz, h_xyz, f) where:
+            r_xyz: Final position vector at t=dt [AU]
+            rdot_xyz: Final position vector at t=dt [AU/days]
+            h_xyz: Angular momentum vector at t=dt 
+            f : True anommaly (if f0 is provided) after at t=dt
     """
     #The norm of the inital radio vector and velocity vector is calculated
     r0 = norm(r0_xyz)
@@ -308,13 +352,21 @@ def calc_rv_from_r0v0(mu, r0_xyz, r0dot_xyz, dt, f0=None):
     vr0 = np.dot(r0_xyz, r0dot_xyz)/r0
 
     # Reciprocal of the semimajor axis (from the energy equation):
+    #   alpha < 0 for Hyperbolic
+    #   alpha = 0 for Parabolic
+    #   alpha > 0 for Elliptical
+
     alpha = 2/r0 - pow(v0,2)/mu
+    # For some parabolic comets the calculated alpha is around 1e-15. Those
+    # values prevents the laguerre method from converging. In those cases,
+    # the alpha value is set to 0.0
+    if isclose(alpha, 0.0, rel_tol=0, abs_tol=1e-13):
+        logger.debug(f"Correcting the value of alpha from {alpha} to 0.0, the object should have e=1.0 (parabolic)")
+        alpha = 0.0
 
     # The kepler equation is solved to obtain the Universal anomaly
-    #X, _ = solve_kepler_eq(mu, r0, vr0, alpha, dt)    
-
-    X = kepler_U(mu, dt, r0, vr0, alpha)
-
+    X = solve_kepler_universal_laguerre (mu, dt, r0, vr0, alpha, abs_tol=1.0e-10, max_iters=600)
+                
     #Compute the f and g functions:
     f, g = calc_f_g(mu, X, dt, r0, alpha)
 
@@ -343,91 +395,10 @@ def calc_rv_from_r0v0(mu, r0_xyz, r0dot_xyz, dt, f0=None):
     else :
         f = None
     
-
     return r_xyz, rdot_xyz, h_xyz, f
 
-def calc_eccentricity_vector(r_xyz, rdot_xyz, h_xyz,mu):
-    return  (np.cross(rdot_xyz,h_xyz) - (mu*r_xyz/np.linalg.norm(r_xyz)))/mu
-
-def angle_between_vectors(v1, v2):
-    unit_vector_1 = v1 / np.linalg.norm(v1)
-    unit_vector_2 = v2 / np.linalg.norm(v2)
-    dot_product = np.dot(unit_vector_1, unit_vector_2)
-    return  np.arccos(dot_product)    
-
-
-def test1() :
-    mu = 398600
-    R0 = np.array([7000, -12124, 0])
-    V0 = np.array([2.6679, 4.6210, 0])
-    h0_xyz = np.cross(R0,V0)
-    t = 3600
-    r_xyz, rdot_xyz, h_xyz, f = calc_rv_from_r0v0(mu,R0, V0, t, 2.094432194122138)
-    e0_xyz = calc_eccentricity_vector(R0, V0, h0_xyz, mu)
-    e_xyz = calc_eccentricity_vector(r_xyz, rdot_xyz, h_xyz,mu)
-    print (h0_xyz, h_xyz)
-    print (np.linalg.norm(e0_xyz), np.linalg.norm(e_xyz))
-    print (f"True Anomaly at t0 :{angle_between_vectors(e0_xyz, R0)}")
-    print (f"True Anomaly at t :{angle_between_vectors(e_xyz, r_xyz)}")
-    print ("R: ",r_xyz)
-    print ("V: ",rdot_xyz)
-
-def test2():
-    mu = 398600
-    ro =  13999.691
-    vro = -2.6678
-    inv_a = 7.143e-05
-    dt = 3600
-  
-    f = partial(_F, mu, ro, vro, inv_a, dt)
-    fprime = partial (_Fprime, mu, ro, vro, inv_a)
-    fprime2 = partial (_Fprime2, mu, ro, vro, inv_a)    
-
-    X=250
-    dX=0.0001
-    print ((fprime(X+dX)-fprime(X))/dX)
-    print (fprime2(X))
-
-    
-    
-   
-
-
-def test3():
-    mu_sun__m3_s_2 = 1.32712440018e20
-    AU_m = 149597870700
-    seconds_in_day = 3600*24
-    mu_sun_AU3_days = mu_sun__m3_s_2 * seconds_in_day*seconds_in_day/(AU_m*AU_m*AU_m)
-    print (mu_sun_AU3_days)
-
-
-"""
-def test2():
-    #mu = (1 + 0.000000166)
-    #
-    #mu = mu_by_name["Sun"] + mu_by_name["Mercury"]
-    #mu_sun = ut.GM
-    #mu_mercury = 
-
-    R0 = np.array([0.1693419, -0.3559908, -0.2077172])
-    V0 = np.array([1.1837591, 0.6697770, 0.2349312]) * ut.k
-    
-    t0 = 6280.5
-    k = 0.017202098895
-    for t in range (0,100,10) :
-        #r,v = rv_from_r0v0(mu, R0, V0, t*k)
-        #r,v = rv_from_r0v0(mu, R0, V0, t)
-        print (f"{t0+t}  {r}   {norm(r)} ")
-"""
-    
-
 if __name__ == "__main__":
-    test1()   
-    #test4()
-    #test3()
-    #print (mu_Sun)
-    #print (mu_Mercury)
-    #print (ut.k_2)
+    None
 
 
  

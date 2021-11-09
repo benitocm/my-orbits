@@ -6,6 +6,7 @@ in other module
 # Standard library imports
 import logging
 from math import isclose
+from typing import ForwardRef
 
 # Third party imports
 import pandas as pd
@@ -21,7 +22,7 @@ from myorbit.planets import g_xyz_equat_sun_j2000
 from myorbit.kepler.keplerian import KeplerianStateSolver, ParabolicalStateSolver, EllipticalStateSolver
 from myorbit.kepler.ellipitical import calc_rv_for_elliptic_orbit, calc_M
 from myorbit.lagrange.lagrange_coeff import calc_rv_from_r0v0
-from myorbit.util.general import mu_Sun
+from myorbit.util.general import mu_Sun, calc_eccentricity_vector, angle_between_vectors
 
 from myorbit.util.constants import *
 
@@ -31,10 +32,6 @@ logger = logging.getLogger(__name__)
 def calc_tp(M0, a, epoch):
     deltaT = TWOPI*np.sqrt(pow(a,3)/GM)*(1-M0/TWOPI)
     return deltaT + epoch
-
-
-    """The orbit of all comets is studied around the perihelion [-days, +days]
-    """
 
 def calc_comets_that_no_converge(delta_days):
     """The orbit of all comets is studied around the perihelion [-days, +days]
@@ -57,18 +54,27 @@ def calc_comets_that_no_converge(delta_days):
             M_at_epoch = None
         # from 20 days before perihelion passage to 20 days after 20 days perihelion passage
         solver = KeplerianStateSolver.make(e=obj.e, a=obj.a, tp_mjd=obj.tp_mjd, q=obj.q, epoch=obj.epoch_mjd, M_at_epoch=M_at_epoch)
+        T0_MJD = obj.tp_mjd-delta_days
+        r0_xyz, rdot0_xyz, r0, h0_xyz, _ , f0 = solver.calc_rv(T0_MJD)    
         hs = []
-        try :
-            for clock_mjd in my_range(obj.tp_mjd-delta_days, obj.tp_mjd+delta_days, 2):        
-                r_xyz, rdot_xyz, r, h = solver.calc_rv(clock_mjd)
-                hs.append(h)
-            if not all(isclose(h, hs[0], abs_tol=1e-12) for h in hs):
-                msg = f'The angular momentum is NOT constant in the orbit'
-                print (msg)
-                logger.error(msg)
-        except NoConvergenceError :
-            print (f"===== Object {name} doest not converged at {clock_mjd} MJD")                              
-            not_converged.append(name)
+        es = []
+        for dt in range(2,delta_days*2,2):
+            clock_mjd = T0_MJD + dt 
+            try :
+                r_xyz, rdot_xyz, h_xyz, f = calc_rv_from_r0v0(mu_Sun, r0_xyz, rdot0_xyz, dt, f0)
+                hs.append(np.linalg.norm(h_xyz))
+                es.append(np.linalg.norm(calc_eccentricity_vector(r_xyz, rdot_xyz,h_xyz)))
+            except NoConvergenceError :
+                print (f"===== Object {name} doest not converged at {clock_mjd} MJD")                              
+                not_converged.append(name)
+        if not all(isclose(h, hs[0], abs_tol=1e-12) for h in hs):
+            msg = f'The angular momentum is NOT constant in the orbit'
+            print (msg)
+            logger.error(msg)
+        if not all(isclose(ec, es[0], abs_tol=1e-12) for ec in es):
+            msg = f'The eccentric vector  is NOT constant in the orbit'
+            print (msg)
+            logger.error(msg)
     print (not_converged)
     
 def test_all_bodies(delta_days):
@@ -125,69 +131,154 @@ def test_almost_parabolical(delta_days):
             msg = f'The angular momentum is NOT constant in the orbit'
             print (msg)
             logger.error(msg)
-        print (not_converged)
+        print (not_converged) 
 
-def calc_eccentricity_vector(r_xyz, rdot_xyz, h_xyz, mu=mu_Sun):
-    return  (np.cross(rdot_xyz,h_xyz) - (mu*r_xyz/np.linalg.norm(r_xyz)))/mu        
+def test_comets_convergence(delta_days=50):
+    df = dc.DF_COMETS
+    #FILTERED_OBJS = ['C/1680 V1', 'C/1843 D1 (Great March comet)', 'C/1882 R1-A (Great September comet)', 'C/1882 R1-B (Great September comet)', 'C/1882 R1-C (Great September comet)', 'C/1882 R1-D (Great September comet)', 'C/1963 R1 (Pereyra)', 'C/1965 S1-A (Ikeya-Seki)', 'C/1965 S1-B (Ikeya-Seki)', 'C/1967 C1 (Seki)', 'C/1970 K1 (White-Ortiz-Bolelli)', 'C/2004 V13 (SWAN)', 'C/2011 W3 (Lovejoy)', 'C/2013 G5 (Catalina)', 'C/2020 U5 (PANSTARRS)']
+    #FILTERED_OBJS=['C/1827 P1 (Pons)']
+    FILTERED_OBJS=[]
+    if len(FILTERED_OBJS) != 0:
+        df = df[df.Name.isin(FILTERED_OBJS)]
+    result = []
+    for idx, name in enumerate(df['Name']): 
+        obj = dc.read_comet_elms_for(name,df)
+        solver = KeplerianStateSolver.make(e=obj.e, a=obj.a, tp_mjd=obj.tp_mjd, q=obj.q, epoch=obj.epoch_mjd)
+        T0_MJD = obj.tp_mjd-delta_days
+        r0_xyz, rdot0_xyz, r0, h0_xyz, _ , f0 = solver.calc_rv(T0_MJD)            
+        kep_nc = uni_nc = 0
+        #print (f"Object {name} with e={obj.e}")
+        for dt in range(2,delta_days*2,2):
+            r1_xyz = rdot1_xyz = f1 = None
+            try :
+                r1_xyz, rdot1_xyz, r1, h1_xyz, _ , f1 = solver.calc_rv(T0_MJD+dt)    
+            except NoConvergenceError :
+                kep_nc += 1
+            r2_xyz = rdot2_xyz = f2 = None
+            try :                
+                r2_xyz, rdot2_xyz, h_xyz, f2 = calc_rv_from_r0v0(mu_Sun, r0_xyz, rdot0_xyz, dt, f0)
+            except NoConvergenceError :
+                uni_nc += 1
+                print (f"The noconvergence was with e: {obj.e}")
+        if (kep_nc >0)  or (uni_nc > 0) :
+            row = {}
+            row['name'] = name
+            row['e'] = obj.e
+            row['kep_nc'] = kep_nc
+            row['uni_nc'] = uni_nc
+            result.append(row)            
+    df_out = pd.DataFrame(result)
+    if len(df_out) > 0:
+        print (f'There are {len(df_out)} comets with convergence problems')
+        df_out = df_out.sort_values(by=['uni_nc','kep_nc'],ascending=False)
+        df_out.to_csv('convergence_problems.csv',index=False,header=True)
+    else :
+        print ("Undetected no-convergences")
 
-def angle_between_vectors(v1, v2):
-    unit_vector_1 = v1 / np.linalg.norm(v1)
-    unit_vector_2 = v2 / np.linalg.norm(v2)
-    dot_product = np.dot(unit_vector_1, unit_vector_2)
-    return  np.arccos(dot_product)    
+
+def test_universal_kepler(delta_days=50):
+    df = dc.DF_COMETS
+    FILTERED_OBJS=[]
+    #FILTERED_OBJS=['C/1933 D1 (Peltier)','C/1989 R1 (Helin-Roman)','C/2007 M5 (SOHO)','C/1988 M1 (SMM)','C/2008 C5 (SOHO)']    
+    #FILTERED_OBJS=['C/2007 M5 (SOHO)']    
+    # C/2000 O1 (Koehn)
+    # This one has high nonconverence with 500 C/2000 O1 (Koehn)
+    if len(FILTERED_OBJS) != 0:
+        df = df[df.Name.isin(FILTERED_OBJS)]
+    result = []
+    for idx, name in enumerate(df['Name']): 
+        obj = dc.read_comet_elms_for(name,df)
+        #print (name)
+        solver = KeplerianStateSolver.make(e=obj.e, a=obj.a, tp_mjd=obj.tp_mjd, q=obj.q, epoch=obj.epoch_mjd)
+        T0_MJD = obj.tp_mjd-delta_days
+        r0_xyz, rdot0_xyz, r0, h0_xyz, _ , f0 = solver.calc_rv(T0_MJD)        
+        r_failed = v_failed =  f_failed = nc_failed= 0 
+        for dt in range(2,delta_days*2,2):
+            try :
+                r1_xyz, rdot1_xyz, r1, h1_xyz, _ , f1 = solver.calc_rv(T0_MJD+dt)    
+                r2_xyz, rdot2_xyz, h2_xyz, f2 = calc_rv_from_r0v0(mu_Sun, r0_xyz, rdot0_xyz, dt, f0)
+                e_xyz = calc_eccentricity_vector(r1_xyz, rdot1_xyz, h1_xyz)
+                f3 = angle_between_vectors(e_xyz, r1_xyz)
+                if not isclose(f1,f2,rel_tol=0, abs_tol=1e-03):
+                    f_failed += 1
+                    msg=f"name: {obj.name},  TWOPI - f univ: {TWOPI-f2} f Universal: {f2}  f Kepler: {f1} e:{obj.e}  f Excentricity: {f3}  f Excentricity: {TWOPI-f3}"
+                    logger.error(msg)
+                if not my_isclose(r1_xyz, r2_xyz, abs_tol=1e-03):
+                    msg = f"name: {obj.name}, e: {obj.e}, diff_rxyz ={np.linalg.norm(r1_xyz- r2_xyz)}  diff_rdotxyz: {np.linalg.norm(rdot1_xyz- rdot2_xyz)}"
+                    logger.error(msg)
+                    r_failed += 1
+                if not my_isclose (rdot1_xyz, rdot2_xyz, abs_tol=1e-03) :
+                    v_failed += 1
+            except NoConvergenceError :
+                nc_failed += 1
+        if (f_failed >0)  or (r_failed > 0) or (v_failed > 0) or (nc_failed > 0):
+            row = {}
+            row['name'] = name
+            row['e'] = obj.e
+            row['f_failed'] = f_failed
+            row['r_failed'] = r_failed
+            row['v_failed'] = v_failed
+            row['nc_failed'] = nc_failed
+            result.append(row)            
+    df_out = pd.DataFrame(result)
+    if len(df_out) > 0:
+        print (f'There are {len(df_out)} comets with convergence problems')
+        #df_out = df_out.sort_values(by=['uni_nc','kep_nc'],ascending=False)
+        df_out.to_csv('kepler_universal.csv',index=False,header=True)
+        print (df_out)
+    else :
+        print ("No problems detected")
 
 
-def test_universal():
+    
 
-    # Elliptical comet
-    #C2012_CH17 = read_comet_elms_for("C/2012 CH17 (MOSS)", DF_COMETS)   
 
-    # Hyperbolic comet
-    #C_2020_J1_SONEAR = read_comet_elms_for("C/2020 J1 (SONEAR)", DF_COMETS) 
-
-    # Parabolic comet:
-    #C_2018_F3_Johnson = read_comet_elms_for("C/2018 F3 (Johnson)", DF_COMETS) 
-
-    # Near parabolic comet:
-    #C_2011_W3_Lovejoy = read_comet_elms_for("C/2011 W3 (Lovejoy)", DF_COMETS) 
-
-    #obj = dc.HALLEY_J2000    
-    OBJS=[dc.C_2020_J1_SONEAR, dc.C2012_CH17, dc.C_2018_F3_Johnson, dc.C_2011_W3_Lovejoy]
-    #OBJS=[dc.C2012_CH17, dc.C_2011_W3_Lovejoy]
-    #OBJS=[dc.C_2011_W3_Lovejoy]
-    delta_days = 5000
-    for obj in OBJS:     
-        #print (f"Testing {obj.name} ")
+    """
+    delta_days=50
+    df = dc.DF_COMETS
+    FILTERED_OBJS = []
+    if len(FILTERED_OBJS) != 0:
+        df = df[df.Name.isin(FILTERED_OBJS)]
+    for idx, name in enumerate(df['Name']): 
+        obj = dc.read_comet_elms_for(name,df)
         solver = KeplerianStateSolver.make(e=obj.e, a=obj.a, tp_mjd=obj.tp_mjd, q=obj.q, epoch=obj.epoch_mjd)
         T0_MJD = obj.tp_mjd-delta_days
         r0_xyz, rdot0_xyz, r0, h0_xyz, _ , f0 = solver.calc_rv(T0_MJD)    
         r_failed = v_failed =  f_failed = nc_failed= 0 
         for dt in range(2,delta_days*2,2):
             r1_xyz, rdot1_xyz, r1, h1_xyz, _ , f1 = solver.calc_rv(T0_MJD+dt)    
-            #print (f'Time: {T0_MJD+dt}  {mjd2str_date(T0_MJD+dt)}')
-            try :
+            #try :
                 r2_xyz, rdot2_xyz, h_xyz, f2 = calc_rv_from_r0v0(mu_Sun, r0_xyz, rdot0_xyz, dt, f0)
-                #print (f'State Keplerian:  r_xyz:{r1_xyz}, rdot_xyz:{rdot1_xyz}')
-                #print (f'State Universal:  r_xyz:{r2_xyz}, rdot_xyz:{rdot2_xyz}')
-                e_xyz = calc_eccentricity_vector(r1_xyz, rdot1_xyz, h1_xyz)
+                #e_xyz = calc_eccentricity_vector(r1_xyz, rdot1_xyz, h1_xyz)
                 f3 = angle_between_vectors(e_xyz, r1_xyz)
                 #print (f"f Universal: {f2}  f Kepler: {f1}   f Excentricity: {f3}  f Excentricity: {TWOPI-f3}")                            
-                if not isclose(f1,f2,rel_tol=0, abs_tol=1e-07):
-                    f_failed += 1
-                if not my_isclose(r1_xyz, r2_xyz, abs_tol=1e-07):
-                    r_failed += 1
-                if not my_isclose (rdot1_xyz, rdot2_xyz) :
+                #if not isclose(f1,f2,rel_tol=0, abs_tol=1e-07):
+                #    f_failed += 1
+                #if not my_isclose(r1_xyz, r2_xyz, abs_tol=1e-07):
+                #    r_failed += 1
+                #if not my_isclose (rdot1_xyz, rdot2_xyz) :
                     v_failed += 1
             except NoConvergenceError :
                 nc_failed += 1
         print (f'>>>>>>>>>>>>>>>>>>>>>>>>>>><> Object {obj.name} has r_failed:{r_failed} v_failed:{v_failed} f_failed:{f_failed} no_convergences: {nc_failed}')
     
-
+    """
 
 
 if __name__ == "__main__":
+    from pathlib import Path 
+    CONFIG_INI= Path(__file__).resolve().parents[2].joinpath('conf','config.ini')                                     
+    import logging.config                                                                                            
+    logging.config.fileConfig(CONFIG_INI, disable_existing_loggers=False)     
+     # For General configuration                                                                                       
+    
     #test_all_comets()
     #test_all_bodies()
     #test_almost_parabolical(50)
-    test_universal()
+    #test_universal()
+    #calc_comets_that_no_converge(20)
+    #import logging.config
+    #logging.config.fileConfig(CONFIG_INI, disable_existing_loggers=False)    
+    test_comets_convergence(5000)
+    #test_universal_kepler(2500)
     

@@ -2,15 +2,17 @@
 It is based on the book "Astronomy on the Personal Computer" by Montenbruck, Pfleger.
 """
 # Standard library imports
-from math import isclose, sqrt, isclose
+from math import isclose
 import logging
 
 # Third party imports
 import numpy as np
 from numpy import cos, sin, arctan
+from myorbit.util.constants import TWOPI
 
 # Local application imports
 from myorbit.util.general import pow, NoConvergenceError
+from myorbit.util.timeut import norm_rad
 #from myorbit.util.constants import *
 from myorbit.util.general import mu_Sun
 
@@ -92,7 +94,7 @@ def calc_rv_for_parabolic_orbit (tp_mjd, q, t_mjd, mu=mu_Sun):
     tan_fdiv2 = z - (1/z)
 
     # The true anomaly is calculated 
-    f = 2*arctan(tan_fdiv2)
+    f = norm_rad(2*arctan(tan_fdiv2))
 
     # The angular momentum is calculated just based on q parameter
     h = np.sqrt(mu*2*q)
