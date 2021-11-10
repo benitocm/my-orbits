@@ -302,10 +302,11 @@ def calc_f(p, X, r0, sigma0, inv_a, f0):
     f_f0_div2 = np.arctan2(num, den1+den2)
     f = 2*f_f0_div2+f0
     f = norm_rad(f)
-    if isclose(f, TWOPI, rel_tol=0, abs_tol=1e-5):
-        return 0.0 
-    else :
-        return f
+    return f
+    #if isclose(f, TWOPI, rel_tol=0, abs_tol=1e-5):
+    #    return 0.0 
+    #else :
+    #    return f
 
 
 
@@ -365,7 +366,7 @@ def calc_rv_from_r0v0(mu, r0_xyz, r0dot_xyz, dt, f0=None):
         alpha = 0.0
 
     # The kepler equation is solved to obtain the Universal anomaly
-    X = solve_kepler_universal_laguerre (mu, dt, r0, vr0, alpha, abs_tol=1.0e-10, max_iters=600)
+    X = solve_kepler_universal_laguerre (mu, dt, r0, vr0, alpha)
                 
     #Compute the f and g functions:
     f, g = calc_f_g(mu, X, dt, r0, alpha)

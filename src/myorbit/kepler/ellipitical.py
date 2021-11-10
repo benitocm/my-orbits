@@ -116,7 +116,7 @@ def calc_M (t_mjd, tp_mjd, a, mu=mu_Sun):
         The mean anomaly [radians]
     """    
 
-    M = np.sqrt(mu/pow(a,3)) * (t_mjd - tp_mjd)
+    M = (np.sqrt(mu/a)/a)*(t_mjd - tp_mjd)
     return norm_rad(M)
 
 def _F(e, M, E):

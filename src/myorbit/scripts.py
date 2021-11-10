@@ -141,6 +141,7 @@ def test_comets_convergence(delta_days=50):
     if len(FILTERED_OBJS) != 0:
         df = df[df.Name.isin(FILTERED_OBJS)]
     result = []
+    df = df.sort_values('e', ascending=False)
     for idx, name in enumerate(df['Name']): 
         obj = dc.read_comet_elms_for(name,df)
         solver = KeplerianStateSolver.make(e=obj.e, a=obj.a, tp_mjd=obj.tp_mjd, q=obj.q, epoch=obj.epoch_mjd)
@@ -185,6 +186,7 @@ def test_universal_kepler(delta_days=50):
     # This one has high nonconverence with 500 C/2000 O1 (Koehn)
     if len(FILTERED_OBJS) != 0:
         df = df[df.Name.isin(FILTERED_OBJS)]
+    df = df.sort_values('e', ascending=False)
     result = []
     for idx, name in enumerate(df['Name']): 
         obj = dc.read_comet_elms_for(name,df)
@@ -231,39 +233,33 @@ def test_universal_kepler(delta_days=50):
 
 
     
-
-
-    """
-    delta_days=50
-    df = dc.DF_COMETS
-    FILTERED_OBJS = []
-    if len(FILTERED_OBJS) != 0:
-        df = df[df.Name.isin(FILTERED_OBJS)]
-    for idx, name in enumerate(df['Name']): 
-        obj = dc.read_comet_elms_for(name,df)
-        solver = KeplerianStateSolver.make(e=obj.e, a=obj.a, tp_mjd=obj.tp_mjd, q=obj.q, epoch=obj.epoch_mjd)
-        T0_MJD = obj.tp_mjd-delta_days
-        r0_xyz, rdot0_xyz, r0, h0_xyz, _ , f0 = solver.calc_rv(T0_MJD)    
-        r_failed = v_failed =  f_failed = nc_failed= 0 
-        for dt in range(2,delta_days*2,2):
+def test_comet(name, delta_days=50):
+    obj = dc.read_comet_elms_for(name,dc.DF_COMETS)
+    solver = KeplerianStateSolver.make(e=obj.e, a=obj.a, tp_mjd=obj.tp_mjd, q=obj.q, epoch=obj.epoch_mjd)
+    T0_MJD = obj.tp_mjd-delta_days
+    #print (f"Time interval considered: from:{mjd2str_date(T0_MJD-delta_days)} to {mjd2str_date(T0_MJD+delta_days)}")
+    r0_xyz, rdot0_xyz, r0, h0_xyz, _ , f0 = solver.calc_rv(T0_MJD)  
+    max_diff_r = 0
+    for dt in range(2,delta_days*2,2):
+        try :
+            print (f"{mjd2str_date(T0_MJD+dt)}")
             r1_xyz, rdot1_xyz, r1, h1_xyz, _ , f1 = solver.calc_rv(T0_MJD+dt)    
-            #try :
-                r2_xyz, rdot2_xyz, h_xyz, f2 = calc_rv_from_r0v0(mu_Sun, r0_xyz, rdot0_xyz, dt, f0)
-                #e_xyz = calc_eccentricity_vector(r1_xyz, rdot1_xyz, h1_xyz)
-                f3 = angle_between_vectors(e_xyz, r1_xyz)
-                #print (f"f Universal: {f2}  f Kepler: {f1}   f Excentricity: {f3}  f Excentricity: {TWOPI-f3}")                            
-                #if not isclose(f1,f2,rel_tol=0, abs_tol=1e-07):
-                #    f_failed += 1
-                #if not my_isclose(r1_xyz, r2_xyz, abs_tol=1e-07):
-                #    r_failed += 1
-                #if not my_isclose (rdot1_xyz, rdot2_xyz) :
-                    v_failed += 1
-            except NoConvergenceError :
-                nc_failed += 1
-        print (f'>>>>>>>>>>>>>>>>>>>>>>>>>>><> Object {obj.name} has r_failed:{r_failed} v_failed:{v_failed} f_failed:{f_failed} no_convergences: {nc_failed}')
-    
-    """
+            r2_xyz, rdot2_xyz, h2_xyz, f2 = calc_rv_from_r0v0(mu_Sun, r0_xyz, rdot0_xyz, dt, f0)
+            if not isclose(f1,f2, rel_tol=0, abs_tol=1e-03):
+                msg=f"{mjd2str_date(T0_MJD+dt)} f Uni:{f2}  f Kepler:{f1} TWOPI-f:{TWOPI-f1}"
+                print (msg)
+                logger.error(msg)
+            if not my_isclose(r1_xyz, r2_xyz, abs_tol=1e-07):
+                diff_rxyz = np.linalg.norm(r1_xyz- r2_xyz)
+                if diff_rxyz > max_diff_r :
+                    max_diff_r = diff_rxyz
+                    print (f"Maximun distance at time:{mjd2str_date(T0_MJD+dt)}")
+                msg = f"{mjd2str_date(T0_MJD+dt)}, diff_rxyz ={np.linalg.norm(r1_xyz- r2_xyz)}  diff_rdotxyz: {np.linalg.norm(rdot1_xyz- rdot2_xyz)}"
+                print (msg)
+                logger.error(msg)
 
+        except NoConvergenceError :
+            nc_failed += 1
 
 if __name__ == "__main__":
     from pathlib import Path 
@@ -279,6 +275,8 @@ if __name__ == "__main__":
     #calc_comets_that_no_converge(20)
     #import logging.config
     #logging.config.fileConfig(CONFIG_INI, disable_existing_loggers=False)    
-    test_comets_convergence(5000)
-    #test_universal_kepler(2500)
+    #test_comets_convergence(5000)
+    #test_universal_kepler(5000)
+    test_comet('C/2007 M5 (SOHO)',2500)
+    
     

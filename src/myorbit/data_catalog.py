@@ -467,7 +467,9 @@ C_2018_F3_Johnson = read_comet_elms_for("C/2018 F3 (Johnson)", DF_COMETS)
 # Near parabolic comet:
 C_2011_W3_Lovejoy = read_comet_elms_for("C/2011 W3 (Lovejoy)", DF_COMETS) 
 
-
+# Parabolics with problem
+C_2007_M5_SOHO = read_comet_elms_for("C/2007 M5 (SOHO)", DF_COMETS) 
+C_2003_M3_SOHO = read_comet_elms_for("C/2003 M3 (SOHO)", DF_COMETS) 
 
 
 def change_date_format(date_str):

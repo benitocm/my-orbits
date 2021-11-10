@@ -567,11 +567,7 @@ def test_calc_eph_comet():
     eph1 = EphemrisInput(from_date="2020.10.15.0",
                         to_date = "2020.12.25.0",
                         step_dd_hh_hhh = "10 00.0",
-                        equinox_name = "J2000")
-    #print (dc.APOFIS)
-
-    #df = calc_eph_minor_body_perturbed(dc.APOFIS, eph)
-
+                      
     eph_halley = EphemrisInput(from_date="1985.11.15.0",
                         to_date = "1986.04.05.0",
                         step_dd_hh_hhh = "10 00.0",

@@ -16,7 +16,7 @@ from toolz import pipe
 # Local application imports
 import myorbit.planets as pl
 from myorbit import coord as co
-from myorbit.util.general import frange, NoConvergenceError, mu_Sun
+from myorbit.util.general import frange, mu_Sun
 from myorbit.util.timeut import CENTURY, JD_J2000, dg2h, h2hms, dg2dgms, T_given_mjd, mjd2jd, jd2str_date
 import myorbit.orbits.orbutil as ob
 import myorbit.data_catalog as dc
@@ -205,7 +205,6 @@ def calc_eph_twobody_universal(body, eph):
     es = []
     for clock_mjd in frange(eph.from_mjd+eph.step, eph.to_mjd, eph.step):  
         r_xyz, rdot_xyz, h_xyz, f = calc_rv_from_r0v0(mu_Sun, r0_xyz, r0dot_xyz, clock_mjd-eph.from_mjd)   
-        #h_xyz = np.cross(r_xyz, rdot_xyz)   
         e_xyz = calc_eccentricity_vector(r_xyz, rdot_xyz, h_xyz)
         hs.append(h_xyz)
         es.append(e_xyz)
@@ -386,5 +385,13 @@ def _g_rlb_equat_body_j2000(jd, body):
     return co.polarFcartesian(g_xyz_equat_body)
 
 if __name__ == "__main__":
-    None
+    from myorbit.util.timeut import EQX_J2000
+    obj=dc.C_2007_M5_SOHO
+    eph  = EphemrisInput(from_date="2007.04.01.0",
+                        to_date = "2007.09.01.0",
+                        step_dd_hh_hhh = "02 00.0",
+                        equinox_name = EQX_J2000)
+
+    df = calc_eph_twobody(obj, eph)   
+    print (df)
     

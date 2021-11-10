@@ -13,7 +13,6 @@ from myorbit.util.constants import TWOPI
 # Local application imports
 from myorbit.util.general import pow, NoConvergenceError
 from myorbit.util.timeut import norm_rad
-#from myorbit.util.constants import *
 from myorbit.util.general import mu_Sun
 
 logger = logging.getLogger(__name__)
@@ -51,9 +50,8 @@ def calc_Mp (q, t_mjd, tp_mjd, mu=mu_Sun):
     float
         The parabolic mean anomaly [radians]
     """    
-
-    M = np.sqrt(mu/(2*pow(q,3)))*(t_mjd-tp_mjd)
-    return M
+    return (np.sqrt(mu/(2*q))/q)*(t_mjd-tp_mjd)
+    
 
 
 def calc_rv_for_parabolic_orbit (tp_mjd, q, t_mjd, mu=mu_Sun):
@@ -64,7 +62,7 @@ def calc_rv_for_parabolic_orbit (tp_mjd, q, t_mjd, mu=mu_Sun):
     tp_mjd : float
         Time of perihelion passage [Modified Julian day]
     q : float
-        Distance to the perihelion
+        Distance to the perihelion [AU]
     t_mjd : float
         Time of the computation [Modified Julian day]
 
@@ -110,7 +108,7 @@ def calc_rv_for_parabolic_orbit (tp_mjd, q, t_mjd, mu=mu_Sun):
 
     # The velocity vector is also calculated applying the same equations
     # as for the other types of orbits.
-    rdot_xyz = np.array([-mu*np.sin(f)/h,mu*(1+np.cos(f))/h , 0.0]) 
+    rdot_xyz = np.array([-mu*np.sin(f)/h, mu*(1+np.cos(f))/h , 0.0]) 
 
     return r_xyz, rdot_xyz, r, h_xyz, Mp, f
 
