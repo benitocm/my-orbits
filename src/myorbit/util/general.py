@@ -6,10 +6,12 @@ from functools import wraps
 from itertools import tee
 from time import time
 from math import isclose
+
 # Third party imports
 import numpy as np
-from numpy import cos, sin
+from numpy import cos, sin, sqrt
 from toolz import valmap
+from numba import jit
 
 # Local application imports
 from myorbit.util.constants import *
@@ -57,7 +59,8 @@ class NoConvergenceError(Exception):
         self.function_calls = function_calls
         self.iterations = iterations
         super().__init__(self.message)
-
+        
+@jit(nopython=True)   
 def pow(x,n):
     """Computes x^n 
 
@@ -83,6 +86,34 @@ def pow(x,n):
         return x*x*x
     else :
         return np.power(x,n)
+    
+@jit(nopython=True)
+def calc_ratio(N, f_at_x, fprime_at_x, frime2_at_x):
+    """[summary]
+
+    Parameters
+    ----------
+    N : [type]
+        [description]
+    f_at_x : [type]
+        [description]
+    fprime_at_x : [type]
+        [description]
+    frime2_at_x : [type]
+        [description]
+
+    Returns
+    -------
+    [type]
+        [description]
+    """
+    den1 = sqrt(abs(pow(N-1,2)*pow(fprime_at_x,2)-N*(N-1)*f_at_x*frime2_at_x))
+    if fprime_at_x>0 :
+        ratio = N*f_at_x/(fprime_at_x+den1)
+    else:
+        ratio = N*f_at_x/(fprime_at_x-den1)                
+    return ratio
+    
 
 def my_isclose(v1, v2, rel_tol=0, abs_tol=1e-8):
     if v1.shape[0] != v2.shape[0] :

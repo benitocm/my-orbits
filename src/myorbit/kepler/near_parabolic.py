@@ -8,11 +8,13 @@ import logging
 # Third party imports
 import numpy as np
 from numpy import cos, sin, arctan
+from numba import jit
 
 # Local application imports
 from myorbit.util.general import pow, NoConvergenceError
 from myorbit.util.timeut import norm_rad
 from myorbit.util.general import mu_Sun
+
 
 from pathlib import Path
 CONFIG_INI=Path(__file__).resolve().parents[3].joinpath('conf','config.ini')
@@ -21,16 +23,15 @@ cfg = ConfigParser()
 cfg.read(CONFIG_INI)
 NEAR_PARABOLIC_ABS_TOL = float(cfg.get('general','near_parabollic_abs_tol'))
 
-
 logger = logging.getLogger(__name__)
 
 
 #
-# An alternative approach using Stumpff functions 
-# according to the book
+#   An alternative approach using Stumpff functions 
+#   according to the book
 #       "Astronomy on the Personal Computer" by Montenbruck, Pfleger.
-# 
   
+
 def calc_stumpff_as_series(E_2, epsilon=NEAR_PARABOLIC_ABS_TOL, max_iters=100):    
     """Computes the values for the Stumpff functions C1, C2, C3 summing up
     a infinite series
@@ -49,7 +50,6 @@ def calc_stumpff_as_series(E_2, epsilon=NEAR_PARABOLIC_ABS_TOL, max_iters=100):
     tuple (C1, C2, C3)
         The three stumpff values [float]
     """
-
     c1, c2, c3 = 0.0, 0.0, 0.0
     to_add = 1.0
     for n in range(1, max_iters):

@@ -187,7 +187,7 @@ class EllipticalStateSolver(KeplerianStateSolver) :
         except NoConvergenceError as ex:            
             msg = f'NOT converged, for M={M} at time={mjd2str_date(t_mjd)} with root={ex.root}'
             logger.error(msg)
-            if 0.99 < self.e < 1.0 :
+            if 0.999 < self.e < 1.0 :
                 msg = f'Trying with the near parabolical method with tp={self.tp_mjd}, q={self.q} AU, e={self.e} at time {mjd2str_date(t_mjd)} '
                 #print (msg)
                 logger.error(msg)

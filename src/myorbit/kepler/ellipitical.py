@@ -15,12 +15,12 @@ from math import isclose
 import numpy as np
 from numpy import sqrt, cos, sin
 from scipy.optimize import newton
+from numba import jit
 
 # Local application imports
 from myorbit.util.timeut import  norm_rad
-from myorbit.util.general import pow, NoConvergenceError
+from myorbit.util.general import pow, NoConvergenceError, mu_Sun, calc_ratio
 from myorbit.util.constants import TWOPI, PI
-from myorbit.util.general import mu_Sun
 
 from pathlib import Path
 CONFIG_INI=Path(__file__).resolve().parents[3].joinpath('conf','config.ini')
@@ -47,7 +47,6 @@ logger = logging.getLogger(__name__)
 
 # Asteroids follows elliptical orbits
 # Comets can follow elliptical, hyperbolic or parabolic orbits
-
 
 
 def calc_tp(M_at_epoch, a, epoch, mu=mu_Sun):
@@ -119,6 +118,7 @@ def calc_M (t_mjd, tp_mjd, a, mu=mu_Sun):
     M = (np.sqrt(mu/a)/a)*(t_mjd - tp_mjd)
     return norm_rad(M)
 
+@jit(nopython=True)
 def _F(e, M, E):
     """Definition of the Kepler equation. Normally, given a time t, the mean anomaly
     M is calculated and after that the Kepler equation is solved to obtain the Eccentric Anomaly.
@@ -140,6 +140,7 @@ def _F(e, M, E):
     """
     return E-e*sin(E)- M
 
+@jit(nopython=True)
 def _Fprime(e, E):
     """First derivative with respect to E of the Kepler equation. It is needed for
     solving the Kepler equation more efficently
@@ -158,6 +159,7 @@ def _Fprime(e, E):
     """
     return 1 - e*cos(E)
 
+@jit(nopython=True)
 def _Fprime2(e, E):
     """Second derivative with respect to E of the Kepler equation. It is needed for
     solving the Kepler equation more efficently
@@ -217,7 +219,6 @@ def solve_kepler_eq_newton(e, M, E0):
 
 
 def solve_kepler_eq_laguerre(e, M, E0, abs_tol=LAGUERRE_ABS_TOL, max_iters=500):
-
     """Compute the general anomaly by solving the universal Kepler
     function using the Newton's method 
 
@@ -251,15 +252,10 @@ def solve_kepler_eq_laguerre(e, M, E0, abs_tol=LAGUERRE_ABS_TOL, max_iters=500):
                 logger.error(f'Elliptical Kepler equation not solution found with Laguerre with E0:{E0},  root: {x}, error: {ratio}, F(x)={f(x)}') 
                 raise NoConvergenceError(x, i, i, E0)
             return x, None
-        den1 = np.sqrt(np.abs(pow(N-1,2)*pow(fprime(x),2)-N*(N-1)*f(x)*fprime2(x)))
-        if fprime(x)>0 :
-            ratio = N*f(x)/(fprime(x)+den1)
-        else:
-            ratio = N*f(x)/(fprime(x)-den1)
+        ratio = calc_ratio(N, f(x), fprime(x), fprime2(x))
         x = x - ratio
     logger.error(f'Elliptical Kepler equation not converged with Laguerre with root: {x} and error: {ratio}') 
     raise NoConvergenceError(x, max_iters, max_iters, E0)
-
 
 def _calc_E0(e, M):
     """According to Orbital Mechanics (Conway) pg 32, this is a better

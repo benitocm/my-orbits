@@ -16,6 +16,7 @@ from typing import MutableSequence
 import numpy as np
 from numpy import sqrt, cos, sin, cosh, sinh,  arctan, tanh
 from scipy.optimize import newton
+from numba import jit
 
 # Local application imports
 from myorbit.util.general import NoConvergenceError, mu_Sun
@@ -64,12 +65,10 @@ def calc_M (t_mjd, tp_mjd, a, mu=mu_Sun):
     float
         The mean anomaly [radians]
     """    
-
-    #M = np.sqrt(GM/np.power(a,3)) * (t_mjd - tp_mjd)
-
     M = sqrt(mu/a)*(t_mjd - tp_mjd)/a
     return M
 
+@jit(nopython=True)
 def _F(e, M, H):
     """Definition of the Kepler equation. Normally, given a time t, the mean anomaly
     M is calculated and after that the Kepler equation is solved to obtain the Eccentric Anomaly.
@@ -91,6 +90,7 @@ def _F(e, M, H):
     """
     return e*sinh(H)-H-M
 
+@jit(nopython=True)
 def _Fprime(e, H):
     """First derivative with respect to H of the Kepler equation. It is needed for
     solving the Kepler equation more efficently
@@ -109,6 +109,7 @@ def _Fprime(e, H):
     """
     return e*cosh(H)-1
 
+@jit(nopython=True)
 def _Fprime2(e, H):
     """Second derivative with respect to H of the Kepler equation. It is needed for
     solving the Kepler equation more efficently
@@ -192,7 +193,7 @@ def _calc_H0(e, M):
         return np.abs(np.log(1.8+(2*M/e)))
     else :
         return -np.log(1.8-(2*M/e))
-
+    
 def calc_f (H, e):
     """Computes the True anomaly given the Hyperbolic anomaly.
     The true anomaly must be between [0,2*PI)

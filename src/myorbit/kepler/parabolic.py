@@ -9,6 +9,7 @@ import logging
 import numpy as np
 from numpy import cos, sin, arctan
 from myorbit.util.constants import TWOPI
+from numba import jit
 
 # Local application imports
 from myorbit.util.general import pow, NoConvergenceError
@@ -52,7 +53,6 @@ def calc_Mp (q, t_mjd, tp_mjd, mu=mu_Sun):
     """    
     return (np.sqrt(mu/(2*q))/q)*(t_mjd-tp_mjd)
     
-
 
 def calc_rv_for_parabolic_orbit (tp_mjd, q, t_mjd, mu=mu_Sun):
     """[summary]
@@ -111,9 +111,6 @@ def calc_rv_for_parabolic_orbit (tp_mjd, q, t_mjd, mu=mu_Sun):
     rdot_xyz = np.array([-mu*np.sin(f)/h, mu*(1+np.cos(f))/h , 0.0]) 
 
     return r_xyz, rdot_xyz, r, h_xyz, Mp, f
-
-
-
 
 if __name__ == "__main__" :
     None    
