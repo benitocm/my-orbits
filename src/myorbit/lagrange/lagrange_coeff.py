@@ -1,5 +1,5 @@
 """ This module contains functions related to Lagrange Coefficients and universal variables
-The source comes from the book 'Orbital Mechanics for Engineering Students'
+The source comes mostly from the book 'Orbital Mechanics for Engineering Students'
 """
 # Standard library imports
 from functools import partial
@@ -10,12 +10,12 @@ import numpy as np
 from numpy import sin, cos, sqrt, cosh, sinh, sqrt, abs
 from numpy.linalg import norm
 from scipy.optimize import newton
-from math import isclose
 from numba import jit
 
 # Local application imports
 from myorbit.util.general import pow, NoConvergenceError, calc_ratio
-from myorbit.util.constants import TWOPI
+from myorbit.util.timeut import norm_rad  
+
 
 from pathlib import Path
 CONFIG_INI=Path(__file__).resolve().parents[3].joinpath('conf','config.ini')
@@ -27,15 +27,6 @@ LAGUERRE_ABS_TOL = float(cfg.get('general','laguerre_abs_tol'))
 
 logger = logging.getLogger(__name__)
 
-""" This module contains functions related to Lagrange Coefficients and universal variables
-The source comes from the book 'Orbital Mechanics for Engineering Students'
-"""
-# Standard library imports
-from myorbit.util.timeut import norm_rad  
-
-# Third party imports
-from numpy import sin, cos, sqrt,cosh,sinh, sqrt, abs
-from numba import jit
       
 @jit(nopython=True)   
 def stumpff_C(z) :
@@ -77,30 +68,30 @@ def stumpff_S(z) :
         sz = sqrt(z) 
         return (sz - sin(sz))/(z*sz)
     elif z < 0 :
-        sz = sqrt(-z) 
-        # According to the equation the denominator is pow(sqrt(z),3)
+        sz = sqrt(-z)         
         return  (sinh(sz) - sz)/(-z*sz)
     else :
         return 1/6    
 
 @jit(nopython=True)
 def _F(mu, r0, vr0, inv_a, dt, x):
-    """[summary]
+    """Compute the Kepler equation in Universal 
+    variables formulation
 
     Parameters
     ----------
-    mu : [type]
-        [description]
-    r0 : [type]
-        [description]
-    vr0 : [type]
-        [description]
-    inv_a : [type]
-        [description]
-    dt : [type]
-        [description]
-    x : [type]
-        [description]
+    mu : float
+         Gravitational parameter [AU^3/days^2][description]
+    r0 : float
+        Modulus of the initial radio vector
+    vr0 : float
+        Modulus of the initial radial velocity
+    inv_a : float
+        Reciprocal of the semimajor axis 
+    dt : float
+        The elapsed time from t=0 [days]
+    x : float
+        The universal anomaly
 
     Returns
     -------
@@ -114,25 +105,26 @@ def _F(mu, r0, vr0, inv_a, dt, x):
 
 @jit(nopython=True)
 def _Fprime(mu, r0, vr0, inv_a, x):
-    """[summary]
+    """Compute the first derivative of the Kepler equation in Universal 
+    variables formulation
 
     Parameters
     ----------
-    mu : [type]
-        [description]
-    r0 : [type]
-        [description]
-    vr0 : [type]
-        [description]
-    inv_a : [type]
-        [description]
-    x : [type]
-        [description]
+    mu : float
+         Gravitational parameter [AU^3/days^2][description]
+    r0 : float
+        Modulus of the initial radio vector
+    vr0 : float
+        Modulus of the initial radial velocity
+    inv_a : float
+        Reciprocal of the semimajor axis 
+    x : float
+        The universal anomaly
 
     Returns
     -------
-    [type]
-        [description]
+    float
+        The first derivative of the Kepler universal equation
     """
     z = x*x
     C = stumpff_C(inv_a*z)
@@ -141,25 +133,26 @@ def _Fprime(mu, r0, vr0, inv_a, x):
 
 @jit(nopython=True)
 def _Fprime2(mu, r0, vr0, inv_a, x):
-    """[summary]
+    """Compute the second derivative of the Kepler equation in Universal 
+    variables formulation
 
     Parameters
     ----------
-    mu : [type]
-        [description]
-    r0 : [type]
-        [description]
-    vr0 : [type]
-        [description]
-    inv_a : [type]
-        [description]
-    x : [type]
-        [description]
+    mu : float
+         Gravitational parameter [AU^3/days^2][description]
+    r0 : float
+        Modulus of the initial radio vector
+    vr0 : float
+        Modulus of the initial radial velocity
+    inv_a : float
+        Reciprocal of the semimajor axis 
+    x : float
+        The universal anomaly
 
     Returns
     -------
-    [type]
-        [description]
+    float
+        The second derivative of the Kepler universal equation
     """
     z = x*x
     C = stumpff_C(inv_a*z)
@@ -206,7 +199,7 @@ def calc_true_anomaly(p, X, r0, sigma0, inv_a, f0):
     return f
 
 @jit(nopython=True)  
-def calc_f_g(mu, x, t, r0, inv_a):
+def calc_f_g(mu, X, dt, r0, inv_a):
     """Calculates the Lagrange f and g coefficients starting from the initial
     position r0 (radio vector from the dinamical center (normally the Sun)
     and the elapsed time t)
@@ -215,9 +208,9 @@ def calc_f_g(mu, x, t, r0, inv_a):
     ----------
     mu : float
         Gravitational parameter [AU^3/days^2]
-    x : float
+    X : float
         the universal anomaly after time t [km^0.5]
-    t : float
+    dt : float
         the time elapsed since ro (days)
     r0 : np.array
         the radial position at time to [AU]
@@ -229,9 +222,9 @@ def calc_f_g(mu, x, t, r0, inv_a):
     tuple
         A tuple with f and g coefficients, i.e.,  (f,g)
     """
-    z = inv_a*pow(x,2)
-    f = 1 - pow(x,2)/r0*stumpff_C(z)    
-    g = t - 1/sqrt(mu)*pow(x,3)*stumpff_S(z)
+    z = inv_a*X*X
+    f = 1 - (X*X/r0)*stumpff_C(z)    
+    g = dt - (1/sqrt(mu))*X*X*X*stumpff_S(z)
     return f, g 
 
 @jit(nopython=True)  
@@ -259,39 +252,40 @@ def calc_fdot_gdot(mu, x, r, r0, inv_a) :
     """
     
     z = inv_a*pow(x,2)
-    #%...Equation 3.69c:
+    # Equation 3.69c in Orbital Mechanics for Engineering
     fdot = sqrt(mu)/r/r0*(z*stumpff_S(z) - 1)*x
-    # %...Equation 3.69d:
+    # Equation 3.69d  in Orbital Mechanics for Engineering
     gdot = 1 - pow(x,2)/r*stumpff_C(z)
     return fdot, gdot
 
-def solve_kepler_eq(X0, mu, r0, vr0, inv_a, dt):
-    """[summary]
+def solve_kepler_eq (mu, X0, r0, vr0, inv_a, dt):
+    """Compute the universal anomaly by solving the universal Kepler
+    function using Newton's  method. 
 
     Parameters
     ----------
-    X0 : [type]
-        [description]
-    mu : [type]
-        [description]
-    r0 : [type]
-        [description]
-    vr0 : [type]
-        [description]
-    inv_a : [type]
-        [description]
-    dt : [type]
-        [description]
+    mu : float
+        Gravitational parameter [AU^3/days^2]
+    X0 : float
+        The inital value for universal anomaly  [km^0.5]
+    r0 : np.array
+        Initial radial position, i.e., when X=0 [AU]
+    vr0 : np.array
+        Initial radial velocity, i.e., when X=0 [AU]
+    inv_a : float
+        Reciprocal of the semimajor axis [1/AU]
+    dt : float
+        time since X = 0 [days]        
 
     Returns
-    -------
-    [type]
-        [description]
-
+    -------        
+    tuple (X, iters, ratio, max_iters):
+        X: The universal anomaly (x) [AU^.5]
+        root: A structure retuned by the newton's method
     Raises
     ------
     NoConvergenceError
-        [description]
+        When the method to find the root of the Kepler's equation does not converge        
     """
     # The first 5 parameters of F are bounded, so we end up with f(x)
     # So f(x) = 0 is the equation that is desired to solve (the kepler equation)
@@ -306,108 +300,106 @@ def solve_kepler_eq(X0, mu, r0, vr0, inv_a, dt):
     # According to the newton method, it is better if the second derivative of f is available
     fprime2 = partial (_Fprime2, mu, r0, vr0, inv_a)
 
-    x, root = newton(f, X0, fprime=fprime, fprime2=fprime2, tol=1e-09, maxiter=700,  full_output=True, disp=False)
+    X, root = newton(f, X0, fprime=fprime, fprime2=fprime2, tol=1e-09, maxiter=700,  full_output=True, disp=False)
     if not root.converged:        
        logger.error(f'Universal Kepler equation not converged with root:{root}') 
        raise NoConvergenceError(x, root.function_calls, root.iterations, X0)
-    logger.info(f'Converged in {root.iterations} iterations and {root.function_calls} function_calls for X0={X0}, ro={r0}, vro={vr0}, inv_a={inv_a}, dt={dt}  Not converged with root:{root}') 
-    return x, root 
+    logger.debug(f'Converged in {root.iterations} iterations and {root.function_calls} function_calls for X0={X0}, ro={r0}, vro={vr0}, inv_a={inv_a}, dt={dt}  Not converged with root:{root}') 
+    #TODO to return adapt to what it is returned in the laguerre's method.
+    return X, root 
 
-
-def solve_kepler_universal_laguerre (mu, dt, r0, vr0, inv_a, abs_tol=LAGUERRE_ABS_TOL, max_iters=600):
-    """Compute the general anomaly by solving the universal Kepler
-    function using the Newton's method 
+@jit(nopython=True)  
+def solve_kepler_universal_laguerre (mu, X0, dt, r0, vr0, inv_a, abs_tol=LAGUERRE_ABS_TOL, max_iters=600):
+    """Compute the universal anomaly by solving the universal Kepler
+    function using the Laguerre method. This function has been modified
+    to be jited with Numba
 
     Parameters
     ----------
     mu : float
         Gravitational parameter [AU^3/days^2]
-    x : float
-        the universal anomaly after time t [km^0.5]
+    X0 : float
+        The inital value for universal anomaly  [km^0.5]
     dt : float
-        time since x = 0 [days]
-    ro : np.array
-        Initial radial position, i.e., when x=0 [AU]
-    vro : np.array
-        Initial radial velocity, i.e., when x=0 [AU]
+        time since X = 0 [days]
+    r0 : np.array
+        Initial radial position, i.e., when X=0 [AU]
+    vr0 : np.array
+        Initial radial velocity, i.e., when X=0 [AU]
     inv_a : float
         Reciprocal of the semimajor axis [1/AU]
     abs_tol : float, optional
-        The aboluse error tolerance
+        The absolute error tolerance
     max_iters : int, optional
-        Maximum allowable number of iterations, by default 500
+        Maximum allowable number of iterations, by default 600
 
     Returns
-    -------
-    float
-        The universal anomaly (x) [AU^.5]
+    -------        
+    tuple (X, iters, ratio, max_iters):
+        X: The universal anomaly (x) [AU^.5]
+        iters: The number of iterations when the algorithm converged. If there is no convergence, -1
+        ratio: The ratio obtained by the convergence algorithm
+        max_iters : Maximum number of iterations
     """
-
     ratio = 1
-    
-    # The first 5 parameters of F are bounded, so we end up with f(x)
-    # So f(x) = 0 is the equation that is desired to solve (the kepler equation)
-    # for universal anomaly
-    f = partial(_F, mu, r0, vr0, inv_a, dt)
-
-    # The first 4 parameter of Fprime are bounded, so we end up with fprime(x)
-    # According to the newton method, it is better if the first derivative of f is available
-    fprime = partial (_Fprime, mu, r0, vr0, inv_a)
-
-    # The first 4 parameter of Fprime2 are bounded, so we end up with fprime2(x)
-    # According to the newton method, it is better if the second derivative of f is available
-    fprime2 = partial (_Fprime2, mu, r0, vr0, inv_a)    
-
-    X0 = sqrt(mu)*abs(inv_a)*dt
     x = X0
     N=5
     for i in range(0,max_iters):
-        if isclose(ratio, 0, rel_tol=0, abs_tol=abs_tol):
-            logger.debug(f"The laguerre method in Universal variables converged with {i} iterations")
-            return x
-        ratio = calc_ratio(N, f(x), fprime(x), fprime2(x))
-        x = x - ratio
-    logger.error(f'Universal Kepler equation not converged with Laguerre with X0: {X0}, root: {x} error: {ratio} F(x)={f(x)}') 
-    raise NoConvergenceError(x, max_iters, max_iters, X0)
+        if np.abs(ratio) <= abs_tol :
+            return x, i, ratio, max_iters
+        else :
+            f_at_x = _F (mu, r0, vr0, inv_a, dt, x)
+            fprime_at_x = _Fprime( mu, r0, vr0, inv_a, x)
+            fprime2_at_x = _Fprime2( mu, r0, vr0, inv_a ,x)
+            ratio = calc_ratio(N, f_at_x, fprime_at_x, fprime2_at_x)
+            x = x - ratio
+    return x, -1, ratio, max_iters
 
 LINEAR_GRID = list(np.linspace(2.5,4,16,endpoint=True))
 
-
-
 def calc_rv_from_r0v0(mu, r0_xyz, r0dot_xyz, dt, f0=None):
-    """This function computes the state vector (r_xyz, rdot_xyz) from the
+    """Computes the state vector (r_xyz, rdot_xyz) from the
     initial state vector (r0_xyz, r0dot_xyz) and after the elapsed time (dt)
     Internally uses the universal variables and the lagrange coefficients.
     Although according to the book, this is used in the perifocal plane 
-    (i.e. the orbital plane), in the enckle method I used in the ecliptic 
-    plane and it works. It may be becasue at the end the the size of the
+    (i.e. the orbital plane), in the enckle method I have used it in the ecliptic 
+    plane and it works. It may be because, at the end, the the size of the
     orbital plane does not change only it is rotated according to the
     Gauss angles.
 
     To solve the universal variables equation, the Laguerre method is used. It works
-    very nice with a mininmun number of non-convergences. It is better than Netwon's method
+    very nice with a mininmun number of non-convergences. In my experience, it works
+    better than Netwon's method.
 
     Parameters
     ----------
     mu : float
         Gravitational parameter [AU^3/days^2]
-    r0_xyz : np.array
+    r0_xyz : np.array[3]
         Initial position vector at t=0 [AU]
-    r0dot_xyz : np.array
-        Initial position vector at t=0 [AU]
+    r0dot_xyz : np.array[3]
+        Initial velocity vector at t=0 [AU]
     dt : float
         Elapsed time from t=t0 [days]
     f0 :  float, optional
         Initial true anomaly (needed to compute the true anomaly at t=dt)
-
+        If its provided, the final true anomaly is calculated.
+        
     Returns
     -------
-    tuple
-        A tuple (r_xyz, rdot_xyz, h_xyz, f) where:
-            r_xyz: Final position vector at t=dt [AU]
-            rdot_xyz: Final position vector at t=dt [AU/days]
-            h_xyz: Angular momentum vector at t=dt 
-            f : True anommaly (if f0 is provided) after at t=dt
+    tuple (r_xyz, rdot_xyz, h_xyz, f) where:
+        r_xyz: is a np.array[3] that contains the final position, i.e., the radio vector (cartesian) from the Sun to the body 
+            with respect to the orbital plane (perifocal frame) [AU]
+        rdot_xyz: is a np.array[3] that contains the final velocity vector (cartesian) of the body
+            with respect to the orbital plane (perifocal frame) [AU/days]
+        h_xyz : h_xyz: Angular momentum vector at t=dt 
+        f : True anommaly [radians] (if f0 is provided) after at t=dt
+        
+    Raises
+    ------
+    NoConvergenceError
+        When the method to find the root of the Kepler's equation does not converge
+        
     """
     #The norm of the inital radio vector and velocity vector is calculated
     r0 = norm(r0_xyz)
@@ -425,13 +417,20 @@ def calc_rv_from_r0v0(mu, r0_xyz, r0dot_xyz, dt, f0=None):
     # For some parabolic comets the calculated alpha is around 1e-15. Those
     # values prevents the laguerre method from converging. In those cases,
     # the alpha value is set to 0.0
-    if isclose(alpha, 0.0, rel_tol=0, abs_tol=1e-13):
+    
+    if np.abs(alpha) < 1.e-13 :
         logger.debug(f"Correcting the value of alpha from {alpha} to 0.0, the object should have e=1.0 (parabolic)")
         alpha = 0.0
 
-    # The kepler equation is solved to obtain the Universal anomaly
-    X = solve_kepler_universal_laguerre (mu, dt, r0, vr0, alpha)
-                
+    X0 = sqrt(mu)*abs(alpha)*dt
+    # The kepler equation is solved to obtain the Universal anomaly        
+    X, iters, ratio, max_iters = solve_kepler_universal_laguerre (mu, X0, dt, r0, vr0, alpha)
+    if iters == -1 :
+        logger.error(f'Universal Kepler equation not converged with Laguerre with X0: {X0}, root: {X} error: {ratio}') 
+        raise NoConvergenceError(X, max_iters, max_iters, X0)
+    else :
+        logger.debug(f"The laguerre method in Universal variables converged with {iters} iterations")
+          
     #Compute the f and g functions:
     f, g = calc_f_g(mu, X, dt, r0, alpha)
 

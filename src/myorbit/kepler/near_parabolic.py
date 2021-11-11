@@ -1,4 +1,4 @@
-"""This module contains functions related to the calculation of Keplerian orbits.
+"""This module contains functions related to the calculation of near parabolic orbits.
 It is based on the book "Astronomy on the Personal Computer" by Montenbruck, Pfleger.
 """
 # Standard library imports
@@ -49,6 +49,12 @@ def calc_stumpff_as_series(E_2, epsilon=NEAR_PARABOLIC_ABS_TOL, max_iters=100):
     -------
     tuple (C1, C2, C3)
         The three stumpff values [float]
+        
+    Raises
+    ------
+    NoConvergenceError
+        When the series does not converge (this should no happen)
+        
     """
     c1, c2, c3 = 0.0, 0.0, 0.0
     to_add = 1.0
@@ -61,7 +67,6 @@ def calc_stumpff_as_series(E_2, epsilon=NEAR_PARABOLIC_ABS_TOL, max_iters=100):
         to_add *= -E_2
         if isclose(to_add, 0, abs_tol=epsilon) :
             return c1, c2, c3
-    
     logger.error(f"Not converged after {n} iterations")
     raise NoConvergenceError((c1,c2,c3), n, n, "Stumpff functions does not converge")
 
@@ -69,16 +74,10 @@ def calc_stumpff_exact(E_2):
     """Computes the values for the Stumpff functions C1, C2, C3 according to
     its definition
 
-    I have seen that for value of E=
-
     Parameters
     ----------
     E_2 : float
         Square of eccentric anomaly [radians^2]
-    epsilon : float, optional
-        Relative accuracy, by default 1e-7
-    max_iters : int, optional
-        Maximum number of iterations, by default 100
 
     Returns
     -------
@@ -93,6 +92,26 @@ def calc_stumpff_exact(E_2):
     return c1, c2, c3
 
 def calc_f(e, c1, c2, c3, u):
+    """Compute the true anomaly
+
+    Parameters
+    ----------
+    e : float
+        Eccentricity
+    c1 : float
+        [description]
+    c2 : float
+        [description]
+    c3 : float
+        [description]
+    u : float
+        [description]
+
+    Returns
+    -------
+    float
+        The mean anomlay [radians]
+    """
     tanf_div2 = np.sqrt((1+e)/(3*e*c3))*c2*u/c1
     return norm_rad(2*np.arctan(tanf_div2))
 
@@ -110,8 +129,12 @@ def calc_rv_by_stumpff (tp_mjd, q, e, t_mjd, mu=mu_Sun, abs_tol=NEAR_PARABOLIC_A
         Perihelion distance [AU]
     e : float
         Eccentricity of the orbit
-    t : float
+    t_mjd : float
         Time of the computation in Julian centuries since J2000
+    mu : float, optional
+        Gravitational parameter [AU^3/days^2]                
+    abs_tol : float, optional
+        Absolute tolerance for the root calculation
     max_iters : int, optional
         Maximum number of iterations, by default 15
 
@@ -124,6 +147,11 @@ def calc_rv_by_stumpff (tp_mjd, q, e, t_mjd, mu=mu_Sun, abs_tol=NEAR_PARABOLIC_A
                 with respect to the orbital plane (perifocal frame) [AU/days]
             r : Modulus of the radio vector of the object (r_xyz) but calculated following the polar equation [AU]    
             h_xyz : Angular momentum (deduced from geometic properties)
+    Raises
+    ------
+    NoConvergenceError
+        When the method to find the root of the Kepler's equation does not converge
+            
     """
     E_2 = 0.0    
     factor = 0.5 * e

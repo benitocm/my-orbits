@@ -10,7 +10,6 @@ from abc import ABC, abstractmethod
 import numpy as np
 from numpy import sqrt
 
-
 # Local application imports
 from myorbit.kepler.parabolic import calc_rv_for_parabolic_orbit
 from myorbit.kepler.hyperbolic import calc_rv_for_hyperbolic_orbit
@@ -29,8 +28,6 @@ H_ABS_TOL = float(cfg.get('general','angular_momentum_abs_tol'))
 
 
 logger = logging.getLogger(__name__)
-
-
 
 #See https://www.giacomodebidda.com/posts/factory-method-and-abstract-factory-in-python/
 
@@ -64,12 +61,10 @@ class KeplerianStateSolver(ABC):
             # Comets have q (distance to perihelion but asteroids do not have)
             if q is None :
                 msg=f'A parabolic orbit cannot be calculated because q (distance to perihelion) is unknown'
-                #print (msg)
                 logger.error(msg)    
                 return None
             else :
                 msg=f'Doing parabolic orbit for tp={tp_mjd}, e={e}, q={q} [AU]'
-                #print(msg)
                 logger.info(msg)                  
                 return ParabolicalStateSolver(tp_mjd=tp_mjd, q=q, e=e)              
         elif 0<= e < 1 :
@@ -77,13 +72,12 @@ class KeplerianStateSolver(ABC):
                 a = q / (1-e) 
                 print (f'Semi-major axis (a) not provided, calculated with value {a} [AU]')
             msg=f'Doing elliptical orbit tp={tp_mjd}, a={a} [AU], e={e}'
-            #print(msg)
             logger.info(msg)            
             return EllipticalStateSolver(q=q, tp_mjd= tp_mjd, a=a, e=e, epoch_mjd = epoch, M_at_epoch=M_at_epoch)
         else :
             if a is None:
                 a = q / (1-e) 
-                print (f'Semi-major axis (a) not provided, calculated with value {a} [AU]')
+                logger.info (f'Semi-major axis (a) not provided, calculated with value {a} [AU]')
             msg = f'Doing hyperbolical orbit for tp={tp_mjd}, a={a} [AU], e={e}'
             logger.info(msg)
             #print(msg)
@@ -101,8 +95,13 @@ class KeplerianStateSolver(ABC):
 
         Returns
         -------
-        Tuple 
-            (r_xyz, rdot_xyz, r, h) where
+        tuple 
+            (r_xyz, rdot_xyz, r, h_xyz, f) 
+            
+        Raises
+        ------
+        NoConvergenceError
+            When the method to find the root of the Kepler's equation does not converge            
 
         """        
         r_xyz, rdot_xyz, r, h_xyz, _, f, *others = self.calc_rv_basic (t_mjd)    
@@ -130,21 +129,58 @@ class KeplerianStateSolver(ABC):
         pass
                 
 def check_velocity(v, rdot_xyz):
+    """[summary]
+
+    Parameters
+    ----------
+    v : [type]
+        [description]
+    rdot_xyz : [type]
+        [description]
+    """
     if not isclose(v,np.linalg.norm(rdot_xyz),abs_tol=1e-12):
         msg=f'The velocity does not match,  v_energy={v}, modulus of rdot_xyz={np.linalg.norm(rdot_xyz)}'
         #print(msg)
         logger.error(msg)
 
 def check_angular_momentum(h, r_xyz, rdot_xyz):
-        h_rv = np.cross(r_xyz,rdot_xyz)
-        if not isclose(h_rv[2], h, rel_tol=0, abs_tol=H_ABS_TOL):
-            msg=f'The angular momentum does not match h_rv={h_rv[2]}, h_geometric={h}'
-            logger.error(msg)
+    """[summary]
+
+    Parameters
+    ----------
+    h : [type]
+        [description]
+    r_xyz : [type]
+        [description]
+    rdot_xyz : [type]
+        [description]
+    """
+    h_rv = np.cross(r_xyz,rdot_xyz)
+    if not isclose(h_rv[2], h, rel_tol=0, abs_tol=H_ABS_TOL):
+        msg=f'The angular momentum does not match h_rv={h_rv[2]}, h_geometric={h}'
+        logger.error(msg)
 
 
 def calc_eccentricity_vector(r_xyz, rdot_xyz, h_xyz, mu=mu_Sun):
-    return  (np.cross(rdot_xyz,h_xyz) - (mu*r_xyz/np.linalg.norm(r_xyz)))/mu
+    """[summary]
 
+    Parameters
+    ----------
+    r_xyz : [type]
+        [description]
+    rdot_xyz : [type]
+        [description]
+    h_xyz : [type]
+        [description]
+    mu : [type], optional
+        [description], by default mu_Sun
+
+    Returns
+    -------
+    [type]
+        [description]
+    """
+    return  (np.cross(rdot_xyz,h_xyz) - (mu*r_xyz/np.linalg.norm(r_xyz)))/mu
 
 
 # There are a set of comets with an eccentricity like 0.999986, 0.999914 (elliptical orbits)

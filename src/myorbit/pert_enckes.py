@@ -11,6 +11,7 @@ from numpy.linalg import norm
 import toolz as tz
 # Using Newton-Ramson method
 from scipy.integrate import solve_ivp    
+from time import time
 
 from myorbit import coord as co
 
@@ -27,6 +28,8 @@ from myorbit.ephemeris_input import EphemrisInput
 from myorbit.util.constants import *
 
 logger = logging.getLogger(__name__)
+
+from numba import jit
 
 
 def f1(vector):
@@ -69,7 +72,7 @@ def my_dfdt(t, y, r0, v0, t0):
     delta_acc = (-mu_Sun/pow(norm(r_osc),3))*(delta_r- F*r_pert)+calc_perturbed_accelaration(t, r_pert)    
     return np.concatenate((y[3:6],delta_acc))
 
-
+@measure
 def apply_enckes(eph, t_range, r0, v0):
     """
     This is a utility function needed because the integration needs to be done in two intervals so this function
@@ -94,8 +97,11 @@ def apply_enckes(eph, t_range, r0, v0):
     clock_mjd = t_range[0]
     for idx, step in enumerate(steps) :
         #if (idx % 50) == 0 :
-        #    print (f"Iteration: {idx},  Date : {jd2str_date(tc.mjd2jd(clock_mjd))}")        
+        #    print (f"Iteration: {idx},  Date : {jd2str_date(tc.mjd2jd(clock_mjd))}")              
+        #t1 = int(round(time() * 1000))
         sol = solve_ivp(my_dfdt, (clock_mjd, clock_mjd+step), np.zeros(6), args=(r0, v0, clock_mjd) , rtol = 1e-12)  
+        #t2 = int(round(time() * 1000))
+        #print(f"solve_ivp elapsed time : {t2-t1} ms")
         assert sol.success, "Integration was not OK!"
         r_osc, v_osc, *other = calc_rv_from_r0v0 (mu_Sun, r0, v0, step)
         # The last integration value is taken

@@ -31,6 +31,9 @@ logging.config.fileConfig(CONFIG_INI, disable_existing_loggers=False)
 
 from common import check_df, TEST_DATA_PATH
 
+# Because ENCKES calcultations takes a lot of time, this flag variable is 
+# to control when to run them
+TEST_ENCKES = False
 
 # The predictions for this one are very bad (1 minute precision)
 def test_C_2007_M5_SOHO():  
@@ -56,8 +59,9 @@ def test_C_2007_M5_SOHO():
     dfc = calc_eph_by_cowells(obj, eph)   
     check_df(dfc, exp_df, EXP_DIFF_COWELLS)     
 
-    #dfc = calc_eph_by_enckes(obj, eph)   
-    #check_df(dfc, exp_df, EXP_DIFF_ENKES)     
+    if TEST_ENCKES:
+        dfc = calc_eph_by_enckes(obj, eph)   
+        check_df(dfc, exp_df, EXP_DIFF_ENKES)     
 
 
 def test_C_2003_M3_SOHO():  
@@ -66,6 +70,7 @@ def test_C_2003_M3_SOHO():
     EXP_DIFF = 74286.96
     EXP_DIFF_UNI = 74285.66
     EXP_DIFF_COWELLS = 38009.9
+    EXP_DIFF_ENKES = 38009.9
     
 
     obj= dc.C_2003_M3_SOHO
@@ -82,3 +87,8 @@ def test_C_2003_M3_SOHO():
 
     dfc = calc_eph_by_cowells(obj, eph)   
     check_df(dfc, exp_df, EXP_DIFF_COWELLS) 
+    
+    if TEST_ENCKES:
+        dfc = calc_eph_by_enckes(obj, eph)   
+        check_df(dfc, exp_df, EXP_DIFF_ENKES)     
+

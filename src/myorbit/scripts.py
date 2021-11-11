@@ -24,6 +24,14 @@ from myorbit.kepler.ellipitical import calc_rv_for_elliptic_orbit, calc_M
 from myorbit.lagrange.lagrange_coeff import calc_rv_from_r0v0
 from myorbit.util.general import mu_Sun, calc_eccentricity_vector, angle_between_vectors
 
+from myorbit.util.timeut import EQX_B1950, EQX_J2000
+from myorbit.ephemeris_input import EphemrisInput
+from myorbit.pert_enckes import calc_eph_by_enckes
+
+
+
+
+
 from myorbit.util.constants import *
 
 logger = logging.getLogger(__name__)
@@ -231,6 +239,15 @@ def test_universal_kepler(delta_days=50):
     else :
         print ("No problems detected")
 
+def test_enckes():
+    obj= dc.C_2003_M3_SOHO
+    eph  = EphemrisInput(from_date="2001.03.01.0",
+                        to_date = "2005.08.31.0",
+                        step_dd_hh_hhh = "02 00.0",
+                        equinox_name = EQX_J2000)
+
+    dfc = calc_eph_by_enckes(obj, eph)   
+
 
     
 def test_comet(name, delta_days=50):
@@ -277,6 +294,7 @@ if __name__ == "__main__":
     #logging.config.fileConfig(CONFIG_INI, disable_existing_loggers=False)    
     #test_comets_convergence(5000)
     #test_universal_kepler(5000)
-    test_comet('C/2007 M5 (SOHO)',2500)
+    #test_comet('C/2007 M5 (SOHO)',2500)
+    test_enckes()
     
     

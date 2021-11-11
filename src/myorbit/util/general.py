@@ -2,10 +2,11 @@
 This module contains functions related to time conversions
 """
 # Standard library imports
-from functools import wraps
 from itertools import tee
-from time import time
 from math import isclose
+from functools import wraps
+from time import process_time
+
 
 # Third party imports
 import numpy as np
@@ -41,7 +42,6 @@ def to_AU_days(mu_m3s_2):
 mu_by_name = valmap(to_AU_days,mu_m3s_2__by_name)
 
 mu_Sun = mu_by_name["Sun"]
-
 
 class NoConvergenceError(Exception):
     """Exception raised when the newton method does not converge
@@ -89,23 +89,24 @@ def pow(x,n):
     
 @jit(nopython=True)
 def calc_ratio(N, f_at_x, fprime_at_x, frime2_at_x):
-    """[summary]
+    """Computes the ratio used in the Laguerre method.
+    This funcion has been isolated to be jitted.
 
     Parameters
     ----------
-    N : [type]
-        [description]
-    f_at_x : [type]
-        [description]
-    fprime_at_x : [type]
-        [description]
-    frime2_at_x : [type]
-        [description]
+    N : int
+        degree of the polynomial
+    f_at_x : float
+        the function f (normally the kepler equation) evaluated at point x
+    fprime_at_x : float
+        The first derivative of f evaluated at point x
+    frime2_at_x : float
+        The second derivative derivative of f evaluated at point x
 
     Returns
     -------
-    [type]
-        [description]
+    float
+        The ratio according to Laguerre method
     """
     den1 = sqrt(abs(pow(N-1,2)*pow(fprime_at_x,2)-N*(N-1)*f_at_x*frime2_at_x))
     if fprime_at_x>0 :
@@ -116,6 +117,24 @@ def calc_ratio(N, f_at_x, fprime_at_x, frime2_at_x):
     
 
 def my_isclose(v1, v2, rel_tol=0, abs_tol=1e-8):
+    """[summary]
+
+    Parameters
+    ----------
+    v1 : [type]
+        [description]
+    v2 : [type]
+        [description]
+    rel_tol : int, optional
+        [description], by default 0
+    abs_tol : [type], optional
+        [description], by default 1e-8
+
+    Returns
+    -------
+    [type]
+        [description]
+    """
     if v1.shape[0] != v2.shape[0] :
         return False
     for i in range(0,v1.shape[0]):
@@ -272,13 +291,17 @@ def measure(func):
     """
     @wraps(func)
     def _time_it(*args, **kwargs):
-        start = int(round(time() * 1000))
+        start = int(round(process_time() * 1000))
         try:
             return func(*args, **kwargs)
         finally:
-            end_ = int(round(time() * 1000)) - start
-            print(f"Total execution time: {end_ if end_ > 0 else 0} ms")
+            end_ = int(round(process_time() * 1000)) - start
+            print(
+                f"Total execution time of {func.__name__}: {end_ if end_ > 0 else 0} ms"
+            )
+
     return _time_it
+
     
 
 

@@ -15,7 +15,6 @@ from math import isclose
 import numpy as np
 from numpy import sqrt, cos, sin
 from scipy.optimize import newton
-from numba import jit
 
 # Local application imports
 from myorbit.util.timeut import  norm_rad
@@ -118,7 +117,6 @@ def calc_M (t_mjd, tp_mjd, a, mu=mu_Sun):
     M = (np.sqrt(mu/a)/a)*(t_mjd - tp_mjd)
     return norm_rad(M)
 
-@jit(nopython=True)
 def _F(e, M, E):
     """Definition of the Kepler equation. Normally, given a time t, the mean anomaly
     M is calculated and after that the Kepler equation is solved to obtain the Eccentric Anomaly.
@@ -140,7 +138,6 @@ def _F(e, M, E):
     """
     return E-e*sin(E)- M
 
-@jit(nopython=True)
 def _Fprime(e, E):
     """First derivative with respect to E of the Kepler equation. It is needed for
     solving the Kepler equation more efficently
@@ -159,7 +156,6 @@ def _Fprime(e, E):
     """
     return 1 - e*cos(E)
 
-@jit(nopython=True)
 def _Fprime2(e, E):
     """Second derivative with respect to E of the Kepler equation. It is needed for
     solving the Kepler equation more efficently
@@ -192,13 +188,16 @@ def solve_kepler_eq_newton(e, M, E0):
 
     Returns
     -------
-    Tuple
-        A tuple (x,root) where:
-            x is The Eccentric anomaly that solves the Kepler equation
-            root is a structure with information about how the calculation was, including a flag
-                for signaling if the method converged or not.
-        In case of the solution does not coverge, the last value obtained is returned
+    tuple (x, root) where:
+        x is The Eccentric anomaly that solves the Kepler equation
+        root is a structure with information about how the calculation was, including a flag
+          for signaling if the method converged or not.
+          In case of the solution does not coverge, the last value obtained is returned
 
+    Raises
+    ------
+    NoConvergenceError
+        When the method to find the root of the Kepler's equation does not converge
     """
     # The two first parameters of F are bounded, so we end up with f(E)
     # So f(E) = 0 is the equation that is desired to solve (the kepler equation)
@@ -237,6 +236,12 @@ def solve_kepler_eq_laguerre(e, M, E0, abs_tol=LAGUERRE_ABS_TOL, max_iters=500):
     -------
     float
         The eccentric anomaly [radians]
+        
+    Raises
+    ------
+    NoConvergenceError
+        When the method to find the root of the Kepler's equation does not converge
+        
     """
     ratio = 1
     f = partial(_F, e , M)
@@ -246,10 +251,10 @@ def solve_kepler_eq_laguerre(e, M, E0, abs_tol=LAGUERRE_ABS_TOL, max_iters=500):
     x=E0
 
     for i in range(0,max_iters):
-        if isclose(ratio, 0, rel_tol=0, abs_tol=abs_tol) :
+        if np.abs(ratio) <= abs_tol:
             # the _F is evaluated in the potential solution            
-            if not isclose(f(x), 0.0, rel_tol=0, abs_tol=abs_tol):
-                logger.error(f'Elliptical Kepler equation not solution found with Laguerre with E0:{E0},  root: {x}, error: {ratio}, F(x)={f(x)}') 
+            if np.abs(f(x)) > abs_tol:
+                logger.error(f'Although the solution coverges, it does not to the correct value using Laguerre with E0:{E0},  root: {x}, error: {ratio}, F(x)={f(x)}') 
                 raise NoConvergenceError(x, i, i, E0)
             return x, None
         ratio = calc_ratio(N, f(x), fprime(x), fprime2(x))
@@ -274,9 +279,9 @@ def _calc_E0(e, M):
     float
         The inital value of the Eccentric anomaly to solve the Kepler equation [radians]
     """
-    mu = M+e
-    num = M*(1 - np.sin(mu) ) + mu*np.sin(M)
-    den = 1 + np.sin(M) - np.sin(mu)
+    u = M+e
+    num = M*(1 - np.sin(u) ) + u*np.sin(M)
+    den = 1 + np.sin(M) - np.sin(u)
     return num/den
 
 def calc_rv_for_elliptic_orbit (M, a, e, mu=mu_Sun):
@@ -292,6 +297,9 @@ def calc_rv_for_elliptic_orbit (M, a, e, mu=mu_Sun):
         Semimajor axis of the orbit [AU]
     e : float
         Eccentricity
+    mu : float, optional
+        Gravitational parameter [AU^3/days^2]
+        
 
     Returns
     -------

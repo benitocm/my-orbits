@@ -10,7 +10,6 @@ from math import isclose
 import logging
 from functools import partial
 from math import isclose
-from typing import MutableSequence
 
 # Third party imports
 import numpy as np
@@ -59,6 +58,8 @@ def calc_M (t_mjd, tp_mjd, a, mu=mu_Sun):
         Time of periapse (Modified Julian day)
     a : float
         Semimajor axis [AU]
+    mu : float, optional
+        Gravitational parameter [AU^3/days^2]        
     
     Returns
     -------
@@ -129,7 +130,8 @@ def _Fprime2(e, H):
     return e*sinh(H)    
 
 def solve_kepler_eq(e, M, H0):
-    """Solve the Kepler equation
+    """Solve the Kepler equation for hyperbolical case by using Newton's method. 
+    I have no found any convergence problem for comets with hyperbolic orbits.
 
     Parameters
     ----------
@@ -142,13 +144,17 @@ def solve_kepler_eq(e, M, H0):
 
     Returns
     -------
-    Tuple
-        A tuple (x,root) where:
-            x is The Eccentric anomaly that solves the Kepler equation
-            root is a structure with information about how the calculation was, including a flag
-            for signaling if the method converged or not.
-            In case of the solution does not coverge, the last value obtained is returned
+    tuple (x, root):
+        x is The Eccentric anomaly that solves the Kepler equation
+        root is a structure with information about how the calculation was, including a flag
+          for signaling if the method converged or not.
+          In case of the solution does not coverge, the last value obtained is returned
 
+    Raises
+    ------
+    NoConvergenceError
+        When the method to find the root of the Kepler's equation does not converge
+                  
     """
     # The two first parameters of F are bounded, so we end up with f(H)
     # So f(H) = 0 is the equation that is desired to solve (the kepler equation)
@@ -165,17 +171,11 @@ def solve_kepler_eq(e, M, H0):
     if not root.converged:        
        logger.error(f'Hiperbolical Kepler equation not converged with root:{root}') 
        raise NoConvergenceError(x, root.function_calls, root.iterations)
-    # Checking the solution 
-    if not isclose(f(x), 0.0, rel_tol=0, abs_tol=1e-08):
-        msg = f'Hiperbolical Kepler equation not solution found with Laguerre with root: {x} and error: {abs_tol}'
-        logger.error(msg) 
-        raise NoConvergenceError(x, root.iterations, root.iterations, H0)
     return x, root      
 
 def _calc_H0(e, M):
-    """According to Orbital Mechanics (Conway) pg 32, this is a better
-    way to provide the initial value for solving Kepler equation in the elliptical
-    case.
+    """Compute the initial value for Hyperbolic anomaly according to
+    the book "Astronomy on the Personal Computer" by Montenbruck, Pfleger.
 
     Parameters
     ----------
@@ -195,7 +195,7 @@ def _calc_H0(e, M):
         return -np.log(1.8-(2*M/e))
     
 def calc_f (H, e):
-    """Computes the True anomaly given the Hyperbolic anomaly.
+    """Compute the True anomaly given the Hyperbolic anomaly.
     The true anomaly must be between [0,2*PI)
 
     Parameters
@@ -226,7 +226,11 @@ def calc_rv_for_hyperbolic_orbit (tp_mjd, a_neg, e, t_mjd, mu=mu_Sun):
         Semimajor axis of the orbit [AU]
     e : float
         Eccentricity
-
+    t_mjd : float
+        Time of computation [Modified Julian day]
+    mu : float, optional
+        Gravitational parameter [AU^3/days^2]        
+        
     Returns
     -------
     tuple (r_xyz, rdot_xyz, r, h, M, f, H):

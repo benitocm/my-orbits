@@ -1,4 +1,4 @@
-"""This module contains functions related to the calculation of Keplerian orbits.
+"""This module contains functions related to the calculation of parabolic orbits.
 It is based on the book "Astronomy on the Personal Computer" by Montenbruck, Pfleger.
 """
 # Standard library imports

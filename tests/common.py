@@ -23,7 +23,7 @@ def calc_diff_seconds(result_df, exp_df):
     df = df[cols].copy()
     df = exp_df.merge(df, on='date')
     df['dist_ss'] = df.apply(lambda x: angular_distance(x['ra_1'],x['de_1'],x['ra_2'],x['de_2']), axis=1).map(np.rad2deg)*3600.0
-    print (df['dist_ss'].abs() )
+    #print (df['dist_ss'].abs() )
     print ((df['dist_ss'].abs()).sum())
     return (df['dist_ss'].abs()).sum()
 
@@ -32,7 +32,7 @@ def calc_diff_seconds(result_df, exp_df):
 """
 
 def check_df(df, exp_df, exp_diff) :
-    print (df[df.columns[0:8]])
+    #print (df[df.columns[0:8]])
     assert len(df) == len(exp_df)
     diff_secs = calc_diff_seconds(df, exp_df)
     assert diff_secs < exp_diff
