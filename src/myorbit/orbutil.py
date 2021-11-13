@@ -1,8 +1,6 @@
 """ This module contains utility functions to keplerian orbit calculations
 """
 # Standard library imports
-from functools import partial
-from math import isclose
 import logging
 
 # Third party imports
@@ -13,7 +11,6 @@ import toolz as tz
 from numpy.linalg import norm
 
 # Using Newton-Ramson method
-from scipy.optimize import newton, bisect
 from scipy.integrate import solve_ivp    
 
 # Local application imports
@@ -22,142 +19,34 @@ import myorbit.util.timeut as tc
 import myorbit.data_catalog as dc
 from myorbit.util.timeut  import  MDJ_J2000, JD_J2000, CENTURY, mjd2jd
 from myorbit.util.general import pow
-from myorbit.planets import h_xyz_eclip_eqxdate, h_xyz_eclip_pluto_j2000, g_rlb_eclip_sun_eqxdate, g_xyz_equat_sun_j2000
-from myorbit.util.constants import *
+from myorbit.planets import  g_rlb_eclip_sun_eqxdate, g_xyz_equat_sun_j2000, h_xyz_eclip_pluto_j2000, h_xyz_eclip_eqxdate
+from myorbit.util.general import mu_Sun, INV_C, GM_by_planet, PI
 
 
 logger = logging.getLogger(__name__)
 
-def do_iterations(func, x_0, abs_tol = 1e-08, max_iter=50):
-    """General function to iterate mathematical functions of one variable
 
-    Parameters
-    ----------
-    func : function
-        The mathematical funtion of one variable to iterate
-    x_0 : float
-        Initial value of the variable
-    abs_tol : float, optional
-        [description], by default 1e-08
-    max_iter : int, optional
-        Maximum number of iterations, by default 50
-
-    Returns
-    -------
-    tuple (boolean, float, int)
-        The result of the iteration where:
-            boolean param, indicates whether the solution converged or not
-            float param, is the final value of the variable
-            n, is the last iteration done
-    """
-    x = x_0
-    for n in range(max_iter):
-        new_value = func(x)
-        if isclose(new_value, x, abs_tol = abs_tol) :
-            return (True,new_value,n)
-        else :
-            x = new_value
-    return (False,new_value,n)
-
-def solve_ke(e, func_e_anomaly,  m_anomaly):
-    """Solves the kepler equation, i.e., calculates the excentric anomaly
-
-    Parameters
-    ----------
-    e : float
-        The eccentricity [0,1]
-    func_e_anomaly : function
-        Function to calculate the excentric anomaly used to iterate
-    m_anomaly : float
-        Mean anomaly in angle units (rads)
-
-    Returns
-    -------
-    float
-        The value fo the excentric anomaly (if converged). Otherwise, return None        
-    """
-
-    f = partial(func_e_anomaly,e,m_anomaly)
-    res = do_iterations(f,m_anomaly,100)
-    if not res[0] :
-        logger.error("Not converged")
-        return 
-    else :
-        logger.debug(f"Converged in {res[2]} iterations wih result {np.rad2deg(res[1])} degrees")
-        return res[1]
-
-
-def solve_ke_newton(e, func_e_anomaly, m_anomaly, e_anomaly_0=None):
-    """ Solves the kepler equation, i.e., calculates the excentric anomaly by using
-     the Newton-Ranson method
-
-    Parameters
-    ----------
-    e : float
-        eccentricity [0,1]
-    func_e_anomaly : function
-        function to calculate the excentric anomaly used to iterate
-    m_anomaly : float
-        Mean anomaly in angle units (radians)
-    e_anomaly_0 : float, optional
-        Initial value to start the iteration, by default None
-
-    Returns
-    -------
-    float
-        The value fo the excentric anomaly (if converged). Otherwise, return None        
-    """
-  
-    f = partial(func_e_anomaly , e ,m_anomaly)
-    x, root = newton(lambda x : f(x) - x, e_anomaly_0, fprime=None, tol=1e-12, maxiter=50, fprime2=None, full_output=True)    
-    #logger.error(root)
-    if not root.converged :
-        logger.error(f"Not converged: {root}")
-    return x
-
-def solve_ke_bisect(e,m_anomaly,func_e_anomaly):
-    """[summary]
-
-    Parameters
-    ----------
-    e : [type]
-        [description]
-    m_anomaly : [type]
-        [description]
-    func_e_anomaly : [type]
-        [description]
-
-    Returns
-    -------
-    [type]
-        [description]
-    """
-    m_rad = np.deg2rad(m_anomaly)    
-    f = partial(func_e_anomaly,e,m_rad)    
-    x = bisect(f, 0, 0.25, args=(), xtol=2e-12, rtol=8.881784197001252e-16, maxiter=100, full_output=False, disp=True)
-    return x
-
-
-def accel(gm, r):
-    """Computes the acceleration based on the corresponding GM and the
-    radio vector (distance to the Sun)
+def accel(gm, r_xyz):
+    """Computes the acceleration based on the corresponding GM of the planet and the
+    radio vector of the body 
 
     Parameters
     ----------
     gm : float
-       The product G*M (Gravity constant * Sun Mass)
-    r : float
-        Distance to the Sun [AU]
+        Gravitational constant times the mass of the planet 
+    r_xyz : np.array[3]
+        Radio vector of the body
 
     Returns
     -------
-    float
-        The acceleration 
+    np.array[3]
+        The acceleration vector
     """
-    return gm*r/pow(norm(r),3) 
+
+    return gm*r_xyz/pow(norm(r_xyz),3) 
 
 
-def calc_perturbed_accelaration(t_mjd, h_xyz_eclip_body ) :
+def calc_perturbed_accelaration(t_mjd, he_xyz_eclip_body) :
     """Computes the acceleration vector for a minor body in the solar system at one point
     time. The perturbation caused by the planets (including Pluto) to the minor body 
     are taking into account
@@ -165,14 +54,14 @@ def calc_perturbed_accelaration(t_mjd, h_xyz_eclip_body ) :
     Parameters
     ----------
     t_mjd : float
-        Point in time as Modified Julian Day 
-    h_xyz_eclip_body : np.array[3]
+        Time of computation [Modified Julian Day]
+    he_xyz_eclip_body : np.array[3]
         Heliocentric cartesian coordinates of the minor body
 
     Returns
     -------
     float
-        The acceleration
+        The acceleration vector
     """
 
     # The century T corresponding to the time t. Also used to calculate
@@ -182,33 +71,75 @@ def calc_perturbed_accelaration(t_mjd, h_xyz_eclip_body ) :
     T_desired = (JD_J2000 - JD_J2000)/CENTURY
     mtx_prec = co.mtx_eclip_prec(T, T_desired)
     acc = 0
-    #for pl_name in filter(lambda x : (x != 'Sun') and (x != 'Pluto'), GM_by_planet.keys()) :
     for pl_name in filter(lambda x : (x != 'Sun') , GM_by_planet.keys()) :
         if pl_name == 'Pluto':
-            h_xyz_eclipt_planet = h_xyz_eclip_pluto_j2000(mjd2jd(t_mjd))
+            he_xyz_eclipt_planet = h_xyz_eclip_pluto_j2000(mjd2jd(t_mjd))
         else :
             # Planetary position (ecliptic and equinox of J2000)
-            h_xyz_eclipt_planet = mtx_prec.dot(h_xyz_eclip_eqxdate(pl_name, mjd2jd(t_mjd)))
+            he_xyz_eclipt_planet = mtx_prec.dot(h_xyz_eclip_eqxdate(pl_name, mjd2jd(t_mjd)))
 
-        h_xyz_planet_body = h_xyz_eclip_body - h_xyz_eclipt_planet
+        he_xyz_planet_body = he_xyz_eclip_body - he_xyz_eclipt_planet
         # Direct accelaration
-        acc += accel(GM_by_planet[pl_name], h_xyz_planet_body)
+        acc += accel(GM_by_planet[pl_name], he_xyz_planet_body)
         # Indirect acceletration
-        acc += accel(GM_by_planet[pl_name], h_xyz_eclipt_planet)
+        acc += accel(GM_by_planet[pl_name], he_xyz_eclipt_planet)
     return -acc    
 
-def my_f(t, Y):        
-    h_xyz = Y[0:3]
 
+
+def my_f(t, Y, mu=mu_Sun):       
+    """Derivated function that will be numerically integrated. It will contain the 
+    velocity vector and the acceleration vector. Once this is integrated numerically,
+    the state vector is obtained, i.e, the position vector and the velocity vector.
+
+    Parameters
+    ----------
+    t : float
+        Time of computation
+    Y : np.array[6]
+        [0..2] the radio vector 
+        [3..5] the velocity vector
+    mu : float, optional
+        The gravitational constant times the mass of the Sun, by default mu_Sun
+
+    Returns
+    -------
+    np.array[6]
+        [0..2] the velocity vector 
+        [3..5] the acceleration vector including the one due to the Sun and the ones due to 
+            the planets.
+    """
+    he_xyz = Y[0:3]
     # - Sun acceleration  - perturbed acceleration
-    acc = -accel(GM, h_xyz) + calc_perturbed_accelaration(t, h_xyz)
-
-    #def calc_accelaration(t_mjd, h_xyz_eclip_body ) :
-    #acc = calc_accelaration(t,h_xyz)
+    acc = -accel(mu, he_xyz) + calc_perturbed_accelaration(t, he_xyz)
     return np.concatenate((Y[3:6], acc))
 
 
 def do_integration(fun_t_y, y0 , t_begin, t_end, t_samples):
+    """Integrates numerically from t_begin to t_end the function vector with the velocities and the acelerations
+    to obtain the state vector, (position and velocity) of the body. The integration is solved
+    as a Initial Value problem, i.e, a Y0 vector is provided with the initial state vector (r0_xyz, v0_xyz)
+
+    Parameters
+    ----------
+    fun_t_y : function
+        The derivative function that we want to integrate to obtain the posisiton of the body 
+    y0 : np.array[6]
+        Initial state vector of the body:
+            [0..2] the initial radio vector of the body
+            [3..5] the initial velocity of the body
+    t_begin : float
+        Lower limit of the definite integral 
+    t_end : float
+        Higher limit of the definite integral 
+    t_samples : int
+        Number of samples to obtain
+
+    Returns
+    -------
+    sol
+        The solution of the IVP problem provided by the solve_ivp method 
+    """
     sol = solve_ivp(fun_t_y, (t_begin,t_end), y0, t_eval=t_samples, rtol = 1e-12)  
     if sol.success :
         return sol
@@ -216,7 +147,7 @@ def do_integration(fun_t_y, y0 , t_begin, t_end, t_samples):
         logger.warn("The integration was failed: "+sol.message)
 
 
-def calc_osculating_orb_elmts(h_xyz, h_vxyz, epoch_mjd=0, equinox="J2000"):
+def calc_osculating_orb_elmts(h_xyz, h_vxyz, epoch_mjd=0, equinox="J2000",mu=mu_Sun):
     """ 
     Computes the orbital elements of an elliptical orbit from position
     and velocity vectors
@@ -237,9 +168,9 @@ def calc_osculating_orb_elmts(h_xyz, h_vxyz, epoch_mjd=0, equinox="J2000"):
     u = arctan2(h_xyz[2]*H, -h_xyz[0]*h[1]+h_xyz[1]*h[0])
     R = norm(h_xyz)
     v_2 = h_vxyz.dot(h_vxyz)
-    a = 1.0/(2.0/R-v_2/GM)
+    a = 1.0/(2.0/R-v_2/mu)
     e_cosE = 1.0-R/a
-    e_sinE = h_xyz.dot(h_vxyz)/sqrt(GM*np.abs(a))
+    e_sinE = h_xyz.dot(h_vxyz)/sqrt(mu*np.abs(a))
     e_2 = pow(e_cosE,2) + pow(e_sinE,2)
     e = sqrt(e_2)
     E = arctan2(e_sinE,e_cosE)
@@ -255,24 +186,33 @@ def calc_osculating_orb_elmts(h_xyz, h_vxyz, epoch_mjd=0, equinox="J2000"):
     return dc.BodyElms.in_radians("Osculating Body",tc.mjd2epochformat(epoch_mjd),a,e,i,Omega,omega,M,equinox)
        
 def process_solution(tpoints, MTX_J2000_Teqx, MTX_equatFeclip, eph_eqx_name, include_osc=False):
-    """ 
-    Utitly method used in the calculation of the ephemeris to obtain the equatorial geocentric coordinates
+    """Utitly method used in the calculation of the ephemeris to obtain the equatorial geocentric coordinates
     of the objects. The result of the ephemeris calculation is time series with position and veolocity
     vectors of the body referred to the ecliptic plane, i.e., the PQR matrix has been applied to the
     orbital plane. So this method takes that data and do the common things to convert them into 
     geocentric coordinates to provide the final result.    
-    
-    Args:
-        tpoints : A dictionary where the key is the time (in modified julian dates) and the value is
-                  a tuple with the position vector and velocity vector of the body referred to the
-                  ecliptic, i.e., eclipic heliocentric coordinates of the object. The position is in
-                  AU and the velocity and AUs/days
-        MTX_J2000_Teqx : Matrix (3x3) to change from the J2000 equinox to the one requested by the Ephemeris input
-        MTX_equatFeclip : Matrix (3x3) to change from ecliptic to equaatorial system always to be applied
-                          to cartesian or rectangular coordinates
-        
-    Returns :
-        A DataFrame with an entry per each tpoint with the required cols
+
+    Parameters
+    ----------
+    tpoints : dict
+            A dictionary where the key is the time (in modified julian dates) and the value is
+            a tuple with the position vector and velocity vector of the body referred to the
+            ecliptic, i.e., eclipic heliocentric coordinates of the object. The position is in
+            AU and the velocity and AUs/days
+    MTX_J2000_Teqx : np.array[3][3]
+            Matrix (3x3) to change from the J2000 equinox to the one requested by the Ephemeris input
+    MTX_equatFeclip : np.array[3][3]
+             Matrix (3x3) to change from ecliptic to equaatorial system always to be applied
+                to cartesian or rectangular coordinates
+    eph_eqx_name : str
+        [description]
+    include_osc : bool, optional
+        Flat to indicate whether to include the osculating elements in the solution, by default False
+
+    Returns
+    -------
+    pd.DataFrame
+        A dataframe witht the solution 
     """
     oscul_keys = []
     cols = ['date','Sun(dg)','h_l','h_b','h_r','ra','dec','r[AU]','h_x','h_y','h_z','t_mjd']
@@ -347,3 +287,6 @@ def process_solution(tpoints, MTX_J2000_Teqx, MTX_equatFeclip, eph_eqx_name, inc
     if include_osc :
         cols += oscul_keys     
     return df[cols].sort_values(by='t_mjd')
+
+if __name__ == "__main__":
+    None

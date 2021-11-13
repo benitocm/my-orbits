@@ -12,7 +12,7 @@ from numpy.random import default_rng
 from myorbit.util.timeut import *
 from myorbit.coord import *
 
-import myorbit.orbits.orbutil as ob
+import myorbit.orbutil as ob
 
 
 def _next_E (e, m_anomaly, E) :
@@ -176,6 +176,9 @@ def test_ch04Ex12():
     assert tc.h2hms(ra) == approx((12,35,18.391146))
     #assert tc.dg2dgms(dec) == approx((29,44,11,1))
 """
+
+""""
+TODO 
 def test_ch04Ex13():
     e, m_anomaly  = 0.00035 , np.deg2rad(5.498078)
     # Solving with Newton
@@ -214,7 +217,7 @@ def test_ch04Ex15():
     #for f in e_funcs:        
     #    e_anomaly = solve_ke(e, func, m_anomaly)        
     #    assert np.rad2deg(e_anomaly) == approx(29.422286,abs=1e-4)
-
+"""
 def test_change_equinox_equat():
     # Meeus book pag 137
     f_epoch="J2000.0"

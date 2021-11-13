@@ -1,11 +1,10 @@
 """ This module provides the functionality to calculate ephemeris for two bodies problem
-also in the case of perturbed methods. More advance pertubed methods will be handled  
+also in the case of perturbed methods. More advance perturbed methods will be handled  
 in other module
 """
 
 # Standard library imports
 import logging
-from math import isclose
 
 # Third party imports
 import pandas as pd
@@ -18,7 +17,7 @@ import myorbit.planets as pl
 from myorbit import coord as co
 from myorbit.util.general import frange, mu_Sun
 from myorbit.util.timeut import CENTURY, JD_J2000, dg2h, h2hms, dg2dgms, T_given_mjd, mjd2jd, jd2str_date
-import myorbit.orbits.orbutil as ob
+import myorbit.orbutil as ob
 import myorbit.data_catalog as dc
 from myorbit.ephemeris_input import EphemrisInput
 from myorbit.planets import g_xyz_equat_sun_j2000
@@ -385,13 +384,5 @@ def _g_rlb_equat_body_j2000(jd, body):
     return co.polarFcartesian(g_xyz_equat_body)
 
 if __name__ == "__main__":
-    from myorbit.util.timeut import EQX_J2000
-    obj=dc.C_2007_M5_SOHO
-    eph  = EphemrisInput(from_date="2007.04.01.0",
-                        to_date = "2007.09.01.0",
-                        step_dd_hh_hhh = "02 00.0",
-                        equinox_name = EQX_J2000)
-
-    df = calc_eph_twobody(obj, eph)   
-    print (df)
+    None
     
