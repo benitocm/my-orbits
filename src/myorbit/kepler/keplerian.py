@@ -13,6 +13,7 @@ from numpy import sqrt
 # Local application imports
 from myorbit.kepler.parabolic import calc_rv_for_parabolic_orbit
 from myorbit.kepler.hyperbolic import calc_rv_for_hyperbolic_orbit
+from myorbit.kepler.near_parabolic import calc_rv_by_stumpff
 from myorbit.kepler.ellipitical import calc_rv_for_elliptic_orbit, calc_M_for_body, calc_M
 from myorbit.kepler.near_parabolic import calc_rv_by_stumpff
 from myorbit.util.timeut import hemisphere, mjd2str_date
@@ -33,7 +34,7 @@ logger = logging.getLogger(__name__)
 
 class KeplerianStateSolver(ABC):
     @classmethod
-    def make(cls, e, a=None, tp_mjd=None, q=None, epoch=None, M_at_epoch=None):    
+    def make(cls, e, a=None, tp_mjd=None, q=None, epoch=None, M_at_epoch=None, force_orbit=None):    
         """[summary]
 
         Parameters
@@ -56,6 +57,12 @@ class KeplerianStateSolver(ABC):
         [type]
             [description]
         """
+        
+        if force_orbit == 'near_parabolical':
+            msg=f'Doing NEAR parabolical orbit tp={tp_mjd}, a={a} [AU], e={e}'
+            print (msg)
+            logger.info(msg)                        
+            return NearParabolical(tp_mjd=tp_mjd, q=q, e=e)              
         
         if isclose(e, 1, abs_tol=1e-6):
             # Comets have q (distance to perihelion but asteroids do not have)
@@ -272,6 +279,25 @@ class HyperbolicalState(KeplerianStateSolver) :
         
     def v(self, r, mu=mu_Sun) :
         return sqrt(2*(self.energy()+(mu/r)))
+    
+    
+class NearParabolical(KeplerianStateSolver) :    
+    def __init__(self, tp_mjd, q, e):    
+        self.tp_mjd = tp_mjd
+        self.q = q
+        self.e = e
+        # The energy is an invariant of the orbit. In this case, it is 0
+        self.the_energy = 0
+
+    def calc_rv_basic(self, t_mjd):
+        return calc_rv_by_stumpff (tp_mjd=self.tp_mjd, q=self.q, e=self.e, t_mjd=t_mjd)
+    
+    def energy(self):
+        return self.the_energy
+        
+    def v(self, r, mu=mu_Sun) :
+        return np.sqrt(2*mu/r)
+    
 
 if __name__ == "__main__" :
     None

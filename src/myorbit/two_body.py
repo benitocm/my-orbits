@@ -88,7 +88,7 @@ def calc_eph_planet(name, eph):
     return df.sort_values(by='t_mjd')
     
 
-def calc_eph_twobody(body, eph):
+def calc_eph_twobody(body, eph, force_orbit=None):
     """ Computes the ephemeris for a small body or comet
 
     Parameters
@@ -116,10 +116,10 @@ def calc_eph_twobody(body, eph):
 
     if hasattr(body, 'q') :
         # Comets
-        solver = KeplerianStateSolver.make(tp_mjd = body.tp_mjd, e=body.e, q= body.q, a=body.a, epoch=None, M_at_epoch=None)
+        solver = KeplerianStateSolver.make(tp_mjd = body.tp_mjd, e=body.e, q= body.q, a=body.a, epoch=None, M_at_epoch=None, force_orbit=force_orbit)
     else :
         # Asteroids 
-        solver = KeplerianStateSolver.make(tp_mjd = body.tp_mjd, e=body.e, a=body.a, epoch=body.epoch_mjd, M_at_epoch=body.M0)     
+        solver = KeplerianStateSolver.make(tp_mjd = body.tp_mjd, e=body.e, a=body.a, epoch=body.epoch_mjd, M_at_epoch=body.M0, force_orbit=force_orbit)     
 
     result = dict()
     # Angular momentums in the orbit

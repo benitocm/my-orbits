@@ -66,7 +66,7 @@ def calc_tp(M_at_epoch, a, epoch, mu=mu_Sun):
         [description]
     """
     # Time taken to go from the Mean anomaly at epoch up to the perihelion
-    deltaT = TWOPI*np.sqrt(pow(a,3)/mu_Sun)*(1-M_at_epoch/TWOPI)    
+    deltaT = TWOPI*a*sqrt(a/mu)*(1-M_at_epoch/TWOPI)    
     return deltaT + epoch
 
 def calc_M_for_body(t_mjd, epoch_mjd, a, M_at_epoch, mu=mu_Sun) :
@@ -90,7 +90,7 @@ def calc_M_for_body(t_mjd, epoch_mjd, a, M_at_epoch, mu=mu_Sun) :
     float
         The mean anomaly [radians]
     """
-    period_in_days = TWOPI*sqrt(pow(a,3)/mu)
+    period_in_days = TWOPI*a*sqrt(a/mu)
     M = (t_mjd - epoch_mjd)*TWOPI/period_in_days
     M += M_at_epoch
     return norm_rad(M)
@@ -114,7 +114,7 @@ def calc_M (t_mjd, tp_mjd, a, mu=mu_Sun):
         The mean anomaly [radians]
     """    
 
-    M = (np.sqrt(mu/a)/a)*(t_mjd - tp_mjd)
+    M = np.sqrt(mu/a)*(t_mjd - tp_mjd)/a
     return norm_rad(M)
 
 def _F(e, M, E):

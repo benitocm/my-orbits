@@ -12,6 +12,7 @@ from numba import jit
 
 # Local application imports
 from myorbit.util.general import pow, NoConvergenceError
+from myorbit.util.stumpff import calc_stumpff
 from myorbit.util.timeut import norm_rad
 from myorbit.util.general import mu_Sun
 
@@ -24,72 +25,6 @@ cfg.read(CONFIG_INI)
 NEAR_PARABOLIC_ABS_TOL = float(cfg.get('general','near_parabollic_abs_tol'))
 
 logger = logging.getLogger(__name__)
-
-
-#
-#   An alternative approach using Stumpff functions 
-#   according to the book
-#       "Astronomy on the Personal Computer" by Montenbruck, Pfleger.
-  
-
-def calc_stumpff_as_series(E_2, epsilon=NEAR_PARABOLIC_ABS_TOL, max_iters=100):    
-    """Computes the values for the Stumpff functions C1, C2, C3 summing up
-    a infinite series
-
-    Parameters
-    ----------
-    E_2 : float
-        Square of eccentric anomaly [radians^2]
-    epsilon : float, optional
-        Relative accuracy, by default 1e-7
-    max_iters : int, optional
-        Maximum number of iterations, by default 100
-
-    Returns
-    -------
-    tuple (C1, C2, C3)
-        The three stumpff values [float]
-        
-    Raises
-    ------
-    NoConvergenceError
-        When the series does not converge (this should no happen)
-        
-    """
-    c1, c2, c3 = 0.0, 0.0, 0.0
-    to_add = 1.0
-    for n in range(1, max_iters):
-        c1 += to_add
-        to_add /= (2.0*n)
-        c2 += to_add
-        to_add /= (2.0*n+1.0)
-        c3 += to_add
-        to_add *= -E_2
-        if isclose(to_add, 0, abs_tol=epsilon) :
-            return c1, c2, c3
-    logger.error(f"Not converged after {n} iterations")
-    raise NoConvergenceError((c1,c2,c3), n, n, "Stumpff functions does not converge")
-
-def calc_stumpff_exact(E_2):    
-    """Computes the values for the Stumpff functions C1, C2, C3 according to
-    its definition
-
-    Parameters
-    ----------
-    E_2 : float
-        Square of eccentric anomaly [radians^2]
-
-    Returns
-    -------
-    tuple (C1, C2, C3)
-        The three stumpff values [float]
-    """
-    E = np.sqrt(E_2)
-    c1 = np.sin(E)/E
-    c2 = (1-np.cos(E))/pow(E,2)
-    c3 = (E-np.sin(E))/pow(E,3)
-
-    return c1, c2, c3
 
 def calc_f(e, c1, c2, c3, u):
     """Compute the true anomaly
@@ -159,12 +94,12 @@ def calc_rv_by_stumpff (tp_mjd, q, e, t_mjd, mu=mu_Sun, abs_tol=NEAR_PARABOLIC_A
     tau = sqrt(mu)*(t_mjd-tp_mjd)
     for _ in range(max_iters):
         E20 = E_2 
-        A = 1.5 * sqrt(factor/(q*q*q))*tau
+        A = 1.5 * sqrt(factor/q)*tau/q
         B = np.cbrt(sqrt(A*A+1.0)+A)
         u = B - 1.0/B 
         u_2 = u*u
         E_2 = u_2*(1.0-e)/factor 
-        c1, c2, c3 = calc_stumpff_exact(E_2)
+        c1, c2, c3 = calc_stumpff(E_2)
         factor = 3.0*e*c3 
         if isclose(E_2, E20, rel_tol=0, abs_tol=abs_tol) :
             R = q * (1.0 + u_2*c2*e/factor)

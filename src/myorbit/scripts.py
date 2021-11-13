@@ -28,6 +28,8 @@ from myorbit.util.timeut import EQX_B1950, EQX_J2000
 from myorbit.ephemeris_input import EphemrisInput
 from myorbit.pert_enckes import calc_eph_by_enckes
 
+from myorbit.two_body import calc_eph_twobody
+
 
 
 
@@ -278,6 +280,21 @@ def test_comet(name, delta_days=50):
         except NoConvergenceError :
             nc_failed += 1
 
+def test_near_parabollic():
+    obj=dc.C_2007_M5_SOHO
+    eph  = EphemrisInput(from_date="2007.06.15.0",
+                        to_date = "2007.07.15.0",
+                        step_dd_hh_hhh = "02 00.0",
+                        equinox_name = EQX_J2000)
+
+    df = calc_eph_twobody(obj, eph, force_orbit='near_parabolical')   
+    #df = calc_eph_twobody(obj, eph)   
+    print (df)
+    
+    
+    
+
+
 if __name__ == "__main__":
     from pathlib import Path 
     CONFIG_INI= Path(__file__).resolve().parents[2].joinpath('conf','config.ini')                                     
@@ -295,6 +312,7 @@ if __name__ == "__main__":
     #test_comets_convergence(5000)
     #test_universal_kepler(5000)
     #test_comet('C/2007 M5 (SOHO)',2500)
-    test_enckes()
+    #test_enckes()
+    test_near_parabollic()
     
     

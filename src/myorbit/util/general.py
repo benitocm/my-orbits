@@ -10,7 +10,7 @@ from time import process_time
 
 # Third party imports
 import numpy as np
-from numpy import cos, sin, sqrt
+from numpy import cos, sin, sqrt, abs
 from toolz import valmap
 from numba import jit
 
@@ -60,7 +60,57 @@ class NoConvergenceError(Exception):
         self.iterations = iterations
         super().__init__(self.message)
         
-@jit(nopython=True)   
+def kahansum(xs):
+    """[summary]
+
+    Parameters
+    ----------
+    xs : [type]
+        [description]
+
+    Returns
+    -------
+    [type]
+        [description]
+    """
+    s = 0.; e = 0.
+    for x in xs:
+        temp = s
+        y = x + e
+        s = temp + y
+        e = (temp - s) + y
+    return s        
+class KahanAdder:
+    """[summary]
+    """
+    def __init__(self):
+        self.s = 0.
+        self.e = 0.
+        self.prev_s = 0.
+        
+    def add(self, value):
+        temp = self.s
+        y = value + self.e
+        self.prev_s = self.s
+        self.s = temp + y
+        self.e = (temp-self.s) + y
+
+    def add_values(self, values):
+        for value in values:
+            temp = self.s
+            y = value + self.e
+            self.s = temp + y
+            self.e = (temp-self.s) + y
+                    
+    def result(self):
+        return self.s
+    
+    def converged(self, atol=1.e-10):
+        return abs(self.s - self.prev_s) <= atol
+        
+        
+        
+#@jit(nopython=True)   
 def pow(x,n):
     """Computes x^n 
 
@@ -87,7 +137,7 @@ def pow(x,n):
     else :
         return np.power(x,n)
     
-@jit(nopython=True)
+#@jit(nopython=True)
 def calc_ratio(N, f_at_x, fprime_at_x, frime2_at_x):
     """Computes the ratio used in the Laguerre method.
     This funcion has been isolated to be jitted.

@@ -3,44 +3,75 @@ This module contains functions related to orbit calculations
 """
 # Standard library imports
 import logging
+from time import time, process_time
 
 # Third party imports
 import pandas as pd
 import numpy as np
 from numpy.linalg import norm
 import toolz as tz
-# Using Newton-Ramson method
 from scipy.integrate import solve_ivp    
-from time import time
 
+# Local application imports
 from myorbit import coord as co
-
 from myorbit.lagrange.lagrange_coeff import calc_rv_from_r0v0
-from myorbit.util.timeut import epochformat2jd, jd2mjd, T, mjd2jd, jd2str_date, MDJ_J2000, JD_J2000
-from myorbit.planets import g_xyz_equat_sun_j2000, g_rlb_eclip_sun_eqxdate
-from myorbit.util.general import mu_by_name, mu_Sun, my_range, measure
+from myorbit.util.timeut import  MDJ_J2000, JD_J2000
+from myorbit.util.general import mu_by_name, mu_Sun, my_range, measure, pow
 from myorbit.orbits.orbutil import calc_perturbed_accelaration
 from myorbit.kepler.keplerian import KeplerianStateSolver
 import myorbit.orbits.orbutil as ob
 import myorbit.data_catalog as dc
 from myorbit.ephemeris_input import EphemrisInput
 
-from myorbit.util.constants import *
+
+from pathlib import Path
+CONFIG_INI=Path(__file__).resolve().parents[2].joinpath('conf','config.ini')
+from configparser import ConfigParser
+cfg = ConfigParser()
+cfg.read(CONFIG_INI)
+
+ENKES_ABS_TOL = float(cfg.get('general','enkes_abs_tol'))
 
 logger = logging.getLogger(__name__)
 
 from numba import jit
 
-
 def f1(vector):
     # Utility function
     return vector/pow(norm(vector),3)
 
-def calc_F(a, b ,c):
+def calc_F2(c_xyz, b_xyz, abs_tol=ENKES_ABS_TOL):
+    c = norm(c_xyz)
+    b = norm(b_xyz)    
+    return 1 - pow(c/b,3)
+
+def calc_F(c_xyz, b_xyz, abs_tol=ENKES_ABS_TOL):
+    """[summary]
     # Function to compute the difference between nearly equal numbers
     # Appendix F of Orbital Mechanics
-    q = a * (2*b-a)/pow(b,2)
-    return (pow(q,2)- 3*q +3 / (1+pow(1-q,1.5)))*q
+
+    Parameters
+    ----------
+    c : [type]
+        [description]
+    b : [type]
+        [description]
+
+    Returns
+    -------
+    [type]
+        [description]
+    """
+    c = norm(c_xyz)
+    b = norm(b_xyz)    
+    ratio_c_b = c/b
+    if np.abs(ratio_c_b-1.0) <= abs_tol:
+        #print (f"Enckes ratio {ratio_c_b}")
+        a = norm(b_xyz-c_xyz)
+        q = a*(2*b-a)/pow(b,2)
+        return (pow(q,2)-3*q+3)*q/(1+pow(1-q,1.5))
+    else :
+        return 1 - pow(c/b,3)
 
 def my_dfdt(t, y, r0, v0, t0):
     """
@@ -65,7 +96,8 @@ def my_dfdt(t, y, r0, v0, t0):
     r_osc, *other = calc_rv_from_r0v0(mu_Sun, r0, v0, t-t0)    
     # The radio vector perturbed is the two-bodys plus the delta_r
     r_pert = r_osc + delta_r
-    F = 1 - pow(norm(r_osc)/norm(r_pert),3)
+    #F = 1 - pow(norm(r_osc)/norm(r_pert),3)
+    F = calc_F(r_osc, r_pert)
     #TODO Check if this works, to avoid compute the difference between nearly equal numbers 
     #F = calc_F(norm(delta_r), norm(r_pert), norm(r_osc))
     # The increment of accelration is calculated including the normal perturbed acceleartion
@@ -95,13 +127,11 @@ def apply_enckes(eph, t_range, r0, v0):
     steps = np.diff(t_range)
     result = dict()
     clock_mjd = t_range[0]
+    ms_acc = 0
     for idx, step in enumerate(steps) :
-        #if (idx % 50) == 0 :
-        #    print (f"Iteration: {idx},  Date : {jd2str_date(tc.mjd2jd(clock_mjd))}")              
-        #t1 = int(round(time() * 1000))
+        t1 = int(round(process_time() * 1000))
         sol = solve_ivp(my_dfdt, (clock_mjd, clock_mjd+step), np.zeros(6), args=(r0, v0, clock_mjd) , rtol = 1e-12)  
-        #t2 = int(round(time() * 1000))
-        #print(f"solve_ivp elapsed time : {t2-t1} ms")
+        ms_acc += (int(round(process_time() * 1000)) - t1)
         assert sol.success, "Integration was not OK!"
         r_osc, v_osc, *other = calc_rv_from_r0v0 (mu_Sun, r0, v0, step)
         # The last integration value is taken
@@ -111,6 +141,7 @@ def apply_enckes(eph, t_range, r0, v0):
         if eph.from_mjd <= clock_mjd+step <= eph.to_mjd :
             result[clock_mjd+step] = (r0, v0)
         clock_mjd += step    
+    print (f"Total Elapsed time for solve_ivp: {ms_acc} ms ")
     return result
 
 
@@ -318,9 +349,14 @@ if __name__ == "__main__" :
     #test_comet()
     #test_several_comets()
     #test_body()
-    test_comet()
+    #test_comet()
     #test_speed()
-
+    c = np.array([3.2334,2.23, 12.34])
+    b = c - np.array([0.001, 0.001, 0.001])
+    print (f"c:{c}   b:{b}")
+    print(f"F: {calc_F(c,b,abs_tol=1.e-01)},  F2:{calc_F2(c,b)}")
+    
+    
 
 
  

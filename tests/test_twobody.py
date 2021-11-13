@@ -33,7 +33,7 @@ from common import check_df, TEST_DATA_PATH
 
 # Because ENCKES calcultations takes a lot of time, this flag variable is 
 # to control when to run them
-TEST_ENCKES = False
+TEST_ENCKES = True
 
 def test_HalleyB1950_for_1985():  
     fn = TEST_DATA_PATH.joinpath('jpl_halley_1985-Nov-15_1985-Apr-05.csv')

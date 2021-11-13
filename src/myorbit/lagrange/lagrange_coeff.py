@@ -15,6 +15,7 @@ from numba import jit
 # Local application imports
 from myorbit.util.general import pow, NoConvergenceError, calc_ratio
 from myorbit.util.timeut import norm_rad  
+from myorbit.util.stumpff import calc_stumpff
 
 
 from pathlib import Path
@@ -27,53 +28,7 @@ LAGUERRE_ABS_TOL = float(cfg.get('general','laguerre_abs_tol'))
 
 logger = logging.getLogger(__name__)
 
-      
-@jit(nopython=True)   
-def stumpff_C(z) :
-    """Evaluates the Stumpff function C(z) according to the Equation 3.53
-
-    Parameters
-    ----------
-    z : float
-        The argument
-
-    Returns
-    -------
-    float
-        The value of the C(z)
-    """
-
-    if z > 0 :
-        return (1 - cos(sqrt(z)))/z        
-    elif z < 0 :
-        return (cosh(sqrt(-z)) - 1)/(-z)
-    else :
-        return 0.5
-
-@jit(nopython=True)
-def stumpff_S(z) :    
-    """Evaluates the Stumpff function S(z) according to the Equation 3.52
-
-    Parameters
-    ----------
-    z : float
-        The argument
-
-    Returns
-    -------
-    float
-        The value of the S(z)
-    """
-    if z > 0:
-        sz = sqrt(z) 
-        return (sz - sin(sz))/(z*sz)
-    elif z < 0 :
-        sz = sqrt(-z)         
-        return  (sinh(sz) - sz)/(-z*sz)
-    else :
-        return 1/6    
-
-@jit(nopython=True)
+    
 def _F(mu, r0, vr0, inv_a, dt, x):
     """Compute the Kepler equation in Universal 
     variables formulation
@@ -99,11 +54,9 @@ def _F(mu, r0, vr0, inv_a, dt, x):
         [description]
     """
     z = x*x
-    C = stumpff_C(inv_a*z)
-    S = stumpff_S(inv_a*z)
+    _, C, S =  calc_stumpff(inv_a*z)
     return  (r0*vr0/sqrt(mu))*z*C + (1 - inv_a*r0)*z*x*S + r0*x - sqrt(mu)*dt
 
-@jit(nopython=True)
 def _Fprime(mu, r0, vr0, inv_a, x):
     """Compute the first derivative of the Kepler equation in Universal 
     variables formulation
@@ -127,11 +80,9 @@ def _Fprime(mu, r0, vr0, inv_a, x):
         The first derivative of the Kepler universal equation
     """
     z = x*x
-    C = stumpff_C(inv_a*z)
-    S = stumpff_S(inv_a*z)
+    _, C, S =  calc_stumpff(inv_a*z)
     return (r0*vr0/sqrt(mu))*x*(1 - inv_a*z*S) + (1 - inv_a*r0)*z*C + r0
 
-@jit(nopython=True)
 def _Fprime2(mu, r0, vr0, inv_a, x):
     """Compute the second derivative of the Kepler equation in Universal 
     variables formulation
@@ -155,13 +106,12 @@ def _Fprime2(mu, r0, vr0, inv_a, x):
         The second derivative of the Kepler universal equation
     """
     z = x*x
-    C = stumpff_C(inv_a*z)
-    S = stumpff_S(inv_a*z)
+    _, C, S =  calc_stumpff(inv_a*z)
     return r0*vr0/sqrt(mu) - (inv_a*r0*vr0/sqrt(mu))*pow(x,2)*C + (1-inv_a*r0)*x-(1-inv_a*r0)*inv_a*pow(x,3)*S
 
 
 
-@jit(nopython=True)
+#@jit(nopython=True)
 def calc_true_anomaly(p, X, r0, sigma0, inv_a, f0):
     """ Compute the true anomaly from Universal anomaly plus
     another data according to the formalul in Conway pg. 40
@@ -188,8 +138,7 @@ def calc_true_anomaly(p, X, r0, sigma0, inv_a, f0):
     """
     z = X/2
     alphaz_2 = inv_a*z*z
-    C = stumpff_C(alphaz_2)
-    S = stumpff_S(alphaz_2)
+    _, C, S =  calc_stumpff(alphaz_2)
     num = z*np.sqrt(p)*(1-alphaz_2*S)
     den1 = r0*(1-alphaz_2*C)
     den2 = sigma0*z*(1-alphaz_2*S)
@@ -198,7 +147,7 @@ def calc_true_anomaly(p, X, r0, sigma0, inv_a, f0):
     f = norm_rad(f)
     return f
 
-@jit(nopython=True)  
+#@jit(nopython=True)  
 def calc_f_g(mu, X, dt, r0, inv_a):
     """Calculates the Lagrange f and g coefficients starting from the initial
     position r0 (radio vector from the dinamical center (normally the Sun)
@@ -223,11 +172,12 @@ def calc_f_g(mu, X, dt, r0, inv_a):
         A tuple with f and g coefficients, i.e.,  (f,g)
     """
     z = inv_a*X*X
-    f = 1 - (X*X/r0)*stumpff_C(z)    
-    g = dt - (1/sqrt(mu))*X*X*X*stumpff_S(z)
+    _, C, S =  calc_stumpff(z)
+    f = 1 - (X*X/r0)*C
+    g = dt - (1/sqrt(mu))*X*X*X*S
     return f, g 
 
-@jit(nopython=True)  
+#@jit(nopython=True)  
 def calc_fdot_gdot(mu, x, r, r0, inv_a) :
     """Calculates the time derivatives of Lagrange coefficients
     f and g coefficients.
@@ -252,10 +202,11 @@ def calc_fdot_gdot(mu, x, r, r0, inv_a) :
     """
     
     z = inv_a*pow(x,2)
+    _, C, S =  calc_stumpff(z)
     # Equation 3.69c in Orbital Mechanics for Engineering
-    fdot = sqrt(mu)/r/r0*(z*stumpff_S(z) - 1)*x
+    fdot = sqrt(mu)/r/r0*(z*S - 1)*x
     # Equation 3.69d  in Orbital Mechanics for Engineering
-    gdot = 1 - pow(x,2)/r*stumpff_C(z)
+    gdot = 1 - pow(x,2)/r*C
     return fdot, gdot
 
 def solve_kepler_eq (mu, X0, r0, vr0, inv_a, dt):
@@ -308,7 +259,6 @@ def solve_kepler_eq (mu, X0, r0, vr0, inv_a, dt):
     #TODO to return adapt to what it is returned in the laguerre's method.
     return X, root 
 
-@jit(nopython=True)  
 def solve_kepler_universal_laguerre (mu, X0, dt, r0, vr0, inv_a, abs_tol=LAGUERRE_ABS_TOL, max_iters=600):
     """Compute the universal anomaly by solving the universal Kepler
     function using the Laguerre method. This function has been modified

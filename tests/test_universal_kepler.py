@@ -9,6 +9,7 @@ from pytest import approx
 #https://www.scivision.dev/pytest-approx-equal-assert-allclose/
 import numpy as np
 from pathlib import Path
+import sys
 
 
 
@@ -33,7 +34,7 @@ from common import check_df, TEST_DATA_PATH
 
 # Because ENCKES calcultations takes a lot of time, this flag variable is 
 # to control when to run them
-TEST_ENCKES = False
+TEST_ENCKES = True
 
 # The predictions for this one are very bad (1 minute precision)
 def test_C_2007_M5_SOHO():  
@@ -43,6 +44,7 @@ def test_C_2007_M5_SOHO():
     EXP_DIFF_UNI = 492301
     EXP_DIFF_COWELLS = 257628.2
     EXP_DIFF_ENKES = 243121.9
+    FUNC_NAME=sys._getframe().f_code.co_name
 
     obj=dc.C_2007_M5_SOHO
     eph  = EphemrisInput(from_date="2006.04.01.0",
@@ -51,17 +53,21 @@ def test_C_2007_M5_SOHO():
                         equinox_name = EQX_J2000)
 
     df = calc_eph_twobody(obj, eph)   
-    check_df(df, exp_df, EXP_DIFF) 
+    method=FUNC_NAME+":calc_eph_twobody"
+    check_df(df, exp_df, EXP_DIFF, method) 
     
     dfu = calc_eph_twobody_universal(obj, eph)
-    check_df(dfu, exp_df, EXP_DIFF_UNI) 
+    method=FUNC_NAME+":calc_eph_twobody_universal"
+    check_df(dfu, exp_df, EXP_DIFF_UNI,method) 
 
     dfc = calc_eph_by_cowells(obj, eph)   
-    check_df(dfc, exp_df, EXP_DIFF_COWELLS)     
+    method=FUNC_NAME+":calc_eph_by_cowells" 
+    check_df(dfc, exp_df, EXP_DIFF_COWELLS,method)     
 
     if TEST_ENCKES:
-        dfc = calc_eph_by_enckes(obj, eph)   
-        check_df(dfc, exp_df, EXP_DIFF_ENKES)     
+        dfc = calc_eph_by_enckes(obj, eph)  
+        method=FUNC_NAME+":calc_eph_by_enckes" 
+        check_df(dfc, exp_df, EXP_DIFF_ENKES,method)     
 
 
 def test_C_2003_M3_SOHO():  
@@ -70,7 +76,8 @@ def test_C_2003_M3_SOHO():
     EXP_DIFF = 74286.96
     EXP_DIFF_UNI = 74285.66
     EXP_DIFF_COWELLS = 38009.9
-    EXP_DIFF_ENKES = 38009.9
+    EXP_DIFF_ENKES = 37911.2
+    FUNC_NAME=sys._getframe().f_code.co_name
     
 
     obj= dc.C_2003_M3_SOHO
@@ -80,15 +87,19 @@ def test_C_2003_M3_SOHO():
                         equinox_name = EQX_J2000)
 
     df = calc_eph_twobody(obj, eph)   
-    check_df(df, exp_df, EXP_DIFF) 
+    method=FUNC_NAME+":calc_eph_twobody"
+    check_df(df, exp_df, EXP_DIFF, method) 
     
     dfu = calc_eph_twobody_universal(obj, eph)
-    check_df(dfu, exp_df, EXP_DIFF_UNI) 
+    method=FUNC_NAME+":calc_eph_twobody_universal"
+    check_df(dfu, exp_df, EXP_DIFF_UNI,method) 
 
     dfc = calc_eph_by_cowells(obj, eph)   
-    check_df(dfc, exp_df, EXP_DIFF_COWELLS) 
-    
+    method=FUNC_NAME+":calc_eph_by_cowells" 
+    check_df(dfc, exp_df, EXP_DIFF_COWELLS,method)     
+
     if TEST_ENCKES:
-        dfc = calc_eph_by_enckes(obj, eph)   
-        check_df(dfc, exp_df, EXP_DIFF_ENKES)     
+        dfc = calc_eph_by_enckes(obj, eph)  
+        method=FUNC_NAME+":calc_eph_by_enckes" 
+        check_df(dfc, exp_df, EXP_DIFF_ENKES,method)     
 
