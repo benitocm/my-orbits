@@ -2,11 +2,6 @@
 """
 
 # Standard library imports
-<<<<<<< HEAD
-
-=======
->>>>>>> dev
-
 # Third party imports
 import numpy as np
 from numpy import deg2rad

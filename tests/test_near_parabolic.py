@@ -55,7 +55,12 @@ def test_almost_parabolical():
 
 TEST_ENCKES = True
 
-def test_C_2011_W3_Lovejoy_for_2011():  
+
+
+from time import process_time
+
+
+def test_speed_C_2011_W3_Lovejoy_for_2011():  
     fn = TEST_DATA_PATH.joinpath('jpl_C_2011_W3_Lovejoy_2011-Nov-16_2011-Dic-16.csv')
     exp_df = dc.read_jpl_data(fn)    
     EXP_DIFF = 493.9
@@ -89,12 +94,15 @@ def test_C_2011_W3_Lovejoy_for_2011():
     check_df(df, exp_df, EXP_DIFF_PERT,method)    
     
     if TEST_ENCKES :
+        t0 = int(round(process_time() * 1000))
         df = calc_eph_by_enckes(obj, eph)   
+        t1 = int(round(process_time() * 1000))
         method=FUNC_NAME+":calc_eph_by_enckes"
         check_df(df, exp_df, EXP_DIFF_PERT_ENCKES,method)    
+        assert t1-t0 < 6000, "Performance problem introduced"
 
 
-def test_C_2007_M5_SOHO_at_perihelion():  
+def test_speed_C_2007_M5_SOHO_at_perihelion():  
     fn = TEST_DATA_PATH.joinpath('jpl_C_2007_M5_SOHO_at_perihelion.csv')
     exp_df = dc.read_jpl_data(fn)    
     EXP_DIFF_NEAR_PARABOLICAL = 1501.1
@@ -129,11 +137,15 @@ def test_C_2007_M5_SOHO_at_perihelion():
     if TEST_ENCKES :
         df = calc_eph_by_enckes(obj, eph)   
         method=FUNC_NAME+":calc_eph_by_enckes"
+        check_df(df, exp_df, EXP_DIFF_PERT_ENCKES,method)        
+        t0 = int(round(process_time() * 1000))
+        df = calc_eph_by_enckes(obj, eph)   
+        t1 = int(round(process_time() * 1000))
+        method=FUNC_NAME+":calc_eph_by_enckes"
         check_df(df, exp_df, EXP_DIFF_PERT_ENCKES,method)    
+        assert t1-t0 < 2500, "Performance problem introduced"
     
-    
-    
-def test_C_2007_M5_SOHO_6_months():  
+def test_speed_C_2007_M5_SOHO_6_months():  
     fn = TEST_DATA_PATH.joinpath('jpl_C_2007_M5_SOHO_6months.csv')
     exp_df = dc.read_jpl_data(fn)    
     EXP_DIFF_NEAR_PARABOLICAL = 60849.4
@@ -167,9 +179,12 @@ def test_C_2007_M5_SOHO_6_months():
     check_df(df, exp_df, EXP_DIFF_PERT,method)    
     
     if TEST_ENCKES :
+        t0 = int(round(process_time() * 1000))
         df = calc_eph_by_enckes(obj, eph)   
+        t1 = int(round(process_time() * 1000))
         method=FUNC_NAME+":calc_eph_by_enckes"
-        check_df(df, exp_df, EXP_DIFF_PERT_ENCKES,method)        
+        check_df(df, exp_df, EXP_DIFF_PERT_ENCKES,method)    
+        assert t1-t0 < 17000, "Performance problem introduced"
     
 
     

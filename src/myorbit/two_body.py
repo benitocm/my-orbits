@@ -20,12 +20,6 @@ from myorbit.util.general import frange, mu_Sun
 from myorbit.util.constants import INV_C
 from myorbit.init_config import H_ABS_TOL, E_ABS_TOL
 from myorbit.util.timeut import CENTURY, JD_J2000, dg2h, h2hms, dg2dgms, T_given_mjd, mjd2jd, jd2str_date
-<<<<<<< HEAD
-import myorbit.orbutil as ob
-import myorbit.data_catalog as dc
-from myorbit.ephemeris_input import EphemrisInput
-=======
->>>>>>> dev
 from myorbit.planets import g_xyz_equat_sun_j2000
 from myorbit.kepler.keplerian import KeplerianStateSolver
 from myorbit.kepler.ellipitical import calc_rv_for_elliptic_orbit, calc_M
@@ -379,9 +373,4 @@ def _g_rlb_equat_body_j2000(jd, body):
     return co.polarFcartesian(g_xyz_equat_body)
 
 if __name__ == "__main__":
-<<<<<<< HEAD
-    None
-    
-=======
     None    
->>>>>>> dev

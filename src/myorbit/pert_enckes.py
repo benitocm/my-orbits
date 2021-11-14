@@ -5,10 +5,6 @@ This module contains functions related to orbit calculations
 import logging
 from time import  process_time
 from math import isclose
-<<<<<<< HEAD
-=======
-
->>>>>>> dev
 
 # Third party imports
 import numpy as np
@@ -20,26 +16,9 @@ from scipy.integrate import solve_ivp
 from myorbit import coord as co
 import myorbit.orbutil as ob
 from myorbit.lagrange.lagrange_coeff import calc_rv_from_r0v0
-<<<<<<< HEAD
-from myorbit.util.timeut import  MDJ_J2000, JD_J2000
-from myorbit.util.general import mu_Sun, my_range, measure, pow
-from myorbit.kepler.keplerian import KeplerianStateSolver
-import myorbit.orbutil as ob
-
-
-
-from pathlib import Path
-CONFIG_INI=Path(__file__).resolve().parents[2].joinpath('conf','config.ini')
-from configparser import ConfigParser
-cfg = ConfigParser()
-cfg.read(CONFIG_INI)
-
-ENKES_ABS_TOL = float(cfg.get('general','enkes_abs_tol'))
-=======
 from myorbit.kepler.keplerian import KeplerianStateSolver
 from myorbit.util.general import mu_Sun, my_range, measure, pow
 from myorbit.init_config import ENKES_ABS_TOL
->>>>>>> dev
 
 logger = logging.getLogger(__name__)
 
@@ -49,10 +28,6 @@ def f1(vector):
     # Utility function
     return vector/pow(norm(vector),3)
 
-<<<<<<< HEAD
-=======
-
->>>>>>> dev
 def calc_F(c, b, abs_tol=ENKES_ABS_TOL):
     """According to the book Orbital Mechanics for Engineering, this is the 
     recommended way to solve the equation F=1-c^3/b^3 when c/b is aproximately 1.
@@ -162,12 +137,7 @@ def apply_enckes(eph, t_range, r0_xyz, v0_xyz):
         clock_mjd += step    
     logger.debug (f"Total Elapsed time for solve_ivp: {ms_acc} ms ")
     return result 
-<<<<<<< HEAD
-    
-=======
 
-
->>>>>>> dev
 def calc_eph_by_enckes (body, eph, include_osc=False):
     """Computes the ephemeris for a minor body using the Enckes method. This has more precission that
     the Cowells but it takes more time to be calculated.
@@ -289,20 +259,10 @@ def calc_eph_by_enckes (body, eph, include_osc=False):
     solution = {t:solution[t] for t in sorted(solution.keys())}
         
     return ob.process_solution(solution, MTX_J2000_Teqx, MTX_equatFeclip, eph.eqx_name, include_osc)
-<<<<<<< HEAD
-=======
-
->>>>>>> dev
-
 
 
 if __name__ == "__main__" :
-<<<<<<< HEAD
     None
-=======
-    None    
-    
->>>>>>> dev
 
 
  

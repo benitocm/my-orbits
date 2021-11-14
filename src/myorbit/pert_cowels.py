@@ -17,13 +17,7 @@ from myorbit.util.general import mu_Sun
 
 logger = logging.getLogger(__name__)
 
-
-<<<<<<< HEAD
-
-def my_dfdt(t, y, mu=mu_Sun):        
-=======
 def my_dfdt(t, y, mu=mu_Sun):               
->>>>>>> dev
     """Computes the time derivative of the unknown function. Integrating this function, we obtain the unknown
     function. We know the velocity and acceleration that is basically what this function returns so integrating we obtain 
     the position and velocity.
@@ -136,21 +130,12 @@ def calc_eph_by_cowells (body, eph, include_osc=False):
     for idx, t in enumerate(SOL_T) :  
         tpoints[t] = (SOL_Y[:,idx][:3], SOL_Y[:,idx][3:6])
     tpoints = {t:tpoints[t] for t in sorted(tpoints.keys())}
-
-<<<<<<< HEAD
-    return ob.process_solution(tpoints, MTX_J2000_Teqx, MTX_equatFeclip, eph.eqx_name,include_osc)
-    
-
-if __name__ == "__main__" :
-    None
-
-=======
     return ob.process_solution(tpoints, MTX_J2000_Teqx, MTX_equatFeclip, eph.eqx_name, include_osc)
 
 
 if __name__ == "__main__" :
     None
->>>>>>> dev
+
 
  
 

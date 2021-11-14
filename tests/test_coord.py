@@ -176,11 +176,7 @@ def test_ch04Ex12():
     assert tc.h2hms(ra) == approx((12,35,18.391146))
     #assert tc.dg2dgms(dec) == approx((29,44,11,1))
 """
-<<<<<<< HEAD
-
-=======
->>>>>>> dev
-""""
+"""
 TODO 
 def test_ch04Ex13():
     e, m_anomaly  = 0.00035 , np.deg2rad(5.498078)
@@ -221,10 +217,7 @@ def test_ch04Ex15():
     #    e_anomaly = solve_ke(e, func, m_anomaly)        
     #    assert np.rad2deg(e_anomaly) == approx(29.422286,abs=1e-4)
 """
-<<<<<<< HEAD
-=======
 
->>>>>>> dev
 def test_change_equinox_equat():
     # Meeus book pag 137
     f_epoch="J2000.0"
