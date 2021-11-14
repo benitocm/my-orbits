@@ -23,13 +23,47 @@ import myorbit.data_catalog as dc
 from myorbit.util.timeut  import  MDJ_J2000, JD_J2000, CENTURY, mjd2jd
 from myorbit.util.general import pow
 from myorbit.planets import h_xyz_eclip_eqxdate, h_xyz_eclip_pluto_j2000, g_rlb_eclip_sun_eqxdate, g_xyz_equat_sun_j2000
-from myorbit.util.general import mu_Sun, INV_C, GM_by_planet, PI
+from myorbit.util.general import mu_Sun, INV_C,  PI
+from numba import jit
+from numba import njit
+from numba.core import types
+
+from numba.typed import Dict
+
+# The Dict.empty() constructs a typed dictionary.
+# The key and value typed must be explicitly declared.
+GM_by_planet = Dict.empty(
+    key_type=types.unicode_type,
+    value_type=types.float64,
+)
+
+GM = 2.959122083e-4 
+
+GM_by_planet["Sun"]= GM                 
+GM_by_planet["Mercury"]=GM/6023600.0
+GM_by_planet["Venus"]=GM/408523.5
+GM_by_planet["Earth"]=GM/328900.5
+GM_by_planet["Mars"]=GM/3098710.0
+GM_by_planet["Jupiter"]=GM/1047.355
+GM_by_planet["Saturn"]=GM /3498.5
+GM_by_planet["Uranus"]=GM / 22869.0
+GM_by_planet["Neptune"]=GM / 19314.0
+GM_by_planet["Pluto"]=GM/3000000.0 
+
+
+
+# The typed-dict can be used from the interpreter.
+#d['posx'] = np.asarray([1, 0.5, 2], dtype='f8')
+#d['posy'] = np.asarray([1.5, 3.5, 2], dtype='f8')
+#d['velx'] = np.asarray([0.5, 0, 0.7], dtype='f8')
+#d['vely'] = np.asarray([0.2, -0.2, 0.1], dtype='f8')
+
 
 
 
 logger = logging.getLogger(__name__)
 
-
+@jit(nopython=True)   
 def accel(gm, r_xyz):
     """Computes the acceleration based on the corresponding GM of the planet and the
     radio vector of the body 
@@ -47,6 +81,8 @@ def accel(gm, r_xyz):
         The acceleration vector
     """
     return gm*r_xyz/pow(norm(r_xyz),3) 
+
+
 
 
 def calc_perturbed_accelaration(t_mjd, h_xyz_eclip_body ) :

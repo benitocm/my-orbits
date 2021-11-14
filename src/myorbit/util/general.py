@@ -60,7 +60,7 @@ class NoConvergenceError(Exception):
         self.iterations = iterations
         super().__init__(self.message)
         
-def kahansum(xs):
+def kahan_sum(xs):
     """[summary]
 
     Parameters
@@ -110,7 +110,7 @@ class KahanAdder:
         
         
         
-#@jit(nopython=True)   
+@jit(nopython=True)   
 def pow(x,n):
     """Computes x^n 
 

@@ -9,8 +9,7 @@ from pytest import approx
 #https://www.scivision.dev/pytest-approx-equal-assert-allclose/
 import numpy as np
 from pathlib import Path
-
-
+import sys
 
 # Local application imports
 from myorbit.util.timeut import EQX_B1950, EQX_J2000
@@ -41,7 +40,8 @@ def test_HalleyB1950_for_1985():
     EXP_DIFF = 1305.1
     EXP_DIFF_PERT = 757
     EXP_DIFF_PERT_ENCKES = 771
-
+    FUNC_NAME=sys._getframe().f_code.co_name
+    
     obj=dc.HALLEY_B1950
     eph  = EphemrisInput(from_date="1985.11.15.0",
                         to_date = "1986.04.05.0",
@@ -49,20 +49,25 @@ def test_HalleyB1950_for_1985():
                         equinox_name = EQX_J2000)
 
     df = calc_eph_twobody(obj, eph)   
-    check_df(df, exp_df, EXP_DIFF) 
+    method=FUNC_NAME+":calc_eph_twobody"
+    check_df(df, exp_df, EXP_DIFF, method) 
 
     df = calc_eph_twobody_universal(obj, eph)   
-    check_df(df, exp_df, EXP_DIFF) 
+    method=FUNC_NAME+":calc_eph_twobody_universal"
+    check_df(df, exp_df, EXP_DIFF, method) 
 
-    df = calc_eph_minor_body_perturbed(obj, eph)   
-    check_df(df, exp_df, EXP_DIFF_PERT) 
+    df = calc_eph_minor_body_perturbed(obj, eph)  
+    method=FUNC_NAME+":calc_eph_minor_body_perturbed" 
+    check_df(df, exp_df, EXP_DIFF_PERT, method) 
 
     df = calc_eph_by_cowells(obj, eph)   
-    check_df(df, exp_df, EXP_DIFF_PERT)    
+    method=FUNC_NAME+":calc_eph_by_cowells" 
+    check_df(df, exp_df, EXP_DIFF_PERT,method)    
 
     if TEST_ENCKES :
         df = calc_eph_by_enckes(obj, eph)   
-        check_df(df, exp_df, EXP_DIFF_PERT_ENCKES)    
+        method=FUNC_NAME+":calc_eph_by_enckes" 
+        check_df(df, exp_df, EXP_DIFF_PERT_ENCKES, method)    
 
 
 
@@ -75,36 +80,40 @@ def test_HalleyJ2000_for_1985():
     point the integration procedure backward or forward is done. If the ephemeris date is close to the epoch of hte 
     orbital elements, the perturbed method will provide good results. Otherwise, the results will be less precise.
     """        
-    fn = TEST_DATA_PATH.joinpath('jpl_halley_1985-Nov-15_1985-Apr-05.csv')
-    
+    fn = TEST_DATA_PATH.joinpath('jpl_halley_1985-Nov-15_1985-Apr-05.csv')    
     exp_df = dc.read_jpl_data(fn)    
     EXP_DIFF = 256239.92
     EXP_DIFF_PERT = 1570
     EXP_DIFF_PERT_ENCKES = 49
+    FUNC_NAME=sys._getframe().f_code.co_name
+    obj=dc.HALLEY_J2000
 
 
     eph  = EphemrisInput(from_date="1985.11.15.0",
                         to_date = "1986.04.05.0",
                         step_dd_hh_hhh = "10 00.0",
                         equinox_name = EQX_J2000)
-
     
-    
-    df = calc_eph_twobody(dc.HALLEY_J2000, eph)   
-    check_df(df, exp_df, EXP_DIFF) 
+    df = calc_eph_twobody(obj, eph)   
+    method=FUNC_NAME+":calc_eph_twobody"
+    check_df(df, exp_df, EXP_DIFF, method) 
 
-    df = calc_eph_twobody_universal(dc.HALLEY_J2000, eph)   
-    check_df(df, exp_df, EXP_DIFF) 
+    df = calc_eph_twobody_universal(obj, eph)   
+    method=FUNC_NAME+":calc_eph_twobody_universal"
+    check_df(df, exp_df, EXP_DIFF, method) 
 
-    df = calc_eph_minor_body_perturbed(dc.HALLEY_J2000, eph)   
-    check_df(df, exp_df, EXP_DIFF_PERT) 
+    df = calc_eph_minor_body_perturbed(obj, eph)  
+    method=FUNC_NAME+":calc_eph_minor_body_perturbed"  
+    check_df(df, exp_df, EXP_DIFF_PERT, method) 
 
-    df = calc_eph_by_cowells(dc.HALLEY_J2000, eph)   
-    check_df(df, exp_df, EXP_DIFF_PERT) 
+    df = calc_eph_by_cowells(obj, eph)   
+    method=FUNC_NAME+":calc_eph_by_cowells"
+    check_df(df, exp_df, EXP_DIFF_PERT, method) 
     
     if TEST_ENCKES :
-        df = calc_eph_by_enckes(dc.HALLEY_J2000, eph)   
-        check_df(df, exp_df, EXP_DIFF_PERT_ENCKES)    
+        df = calc_eph_by_enckes(obj, eph)   
+        method=FUNC_NAME+":calc_eph_by_enckes" 
+        check_df(df, exp_df, EXP_DIFF_PERT_ENCKES, method)    
    
 
 
@@ -123,27 +132,36 @@ def test_HalleyJ2000_for_1997():
     EXP_DIFF = 1099.5
     EXP_DIFF_PERT = 14
     EXP_DIFF_PERT_ENCKES = 8
+    FUNC_NAME=sys._getframe().f_code.co_name
+    obj = dc.HALLEY_J2000
 
     eph  = EphemrisInput(from_date="1997.11.15.0",
                         to_date = "1998.04.04.0",
                         step_dd_hh_hhh = "10 00.0",
                         equinox_name = EQX_J2000)
+    
+    
 
-    df = calc_eph_twobody(dc.HALLEY_J2000, eph)   
-    check_df(df, exp_df, EXP_DIFF) 
+    df = calc_eph_twobody(obj, eph)   
+    method=FUNC_NAME+":calc_eph_twobody"
+    check_df(df, exp_df, EXP_DIFF, method) 
 
-    df = calc_eph_twobody_universal(dc.HALLEY_J2000, eph)   
-    check_df(df, exp_df, EXP_DIFF) 
+    df = calc_eph_twobody_universal(obj, eph)   
+    method=FUNC_NAME+":calc_eph_twobody_universal"
+    check_df(df, exp_df, EXP_DIFF, method) 
 
-    df = calc_eph_minor_body_perturbed(dc.HALLEY_J2000, eph)   
-    check_df(df, exp_df, EXP_DIFF_PERT)     
+    df = calc_eph_minor_body_perturbed(obj, eph)  
+    method=FUNC_NAME+":calc_eph_minor_body_perturbed"  
+    check_df(df, exp_df, EXP_DIFF_PERT, method) 
 
-    df = calc_eph_by_cowells(dc.HALLEY_J2000, eph)   
-    check_df(df, exp_df, EXP_DIFF_PERT)    
-
+    df = calc_eph_by_cowells(obj, eph)   
+    method=FUNC_NAME+":calc_eph_by_cowells"
+    check_df(df, exp_df, EXP_DIFF_PERT, method) 
+    
     if TEST_ENCKES :
-        df = calc_eph_by_enckes(dc.HALLEY_J2000, eph)   
-        check_df(df, exp_df, EXP_DIFF_PERT_ENCKES)    
+        df = calc_eph_by_enckes(obj, eph)   
+        method=FUNC_NAME+":calc_eph_by_enckes" 
+        check_df(df, exp_df, EXP_DIFF_PERT_ENCKES, method)    
 
 
 def test_HalleyJ2000_for_2017():    
@@ -158,28 +176,35 @@ def test_HalleyJ2000_for_2017():
     EXP_DIFF = 1807    
     EXP_DIFF_PERT = 113.6
     EXP_DIFF_PERT_ENCKES = 66
+    FUNC_NAME=sys._getframe().f_code.co_name
     obj = dc.HALLEY_J2000
+
 
     eph  = EphemrisInput(from_date="2017.11.15.0",
                         to_date = "2018.04.04.0",
                         step_dd_hh_hhh = "10 00.0",
                         equinox_name = EQX_J2000)
-
+    
     df = calc_eph_twobody(obj, eph)   
-    check_df(df, exp_df, EXP_DIFF) 
+    method=FUNC_NAME+":calc_eph_twobody"
+    check_df(df, exp_df, EXP_DIFF, method) 
 
     df = calc_eph_twobody_universal(obj, eph)   
-    check_df(df, exp_df, EXP_DIFF)     
+    method=FUNC_NAME+":calc_eph_twobody_universal"
+    check_df(df, exp_df, EXP_DIFF, method) 
 
-    df = calc_eph_minor_body_perturbed(obj, eph)   
-    check_df(df, exp_df, EXP_DIFF_PERT)     
+    df = calc_eph_minor_body_perturbed(obj, eph)  
+    method=FUNC_NAME+":calc_eph_minor_body_perturbed"  
+    check_df(df, exp_df, EXP_DIFF_PERT, method) 
 
-    df = calc_eph_by_cowells(obj, eph, 'comet')   
-    check_df(df, exp_df, EXP_DIFF_PERT)    
-
+    df = calc_eph_by_cowells(obj, eph)   
+    method=FUNC_NAME+":calc_eph_by_cowells"
+    check_df(df, exp_df, EXP_DIFF_PERT, method) 
+    
     if TEST_ENCKES :
         df = calc_eph_by_enckes(obj, eph)   
-        check_df(df, exp_df, EXP_DIFF_PERT_ENCKES)    
+        method=FUNC_NAME+":calc_eph_by_enckes" 
+        check_df(df, exp_df, EXP_DIFF_PERT_ENCKES, method)    
 
 
 def test_ceres_B1950_for_1992():
@@ -196,6 +221,7 @@ def test_ceres_B1950_for_1992():
     EXP_DIFF_PERTURBED = 300.6
     EXP_DIFF_PERTURBED_J2000 = 3322.6
     EXP_DIFF_PERT_ENCKES = 71
+    FUNC_NAME=sys._getframe().f_code.co_name
     obj = dc.CERES_B1950
 
     eph = EphemrisInput(from_date="1992.06.27.0",
@@ -204,23 +230,29 @@ def test_ceres_B1950_for_1992():
                         equinox_name = EQX_J2000)
     
     df = calc_eph_twobody(obj, eph)   
-    check_df(df, exp_df, EXP_DIFF)    
+    method=FUNC_NAME+":calc_eph_twobody"
+    check_df(df, exp_df, EXP_DIFF,method )    
 
     df = calc_eph_twobody_universal(obj, eph)   
-    check_df(df, exp_df, EXP_DIFF)     
+    method=FUNC_NAME+":calc_eph_twobody_universal"
+    check_df(df, exp_df, EXP_DIFF, method)     
 
     df = calc_eph_minor_body_perturbed(obj, eph)
-    check_df(df, exp_df, EXP_DIFF_PERTURBED)    
+    method=FUNC_NAME+":calc_eph_minor_body_perturbed"  
+    check_df(df, exp_df, EXP_DIFF_PERTURBED, method)    
 
     df = calc_eph_minor_body_perturbed(obj, eph)
-    check_df(df, exp_df, EXP_DIFF_PERTURBED_J2000)    
+    method=FUNC_NAME+":calc_eph_minor_body_perturbed"  
+    check_df(df, exp_df, EXP_DIFF_PERTURBED_J2000, method)    
 
     df = calc_eph_by_cowells(obj, eph)   
-    check_df(df, exp_df, EXP_DIFF_PERTURBED_J2000)    
+    method=FUNC_NAME+":calc_eph_by_cowells"
+    check_df(df, exp_df, EXP_DIFF_PERTURBED_J2000, method)    
     
     if TEST_ENCKES :
-        df = calc_eph_by_enckes(obj, eph)   
-        check_df(df, exp_df, EXP_DIFF_PERT_ENCKES)    
+        df = calc_eph_by_enckes(obj, eph) 
+        method=FUNC_NAME+":calc_eph_by_enckes"   
+        check_df(df, exp_df, EXP_DIFF_PERT_ENCKES, method)    
 
 
 def test_ceres_J2000_for_2010():
@@ -232,28 +264,36 @@ def test_ceres_J2000_for_2010():
     EXP_DIFF = 30586
     EXP_DIFF_PERT = 841
     EXP_DIFF_PERT_ENCKES = 70
+    FUNC_NAME=sys._getframe().f_code.co_name
+    obj = dc.CERES_J200
+    
+    
     
     eph = EphemrisInput(from_date="2010.06.27.0",
                         to_date = "2010.07.25.0",
                         step_dd_hh_hhh = "02 00.0",
                         equinox_name = EQX_J2000)
 
-    df = calc_eph_twobody(dc.CERES_J2000, eph)   
-    check_df(df, exp_df, EXP_DIFF)        
+    df = calc_eph_twobody(obj, eph)   
+    method=FUNC_NAME+":calc_eph_twobody"
+    check_df(df, exp_df, EXP_DIFF, method) 
 
-    df = calc_eph_twobody_universal(dc.CERES_J2000, eph)   
-    check_df(df, exp_df, EXP_DIFF)     
+    df = calc_eph_twobody_universal(obj, eph)   
+    method=FUNC_NAME+":calc_eph_twobody_universal"
+    check_df(df, exp_df, EXP_DIFF, method) 
 
+    df = calc_eph_minor_body_perturbed(obj, eph)  
+    method=FUNC_NAME+":calc_eph_minor_body_perturbed"  
+    check_df(df, exp_df, EXP_DIFF_PERT, method) 
 
-    df = calc_eph_minor_body_perturbed(dc.CERES_J2000, eph)    
-    check_df(df, exp_df, EXP_DIFF_PERT)        
-
-    df = calc_eph_by_cowells(dc.CERES_J2000, eph)   
-    check_df(df, exp_df, EXP_DIFF_PERT)    
+    df = calc_eph_by_cowells(obj, eph)   
+    method=FUNC_NAME+":calc_eph_by_cowells"
+    check_df(df, exp_df, EXP_DIFF_PERT, method) 
     
     if TEST_ENCKES :
-        df = calc_eph_by_enckes(dc.CERES_J2000, eph)   
-        check_df(df, exp_df, EXP_DIFF_PERT_ENCKES)      
+        df = calc_eph_by_enckes(obj, eph)   
+        method=FUNC_NAME+":calc_eph_by_enckes" 
+        check_df(df, exp_df, EXP_DIFF_PERT_ENCKES, method)    
 
 
 def test_elliptical_C2012CH17_J2000_for_2012():
@@ -263,28 +303,36 @@ def test_elliptical_C2012CH17_J2000_for_2012():
     EXP_DIFF = 184
     EXP_DIFF_PERT = 106
     EXP_DIFF_PERT_ENCKES = 100
+    FUNC_NAME=sys._getframe().f_code.co_name
+    obj = dc.C2012_CH17
+    
+    
 
     eph = EphemrisInput(from_date="2012.09.27.0",
                         to_date = "2012.11.27.0",
                         step_dd_hh_hhh = "2 00.0",
                         equinox_name = "J2000")
     
-    df = calc_eph_twobody(dc.C2012_CH17, eph)
-    check_df(df, exp_df, EXP_DIFF)        
+    df = calc_eph_twobody(obj, eph)   
+    method=FUNC_NAME+":calc_eph_twobody"
+    check_df(df, exp_df, EXP_DIFF, method) 
 
-    df = calc_eph_twobody_universal(dc.C2012_CH17, eph)   
-    check_df(df, exp_df, EXP_DIFF)     
+    df = calc_eph_twobody_universal(obj, eph)   
+    method=FUNC_NAME+":calc_eph_twobody_universal"
+    check_df(df, exp_df, EXP_DIFF, method) 
 
+    df = calc_eph_minor_body_perturbed(obj, eph)  
+    method=FUNC_NAME+":calc_eph_minor_body_perturbed"  
+    check_df(df, exp_df, EXP_DIFF_PERT, method) 
 
-    df = calc_eph_minor_body_perturbed(dc.C2012_CH17, eph)    
-    check_df(df, exp_df, EXP_DIFF_PERT)        
-
-    df = calc_eph_by_cowells(dc.C2012_CH17, eph)   
-    check_df(df, exp_df, EXP_DIFF_PERT)    
+    df = calc_eph_by_cowells(obj, eph)   
+    method=FUNC_NAME+":calc_eph_by_cowells"
+    check_df(df, exp_df, EXP_DIFF_PERT, method) 
     
     if TEST_ENCKES :
-        df = calc_eph_by_enckes(dc.C2012_CH17, eph)   
-        check_df(df, exp_df, EXP_DIFF_PERT_ENCKES)    
+        df = calc_eph_by_enckes(obj, eph)   
+        method=FUNC_NAME+":calc_eph_by_enckes" 
+        check_df(df, exp_df, EXP_DIFF_PERT_ENCKES, method)    
     
 
 def test_parabollic_C_2018_F3_Johnson_J2000_for_2017():
@@ -294,6 +342,9 @@ def test_parabollic_C_2018_F3_Johnson_J2000_for_2017():
     EXP_DIFF = 222
     EXP_DIFF_PERT = 20
     EXP_DIFF_PERT_ENCKES = 20
+    FUNC_NAME=sys._getframe().f_code.co_name
+    obj = dc.C_2018_F3_Johnson
+    
 
     eph = EphemrisInput(from_date="2017.8.01.0",
                         to_date = "2017.8.30.0",
@@ -301,22 +352,26 @@ def test_parabollic_C_2018_F3_Johnson_J2000_for_2017():
                         equinox_name = "J2000")
 
 
-    df = calc_eph_twobody(dc.C_2018_F3_Johnson, eph)
-    check_df(df, exp_df, EXP_DIFF)       
+    df = calc_eph_twobody(obj, eph)   
+    method=FUNC_NAME+":calc_eph_twobody"
+    check_df(df, exp_df, EXP_DIFF, method) 
 
-    df = calc_eph_twobody_universal(dc.C_2018_F3_Johnson, eph)   
-    check_df(df, exp_df, EXP_DIFF)     
+    df = calc_eph_twobody_universal(obj, eph)   
+    method=FUNC_NAME+":calc_eph_twobody_universal"
+    check_df(df, exp_df, EXP_DIFF, method) 
 
+    df = calc_eph_minor_body_perturbed(obj, eph)  
+    method=FUNC_NAME+":calc_eph_minor_body_perturbed"  
+    check_df(df, exp_df, EXP_DIFF_PERT, method) 
 
-    df = calc_eph_minor_body_perturbed(dc.C_2018_F3_Johnson, eph)    
-    check_df(df, exp_df, EXP_DIFF_PERT)        
-
-    df = calc_eph_by_cowells(dc.C_2018_F3_Johnson, eph)   
-    check_df(df, exp_df, EXP_DIFF_PERT)    
-
+    df = calc_eph_by_cowells(obj, eph)   
+    method=FUNC_NAME+":calc_eph_by_cowells"
+    check_df(df, exp_df, EXP_DIFF_PERT, method) 
+    
     if TEST_ENCKES :
-        df = calc_eph_by_enckes(dc.C_2018_F3_Johnson, eph)   
-        check_df(df, exp_df, EXP_DIFF_PERT_ENCKES)    
+        df = calc_eph_by_enckes(obj, eph)   
+        method=FUNC_NAME+":calc_eph_by_enckes" 
+        check_df(df, exp_df, EXP_DIFF_PERT_ENCKES, method)    
 
 
 def test_hyperbolical_C_2020_J1_SONEAR_J2000_for_2020():
@@ -327,25 +382,31 @@ def test_hyperbolical_C_2020_J1_SONEAR_J2000_for_2020():
     EXP_DIFF_PERT = 81
     EXP_DIFF_PERT_ENCKES = 81
     obj = dc.C_2020_J1_SONEAR
+    FUNC_NAME=sys._getframe().f_code.co_name
 
     eph = EphemrisInput(from_date="2021.04.01.0",
                         to_date = "2021.05.30.0",
                         step_dd_hh_hhh = "2 00.0",
                         equinox_name = "J2000")
 
-    df = calc_eph_twobody(obj, eph)
-    check_df(df, exp_df, EXP_DIFF)        
+    df = calc_eph_twobody(obj, eph)   
+    method=FUNC_NAME+":calc_eph_twobody"
+    check_df(df, exp_df, EXP_DIFF, method) 
 
     df = calc_eph_twobody_universal(obj, eph)   
-    check_df(df, exp_df, EXP_DIFF)     
+    method=FUNC_NAME+":calc_eph_twobody_universal"
+    check_df(df, exp_df, EXP_DIFF, method) 
 
-    df = calc_eph_minor_body_perturbed(obj, eph)    
-    check_df(df, exp_df, EXP_DIFF_PERT)        
+    df = calc_eph_minor_body_perturbed(obj, eph)  
+    method=FUNC_NAME+":calc_eph_minor_body_perturbed"  
+    check_df(df, exp_df, EXP_DIFF_PERT, method) 
 
     df = calc_eph_by_cowells(obj, eph)   
-    check_df(df, exp_df, EXP_DIFF_PERT)    
+    method=FUNC_NAME+":calc_eph_by_cowells"
+    check_df(df, exp_df, EXP_DIFF_PERT, method) 
     
     if TEST_ENCKES :
         df = calc_eph_by_enckes(obj, eph)   
-        check_df(df, exp_df, EXP_DIFF_PERT_ENCKES)    
+        method=FUNC_NAME+":calc_eph_by_enckes" 
+        check_df(df, exp_df, EXP_DIFF_PERT_ENCKES, method)    
 

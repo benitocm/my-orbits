@@ -128,7 +128,6 @@ VSOP87 provides methos to calculate Heliocentric coordinates:
     B, the ecliptical latitude
     R, the radius vector (=distance to the Sun)
 """
-        
 def h_xyz_eclip_eqxdate(name, jde):
     sfx = name.lower()[:3]
     fn=VSOP87_DATA_DIR.joinpath('VSOP87C.'+sfx)

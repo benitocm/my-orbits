@@ -120,6 +120,7 @@ def norm_rad(alpha):
 # angles [-360, 360]
 # time   [0,24]
 
+
 def dgms2dg(dg ,arm = 0, ars =0, sign = 1) : 
     """Convert from degress, minutes and seconds to decimal degrees
 
@@ -690,7 +691,6 @@ def ut2gst_v2(year,month,day,h,m,s):
     gst = t0 + 1.002738*ut
     gst = norm_hours(gst)
     return h2hms(gst)
-
 
 def polynomial(a0,a1,a2,a3,a4,x):
     """

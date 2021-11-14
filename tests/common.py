@@ -36,7 +36,7 @@ def check_df(df, exp_df, exp_diff, func_name=None) :
     #print (df[df.columns[0:8]])
     assert len(df) == len(exp_df), "Different number of dates"
     diff_secs = calc_diff_seconds(df, exp_df)
-    print (f"{func_name} , diff_secs={diff_secs}, avg_diff_secs={diff_secs/len(df)}")
+    print (f"{func_name} , improve:{exp_diff-diff_secs} exp_diff: {exp_diff},  diff_secs={diff_secs}, avg_diff_secs={diff_secs/len(df)}")
     assert diff_secs < exp_diff , "The difference in seconds is larger than expected"
     return diff_secs, diff_secs/len(df)
 
