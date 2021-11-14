@@ -16,29 +16,11 @@ from scipy.integrate import solve_ivp
 
 # Local application imports
 from myorbit import coord as co
-from myorbit.lagrange.lagrange_coeff import calc_rv_from_r0v0
-from myorbit.util.timeut import  MDJ_J2000, JD_J2000
-from myorbit.util.general import mu_by_name, mu_Sun, my_range, measure, pow
-from myorbit.orbutil import calc_perturbed_accelaration
-from myorbit.kepler.keplerian import KeplerianStateSolver
 import myorbit.orbutil as ob
-import myorbit.data_catalog as dc
-from myorbit.ephemeris_input import EphemrisInput
-from myorbit import coord as co
 from myorbit.lagrange.lagrange_coeff import calc_rv_from_r0v0
-from myorbit.util.timeut import  MDJ_J2000, JD_J2000
+from myorbit.kepler.keplerian import KeplerianStateSolver
 from myorbit.util.general import mu_Sun, my_range, measure, pow
-from myorbit.kepler.keplerian import KeplerianStateSolver
-import myorbit.orbutil as ob
-
-
-from pathlib import Path
-CONFIG_INI=Path(__file__).resolve().parents[2].joinpath('conf','config.ini')
-from configparser import ConfigParser
-cfg = ConfigParser()
-cfg.read(CONFIG_INI)
-
-ENKES_ABS_TOL = float(cfg.get('general','enkes_abs_tol'))
+from myorbit.init_config import ENKES_ABS_TOL
 
 logger = logging.getLogger(__name__)
 

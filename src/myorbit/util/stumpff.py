@@ -11,15 +11,7 @@ from numpy import sin, cos, sqrt, cosh, sinh, sqrt, abs
 
 # Local application imports
 from myorbit.util.general import KahanAdder, NoConvergenceError
-
-from pathlib import Path
-CONFIG_INI=Path(__file__).resolve().parents[3].joinpath('conf','config.ini')
-from configparser import ConfigParser
-cfg = ConfigParser()
-cfg.read(CONFIG_INI)
-STUMPFF_ABS_TOL = float(cfg.get('general','stumpff_abs_tol'))
-STUMPFF_METHOD = 0 if cfg.get('general','stumpff_method') == 'as_series' else 1
-
+from myorbit.init_config import STUMPFF_ABS_TOL, STUMPFF_METHOD
 logger = logging.getLogger(__name__)
 
 def calc_stumpff(x, atol=STUMPFF_ABS_TOL, max_iters=200):

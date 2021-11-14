@@ -7,21 +7,23 @@ import logging
 from functools import partial
 from pathlib import Path
 from configparser import ConfigParser
+from math import fsum
 
 # Third party imports
-import pandas as pd
 import numpy as np
 from toolz import pipe 
 from numpy import sin, cos, deg2rad, rad2deg, tan
 
 # Local application imports
 from myorbit.util import timeut as tc
-from myorbit.util.timeut import JD_J2000, JD_B1950, CENTURY
+from myorbit.util.timeut import JD_J2000, CENTURY
 from myorbit import coord as co
-from myorbit.util.general import  memoize
+from myorbit.util.general import  memoize, kahan_sum
 from myorbit.coord import polarFcartesian, Coord, polarFcartesian, prec_mtx_equat
-from myorbit.data_catalog import CometElms
-from myorbit.util.constants import *
+from myorbit.init_config import VSOP87_DATA_DIR
+from myorbit.util.timeut import reduce_rad, norm_rad
+from myorbit.util.constants import PI
+from myorbit.init_config import VSOP87_DATA_DIR
 
 logger = logging.getLogger(__name__)
 
@@ -31,18 +33,6 @@ logger = logging.getLogger(__name__)
 #VSOP87C - rectangular, equinox of date
 #VSOP87D - spherical, equinox of date
 #VSOP87E - rectangular, barycentric, of J2000.0
-
-CONFIG_INI=Path(__file__).resolve().parents[3].joinpath('conf','config.ini')
-cfg = ConfigParser()
-cfg.read(CONFIG_INI)
-VSOP87_DATA_DIR=Path(cfg.get('general','vso87_data_dir_path'))
-
-def reduce_rad(rad, to_positive=False):
-    remainder = tc.my_frac(rad/TWOPI)*TWOPI
-    if rad > 0 :
-        return remainder
-    else :
-        return -remainder + TWOPI if to_positive else -remainder        
 
 @memoize
 def read_file(fn) :
@@ -104,7 +94,8 @@ def p_eq(v):
 
 def do_sum (tau, mtx_dict, var_name):
     mtx = mtx_dict[var_name] 
-    return np.sum(mtx[:,0]*np.cos(mtx[:,1]+mtx[:,2]*tau))
+    return np.sum((mtx[:,0]*np.cos(mtx[:,1]+mtx[:,2]*tau)))
+
 
 def do_calc(var_prefix, mtx_dict, tau):
     # var_prefix='X'
@@ -173,7 +164,7 @@ def h_rlb_eclip_eqxdate(name, jde, tofk5=False):
     sfx = name.lower()[:3]
     fn=VSOP87_DATA_DIR.joinpath('VSOP87D.'+sfx)
     r, l, b = calc_series(fn, jde,['R','L','B'])    
-    l = reduce_rad(l,True) # longitude muast be [0,360]
+    l = norm_rad(l) # longitude muast be [0,360]
     b = reduce_rad(b,False) # latitud must be [-90,90]
     # Up to know, l and b are referred to the mean dynamical
     # ecliptic and equinox of the date defined by VSOP.
@@ -187,7 +178,7 @@ def h_rlb_eclip_j2000(name, jde):
     sfx = name.lower()[:3]
     fn=VSOP87_DATA_DIR.joinpath('VSOP87B.'+sfx)
     r, l, b = calc_series(fn, jde,['R','L','B'])    
-    return np.array([r,reduce_rad(l,True),reduce_rad(b,False)])
+    return np.array([r,norm_rad(l),reduce_rad(b,False)])
 
 
 def g_rlb_eclip_sun_eqxdate(jde, tofk5=True) : 
@@ -305,113 +296,9 @@ def g_rlb_equat_planet_J2000(name, jde):
 
 	
 
-
-"""   
-def hrlb_eqxdate(name,t):
-    sfx = name.lower()[:3]
-    fn='/home/benito/wsl_projs/personal/vsop87/VSOP87D.'+sfx
-    return calc(fn,t,['R','L','B'])    
-"""    
-
-import sys
     
 if __name__ == "__main__":
-    #jde = 2448976.5
-    #jde = tc.datetime2jd(1990,10,6,0,0,0)
-    jde = tc.datetime2jd(1985,11,15,0,0,0)
-    #c1 = kk(jde)
-    #print (co.as_str(c1))
-    
-    #co.mk_co_equat2("4h00m40.226s","22°04m27s","",r=0.7368872829651026)
-    
-    HALLEY = CometElms(name="1P/Halley",
-                epoch_mjd=None ,
-                q =  0.5870992 ,
-                e = 0.9672725 ,
-                i_dg = 162.23932 ,
-                Node_dg = 58.14397 ,
-                w_dg = 111.84658 ,
-                tp_str = "19860209.43867",
-                equinox_name = "B1950")
-    #print (HALLEY)
-
-    #c1 = g_rlb_equat_body_j2000(jde,HALLEY)
-    #p_radv(c1)
-    #co1 = Coord(np.array(c1),'', EQUAT2_TYPE)
-    #print (co.as_str(co1))
-    
-    c1 = ""
-    
-    ENCKE = CometElms(name="2P/Encke",
-            epoch_mjd=None ,
-            q =  2.2091404*(1-0.8502196) ,
-            e = 0.8502196 ,
-            i_dg = 11.94524 ,
-            Node_dg = 334.75006 ,
-            w_dg = 186.23352 ,
-            tp_str = "19901028.54502",
-            equinox_name = "J2000")
-
-    jde = tc.datetime2jd(1990,10,6,0,0,0)
-    #c1 = g_rlb_equat_body_j2000(jde,ENCKE)
-    print (c1)
-    """
-    
-    #Omega_0 = deg2rad(334.04096)
-    #omega_0 = deg2rad(186.24444)
-    #i_0 = deg2rad(11.93911)
-    #T1 = (tc.JD_B1950 - tc.JD_J2000)/36525.0
-    #T2 = 0
-    #c1,c2,c3 = change_equinox_angles(Omega_0, i_0, omega_0,T1,T2)
-    #p_rad(c1)
-    #p_rad(c2)
-    #p_rad(c3)
-    
-    jde = 2448908.5
-    #jde = tc.datetime2jd(1990,10,6,0,0,0)
-    #c1 = g_xyz_equat_sun_j2000(jde)
-    #print (c1)
-    #c1 = g_xyz_equat_sun_eqxdate(jde)
-    #print (c1)
-    """
-    #c1 = g_xyz_eclip_sun_j2000(jde)
-    print (c1)
-    c1 = g_xyz_equat_sun_j2000(jde)
-    print (c1)
-    T1 = 0
-    T2 = tc.T("2044.0")    
-    T2 = (2467616.0 - JD_J2000)/ CENTURY
-    c2 = co.prec_mtx_equat(T1,T2).dot(c1)
-    print (c2)
-    T2 = (JD_B1950 - JD_J2000)/ CENTURY
-    c2 = co.prec_mtx_equat(T1,T2).dot(c1)
-    print (c2)
-    """
-
-
-
-
-
-
-    #jd = 2457391.625
-    #c1 = hrlb_eclip_j2000("Venus",jd)
-    #p_radv(c1)
-
-    jde = 2457391.625
-    #c1 = h_rlb_eclip_eqxdate("Venus",jde)
-    #p_radv(c1)
-    c1 = g_rlb_equat_planet_J2000("Venus",jde)
-    p_eq(c1)
-    #jde = 2448976.5
-    #c1 = h_rlb_eclip_eqxdate("Venus", jde, tofk5=False)
-    #print (c1)
-    #jde = 2448908.5
-    #c1 = g_rlb_eclip_sun_eqxdate(jde,tofk5=True)
-    #p_radv(c1)
-    #c1 = g_xyz_equat_sun_eqxdate(jde,tofk5=True)
-    #print (c1)
-    """
-
+    None
     
  
  

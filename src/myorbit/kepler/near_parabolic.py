@@ -15,14 +15,7 @@ from myorbit.util.general import pow, NoConvergenceError
 from myorbit.util.stumpff import calc_stumpff
 from myorbit.util.timeut import norm_rad
 from myorbit.util.general import mu_Sun
-
-
-from pathlib import Path
-CONFIG_INI=Path(__file__).resolve().parents[3].joinpath('conf','config.ini')
-from configparser import ConfigParser
-cfg = ConfigParser()
-cfg.read(CONFIG_INI)
-NEAR_PARABOLIC_ABS_TOL = float(cfg.get('general','near_parabollic_abs_tol'))
+from myorbit.init_config import NEAR_PARABOLIC_ABS_TOL
 
 logger = logging.getLogger(__name__)
 

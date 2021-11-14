@@ -23,22 +23,16 @@ import myorbit.data_catalog as dc
 from myorbit.util.timeut  import  MDJ_J2000, JD_J2000, CENTURY, mjd2jd
 from myorbit.util.general import pow
 from myorbit.planets import h_xyz_eclip_eqxdate, h_xyz_eclip_pluto_j2000, g_rlb_eclip_sun_eqxdate, g_xyz_equat_sun_j2000
-from myorbit.util.general import mu_Sun, INV_C,  PI
+from myorbit.util.general import mu_Sun
+from myorbit.util.constants import INV_C, PI
 from numba import jit
-from numba import njit
-from numba.core import types
 
-from numba.typed import Dict
 
 # The Dict.empty() constructs a typed dictionary.
 # The key and value typed must be explicitly declared.
-GM_by_planet = Dict.empty(
-    key_type=types.unicode_type,
-    value_type=types.float64,
-)
-
 GM = 2.959122083e-4 
 
+GM_by_planet={}
 GM_by_planet["Sun"]= GM                 
 GM_by_planet["Mercury"]=GM/6023600.0
 GM_by_planet["Venus"]=GM/408523.5
@@ -48,7 +42,7 @@ GM_by_planet["Jupiter"]=GM/1047.355
 GM_by_planet["Saturn"]=GM /3498.5
 GM_by_planet["Uranus"]=GM / 22869.0
 GM_by_planet["Neptune"]=GM / 19314.0
-GM_by_planet["Pluto"]=GM/3000000.0 
+GM_by_planet["Pluto"]=GM/3000000.0
 
 
 

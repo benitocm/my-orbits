@@ -33,8 +33,6 @@ logging.config.fileConfig(CONFIG_INI, disable_existing_loggers=False)
 from common import check_df, TEST_DATA_PATH
 
 
-ABS=1e-12
-
 # The test consist should fail if a NoConvergenceError convergence error is raised
 def test_almost_parabolical():
     delta_days=50
@@ -73,6 +71,7 @@ def test_C_2011_W3_Lovejoy_for_2011():
                         step_dd_hh_hhh = "02 00.0",
                         equinox_name = EQX_J2000)
 
+    
     df = calc_eph_twobody(obj,eph)   
     method=FUNC_NAME+":calc_eph_twobody"
     check_df(df, exp_df, EXP_DIFF, method) 
@@ -84,11 +83,11 @@ def test_C_2011_W3_Lovejoy_for_2011():
     df = calc_eph_minor_body_perturbed(obj, eph)   
     method=FUNC_NAME+":calc_eph_minor_body_perturbed"
     check_df(df, exp_df, EXP_DIFF_PERT,method) 
-
+    
     df = calc_eph_by_cowells(obj, eph)   
     method=FUNC_NAME+":calc_eph_by_cowells"
     check_df(df, exp_df, EXP_DIFF_PERT,method)    
-
+    
     if TEST_ENCKES :
         df = calc_eph_by_enckes(obj, eph)   
         method=FUNC_NAME+":calc_eph_by_enckes"
@@ -172,6 +171,6 @@ def test_C_2007_M5_SOHO_6_months():
         method=FUNC_NAME+":calc_eph_by_enckes"
         check_df(df, exp_df, EXP_DIFF_PERT_ENCKES,method)        
     
-    
+
     
 

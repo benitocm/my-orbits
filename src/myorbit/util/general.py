@@ -15,7 +15,7 @@ from toolz import valmap
 from numba import jit
 
 # Local application imports
-from myorbit.util.constants import *
+from myorbit.util.constants import SECONDS_IN_DAY, AU_m
 
 #https://en.wikipedia.org/wiki/Standard_gravitational_parameter
 mu_m3s_2__by_name = {

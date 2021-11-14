@@ -74,7 +74,7 @@ def reduce_rad(rad, to_positive=False):
         The angle reduced [radians]
     """
     remainder = my_frac(rad/TWOPI)*TWOPI
-    if isclose(remainder, 0.0, abs_tol=1e-9):
+    if np.abs(remainder) <= 1e-9 :
         return 0.0
     if rad >= 0.0 :
         return remainder
@@ -109,9 +109,23 @@ def norm_dg(degrees):
         return new_alpha
 
 def norm_rad(alpha):
+    """Given a angle in radians (positve or negative), computes
+    the equivalent angle between [0,2*PI) radians. In case,
+    the angle is negative, the positive version is returned.
+
+    Parameters
+    ----------
+    alpha : float
+        Angle to process [radians]
+
+    Returns
+    -------
+    float
+        The equivalent angle between [0,2*PI)
+    """
     cycles = my_fix(alpha/TWOPI)
     new_alpha = alpha - (cycles*TWOPI)
-    if isclose(new_alpha, 0.0, rel_tol=0, abs_tol=1e-12) or isclose(new_alpha, TWOPI, rel_tol=0, abs_tol=1e-12):
+    if np.abs(new_alpha) <= 1e-12 or np.abs(new_alpha-TWOPI) <= 1e-12 :
         return 0.0
     if alpha < 0 :
         new_alpha = TWOPI + new_alpha

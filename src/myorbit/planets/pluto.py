@@ -2,7 +2,6 @@
 """
 
 # Standard library imports
-from functools import partial
 
 # Third party imports
 import numpy as np
@@ -11,7 +10,7 @@ from toolz import pipe
 
 # Local application imports
 from myorbit.util.timeut import JD_J2000, CENTURY
-from myorbit.util.general import pr_radv
+from myorbit.util.general import pr_radv, kahan_sum
 from myorbit.coord import cartesianFpolar, obliquity, Rx_3d, polarFcartesian
 from .vsop87 import g_xyz_equat_sun_j2000
 
@@ -210,15 +209,15 @@ RADIUS_VECTOR = np.array([
 radius vector according to Table 37.A in Meeus' book, page 265"""
 
 def cal_terms(alpha, mtx, factor):
-    return np.sum(mtx[:,0]*np.sin(alpha) + mtx[:,1]*np.cos(alpha))*factor
+    return kahan_sum(mtx[:,0]*np.sin(alpha) + mtx[:,1]*np.cos(alpha))*factor
 
 
-    """
-    VSOP87 provides methos to calculate Heliocentric coordinates:
-        L, the ecliptical longitude (different from the orbtial longitude)
-        B, the ecliptical latitude
-        R, the radius vector (=distance to the Sun)
-    """
+"""
+VSOP87 provides methos to calculate Heliocentric coordinates:
+    L, the ecliptical longitude (different from the orbtial longitude)
+    B, the ecliptical latitude
+    R, the radius vector (=distance to the Sun)
+"""
 
 def h_rlb_eclip_pluto_j2000(jde):
     """
