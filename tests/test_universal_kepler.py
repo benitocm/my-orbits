@@ -76,7 +76,7 @@ def test_C_2003_M3_SOHO():
     EXP_DIFF = 74286.96
     EXP_DIFF_UNI = 74285.66
     EXP_DIFF_COWELLS = 38009.9
-    EXP_DIFF_ENKES = 37911.2
+    EXP_DIFF_ENKES = 37911.4
     FUNC_NAME=sys._getframe().f_code.co_name
     
 

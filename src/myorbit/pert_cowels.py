@@ -14,7 +14,7 @@ from scipy.integrate import solve_ivp
 from myorbit import coord as co
 import myorbit.coord as co
 from myorbit.util.general import frange
-import myorbit.orbits.orbutil as ob
+import myorbit.orbutil as ob
 import myorbit.data_catalog as dc
 from myorbit.ephemeris_input import EphemrisInput
 from myorbit.kepler.keplerian import KeplerianStateSolver

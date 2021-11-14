@@ -18,7 +18,7 @@ import myorbit.planets as pl
 from myorbit import coord as co
 from myorbit.util.general import frange, mu_Sun
 from myorbit.util.timeut import CENTURY, JD_J2000, dg2h, h2hms, dg2dgms, T_given_mjd, mjd2jd, jd2str_date
-import myorbit.orbits.orbutil as ob
+import myorbit.orbutil as ob
 import myorbit.data_catalog as dc
 from myorbit.ephemeris_input import EphemrisInput
 from myorbit.planets import g_xyz_equat_sun_j2000

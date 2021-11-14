@@ -12,7 +12,7 @@ from numpy.random import default_rng
 from myorbit.util.timeut import *
 from myorbit.coord import *
 
-import myorbit.orbits.orbutil as ob
+import myorbit.orbits as ob
 
 
 def _next_E (e, m_anomaly, E) :

@@ -3,7 +3,9 @@ This module contains functions related to orbit calculations
 """
 # Standard library imports
 import logging
-from time import time, process_time
+from time import  process_time
+from math import isclose
+
 
 # Third party imports
 import pandas as pd
@@ -17,11 +19,17 @@ from myorbit import coord as co
 from myorbit.lagrange.lagrange_coeff import calc_rv_from_r0v0
 from myorbit.util.timeut import  MDJ_J2000, JD_J2000
 from myorbit.util.general import mu_by_name, mu_Sun, my_range, measure, pow
-from myorbit.orbits.orbutil import calc_perturbed_accelaration
+from myorbit.orbutil import calc_perturbed_accelaration
 from myorbit.kepler.keplerian import KeplerianStateSolver
-import myorbit.orbits.orbutil as ob
+import myorbit.orbutil as ob
 import myorbit.data_catalog as dc
 from myorbit.ephemeris_input import EphemrisInput
+from myorbit import coord as co
+from myorbit.lagrange.lagrange_coeff import calc_rv_from_r0v0
+from myorbit.util.timeut import  MDJ_J2000, JD_J2000
+from myorbit.util.general import mu_Sun, my_range, measure, pow
+from myorbit.kepler.keplerian import KeplerianStateSolver
+import myorbit.orbutil as ob
 
 
 from pathlib import Path
@@ -40,124 +48,136 @@ def f1(vector):
     # Utility function
     return vector/pow(norm(vector),3)
 
-def calc_F2(c_xyz, b_xyz, abs_tol=ENKES_ABS_TOL):
-    c = norm(c_xyz)
-    b = norm(b_xyz)    
-    return 1 - pow(c/b,3)
 
-def calc_F(c_xyz, b_xyz, abs_tol=ENKES_ABS_TOL):
-    """[summary]
-    # Function to compute the difference between nearly equal numbers
-    # Appendix F of Orbital Mechanics
+def calc_F(c, b, abs_tol=ENKES_ABS_TOL):
+    """According to the book Orbital Mechanics for Engineering, this is the 
+    recommended way to solve the equation F=1-c^3/b^3 when c/b is aproximately 1.
+    That equation shows up in the Enkes approach.
+    This documented in the Appendix F of the book.
+    I have tested with several tolerances and I have not seen any improvements 
 
     Parameters
     ----------
-    c : [type]
-        [description]
-    b : [type]
-        [description]
-
+    c : float
+        
+    b : float
+        
     Returns
     -------
-    [type]
-        [description]
+    float
+        The solution for 1-c^3/b^3
     """
-    c = norm(c_xyz)
-    b = norm(b_xyz)    
-    ratio_c_b = c/b
-    if np.abs(ratio_c_b-1.0) <= abs_tol:
-        #print (f"Enckes ratio {ratio_c_b}")
-        a = norm(b_xyz-c_xyz)
-        q = a*(2*b-a)/pow(b,2)
-        return (pow(q,2)-3*q+3)*q/(1+pow(1-q,1.5))
+    if isclose(c/b, 1.0, rel_tol=0., abs_tol=abs_tol) :
+        a = b-c
+        q = (2*b*a-pow(a,2))/pow(b,2)
+        return (pow(q,2)-3*q+3)*q/(1+((1-q)*np.sqrt(1-q)))
     else :
         return 1 - pow(c/b,3)
 
-def my_dfdt(t, y, r0, v0, t0):
-    """
-    Computes the time derivative of the unknown function. Integrating this function, we obtain the unknown
+def my_dfdt(t, y, r0_xyz, v0_xyz, t0):
+    """Computes the time derivative of the unknown function. Integrating this function, we obtain the unknown
     function. We know the velocity and acceleration that is basically what this function returns so integrating we obtain 
     the position and velocity.
 
-    Args:
-        t : point in time (normally used in modified julian days) at which we want to calculate the derivative
-        y  : The vector with the variables to solve the differential equation system
+    Parameters
+    ----------
+    t : float
+        Time of computation (normally used in Modified Julian days) 
+    y : np.array[6]
+        The vector with the variables to solve the differential equation system
                 [0..3] delta_r
                 [3..6] delta_v (not used in this case)
-        r0 : Radio Vector of the object w.r.t. the Sun (AUs) at time t0
-        v0 : Velocity vector Elapsed time (AUs/days) at time t0
-        t0 : Initial point timme
+    r0_xyz : np.array[3] 
+            Initial radio vector (cartesian) from the Sun to the body with respect to the
+            orbital plane (perifocal frame) [AU]        
+    v0_xyz : np.array[3]
+            Initial velocity vector (cartesian) of the body with respect to the orbital 
+            plane (perifocal frame) [AU/days]
+    t0 : [type]
+        Initial time (normally in Modified Julian Days)
 
-    Returns :
-        A vector vector of 6 positions with delta_v and delta_acc ()
-    """  
-    delta_r = y[0:3]    
-    # The two-bodys orbit is calculated starting at r0,v0 and t-t0 as elapsed time
-    r_osc, *other = calc_rv_from_r0v0(mu_Sun, r0, v0, t-t0)    
+    Returns
+    -------
+    np.array[6]
+        A vector vector of 6 positions where:
+            [0..2] is the  delta_v 
+            [3..6] is the  delta_acc 
+    """
+    deltar_xyz = y[0:3]    
+    # The two-bodys orbit is calculated starting at r0, v0 and t-t0 as elapsed time
+    rosc_xyz, *other = calc_rv_from_r0v0(mu_Sun, r0_xyz, v0_xyz, t-t0)    
     # The radio vector perturbed is the two-bodys plus the delta_r
-    r_pert = r_osc + delta_r
-    #F = 1 - pow(norm(r_osc)/norm(r_pert),3)
-    F = calc_F(r_osc, r_pert)
-    #TODO Check if this works, to avoid compute the difference between nearly equal numbers 
-    #F = calc_F(norm(delta_r), norm(r_pert), norm(r_osc))
-    # The increment of accelration is calculated including the normal perturbed acceleartion
-    delta_acc = (-mu_Sun/pow(norm(r_osc),3))*(delta_r- F*r_pert)+calc_perturbed_accelaration(t, r_pert)    
+    rpert_xyz = rosc_xyz + deltar_xyz
+    F = calc_F(norm(rosc_xyz), norm(rpert_xyz))
+    delta_acc = (-mu_Sun/pow(norm(rosc_xyz),3))*(deltar_xyz- F*rpert_xyz)+ob.calc_perturbed_accelaration(t, rpert_xyz)    
     return np.concatenate((y[3:6],delta_acc))
 
 @measure
-def apply_enckes(eph, t_range, r0, v0):
-    """
-    This is a utility function needed because the integration needs to be done in two intervals so this function
-    is called for each of these intervals. It applies the enckles's approach, i.e. calcualate the dr and dv
+def apply_enckes(eph, t_range, r0_xyz, v0_xyz):
+    """Utility function needed because the integration needs to be done in two intervals so this function
+    is called for each of these intervals. It applies the enckles's approach, i.e. calculates the dr and dv
     to modified the two bodys (osculating orbit)
 
-    Args:
-        eph : Ephemeris data (EphemrisInput)
-        t_range : A numpy vector with the time samples where each time sample defines a time interval.
-                  The enckles method is applied in each one of this interval.
-                  The time samples are modified julian days.
-        r0 : A numpy vector that indicates the initial radio vector (AUs)
-        v0  : A numpy vector that indicates the initial velocity vector (AUs/days)
-        r0 : Radio Vector of the object w.r.t. the Sun (AUs) at time t0
+    Parameters
+    ----------
+    eph : EphemrisInput
+        Ephemeris data 
+    t_range : np.array[]
+             A numpy vector with the time samples where each time sample defines a time interval.
+             The enckles method is applied in each one of this interval. The time samples are 
+             modified julian days.
+    r0_xyz : np.array[3]
+            Initial radio vector (cartesian) from the Sun to the body with respect to the
+            orbital plane (perifocal frame) [AU]        
+    v0_xyz : np.array[3]
+            Initial velocity vector (cartesian) of the body with respect to the orbital 
+            plane (perifocal frame) [AU/days]
 
-    Returns :
+    Returns
+    -------
+    dict
         A dictionary where the key is a time reference in days (modified julian days) and the 
         the value is the a tuple with two vectors, the radio vector r and the velocity vector at the time reference
-    """  
+    """
     steps = np.diff(t_range)
     result = dict()
     clock_mjd = t_range[0]
     ms_acc = 0
     for idx, step in enumerate(steps) :
         t1 = int(round(process_time() * 1000))
-        sol = solve_ivp(my_dfdt, (clock_mjd, clock_mjd+step), np.zeros(6), args=(r0, v0, clock_mjd) , rtol = 1e-12)  
+        sol = solve_ivp(my_dfdt, (clock_mjd, clock_mjd+step), np.zeros(6), args=(r0_xyz, v0_xyz, clock_mjd) , rtol = 1e-12)  
         ms_acc += (int(round(process_time() * 1000)) - t1)
         assert sol.success, "Integration was not OK!"
-        r_osc, v_osc, *other = calc_rv_from_r0v0 (mu_Sun, r0, v0, step)
+        rosc_xyz, vosc_xyz, *other = calc_rv_from_r0v0 (mu_Sun, r0_xyz, v0_xyz, step)
         # The last integration value is taken
-        r0 = r_osc + sol.y[:,-1][:3]
-        v0 = v_osc + sol.y[:,-1][3:6]
+        r0_xyz = rosc_xyz + sol.y[:,-1][:3]
+        v0_xyz = vosc_xyz + sol.y[:,-1][3:6]
         # If the clock is in the middle of the ephemeris time, it is inserted in the solution
         if eph.from_mjd <= clock_mjd+step <= eph.to_mjd :
-            result[clock_mjd+step] = (r0, v0)
+            result[clock_mjd+step] = (r0_xyz, v0_xyz)
         clock_mjd += step    
-    print (f"Total Elapsed time for solve_ivp: {ms_acc} ms ")
-    return result
+    logger.debug (f"Total Elapsed time for solve_ivp: {ms_acc} ms ")
+    return result 
 
 
-def calc_eph_by_enckes (body, eph):
-    """
-    Computes the ephemeris for a minor body using the Enckes method. This has more precission that
+def calc_eph_by_enckes (body, eph, include_osc=False):
+    """Computes the ephemeris for a minor body using the Enckes method. This has more precission that
     the Cowells but it takes more time to be calculated.
 
-    Args:
-        body : The orbital elements of the body, it can be an body or a comet
-        eph : Ephemeris data (EphemrisInput)
-        type : Indicates if the body is a asteroid ('body') or a comet ('comet')
+    Parameters
+    ----------
+    body : CometElms, BodyElms
+        Orbital elements of the body which ephemeris is desired to calculate. In case of the
+        body is a comet, the type of this parameter must be CometElms. In case of the boyd is a small body
+        the type of this parameter must be BodyElms.
+    eph :EphemrisInput
+        The ephemeris data
 
-    Returns :
-        A dataframe with the result
-    """
+    Returns
+    -------
+    pd.DataFrame
+        Dataframe with the ephemeris data calculated.
+    """        
 
     # This matrix just depends on the desired equinox to calculate the obliquity
     # to pass from ecliptic coordinate system to equatorial
@@ -260,102 +280,13 @@ def calc_eph_by_enckes (body, eph):
 
     solution = {t:solution[t] for t in sorted(solution.keys())}
         
-    return ob.process_solution(solution, MTX_J2000_Teqx, MTX_equatFeclip, eph.eqx_name, False)
+    return ob.process_solution(solution, MTX_J2000_Teqx, MTX_equatFeclip, eph.eqx_name, include_osc)
 
 
 
-def test_all():
-    eph = EphemrisInput(from_date="2020.05.25.0",
-                        to_date = "2020.06.15.0",
-                        step_dd_hh_hhh = "02 00.0",
-                        equinox_name = "J2000")
-
-    for name in dc.DF_BODYS['Name']: 
-        body = dc.read_body_elms_for(name,dc.DF_BODYS)
-        print ("Calculating for ",name)
-        print (calc_eph_by_enckes(body, eph)) 
-
-
-
-def test_body():
-    eph = EphemrisInput(from_date="2020.05.15.0",
-                        to_date = "2020.06.15.0",
-                        step_dd_hh_hhh = "02 00.0",
-                        equinox_name = "J2000")
-
-    CERES = dc.read_body_elms_for("Ceres",dc.DF_BODYS)
-
-
-    df = calc_eph_by_enckes(CERES, eph)
-
-    print (df[df.columns[0:8]])
-
-def test_comet():
-
-    eph = EphemrisInput(from_date="1985.11.15.0",
-                        to_date = "1986.04.05.0",
-                        step_dd_hh_hhh = "10 00.0",
-                        equinox_name = "J2000")                    
-
-
-    df = calc_eph_by_enckes(dc.HALLEY_J2000, eph)
-
-    print (df[df.columns[0:8]])
-    
-def test_all_comets():
-    """
-    eph = EphemrisInput(from_date="2020.05.25.0",
-                        to_date = "2020.06.15.0",
-                        step_dd_hh_hhh = "02 00.0",
-                        equinox_name = "J2000")
-    """
-
-    df_ = dc.DF_COMETS
-    df_ = df_.query("0.999 < e < 1.001")
-
-    for idx, name in enumerate(df_['Name']): 
-        logger.warning(f"{idx+1} Calculating for {name} ")
-        body = dc.read_comet_elms_for(name,dc.DF_COMETS)
-        eph = EphemrisInput.from_mjds( body.epoch_mjd-25, body.epoch_mjd+25, "02 00.0", "J2000" )
-        print (f"{idx+1} Calculating for {name} ")
-        print (calc_eph_by_enckes(body, eph)) 
-
-def test_several_comets():
-    names = [#"C/1988 L1 (Shoemaker-Holt-Rodriquez)",   # Parabolic
-             "C/-146 P1"]  
-             #"C/1848 P1 (Petersen)"]
-
-    for name in names :
-        body = dc.read_comet_elms_for(name,dc.DF_COMETS)
-        eph = EphemrisInput.from_mjds( body.epoch_mjd-50, body.epoch_mjd+50, "02 00.0", "J2000" )
-        print (f"Calculating for {name} ")
-        df = calc_eph_by_enckes(body, eph)
-        print (df[df.columns[0:8]])
-        #print (calc_eph_by_enke(body, eph, 'comet')) 
-
-@measure
-def test_speed():
-    t = 49400.0
-    y = np.array([0., 0., 0., 0., 0., 0.]) 
-    r0 = np.array([-13.94097381,  11.4769406 ,  -5.72123976])
-    v0 = np.array([-0.00211453,  0.0030026 , -0.00107914])
-    t0 =  49400.0
-    my_dfdt(t, y, r0, v0, t0)
 
 if __name__ == "__main__" :
-    #test_all()
-    #test_2()
-    #test_all_comets()
-    #test_comet()
-    #test_several_comets()
-    #test_body()
-    #test_comet()
-    #test_speed()
-    c = np.array([3.2334,2.23, 12.34])
-    b = c - np.array([0.001, 0.001, 0.001])
-    print (f"c:{c}   b:{b}")
-    print(f"F: {calc_F(c,b,abs_tol=1.e-01)},  F2:{calc_F2(c,b)}")
-    
+    None    
     
 
 
