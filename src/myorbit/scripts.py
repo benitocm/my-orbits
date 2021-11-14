@@ -295,13 +295,7 @@ def test_near_parabollic():
     
 
 
-if __name__ == "__main__":
-    from pathlib import Path 
-    CONFIG_INI= Path(__file__).resolve().parents[2].joinpath('conf','config.ini')                                     
-    import logging.config                                                                                            
-    logging.config.fileConfig(CONFIG_INI, disable_existing_loggers=False)     
-     # For General configuration                                                                                       
-    
+if __name__ == "__main__":   
     #test_all_comets()
     #test_all_bodies()
     #test_almost_parabolical(50)

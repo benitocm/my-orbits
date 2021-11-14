@@ -243,7 +243,6 @@ def n_PPI_p (T1,T2) :
     return n, PPI, p
 
 
-
 def mtx_eclip_prec(T1,T2) : 
     """ 
     Computes the precession of matrix for ecliptic coordinates

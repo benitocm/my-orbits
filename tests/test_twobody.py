@@ -129,7 +129,7 @@ def test_HalleyJ2000_for_1997():
     """        
     fn = TEST_DATA_PATH.joinpath('jpl_halley_1997-Nov-15_1998-Apr-04.csv')
     exp_df = dc.read_jpl_data(fn)    
-    EXP_DIFF = 1099.5
+    EXP_DIFF = 1059
     EXP_DIFF_PERT = 14
     EXP_DIFF_PERT_ENCKES = 8
     FUNC_NAME=sys._getframe().f_code.co_name
@@ -174,8 +174,13 @@ def test_HalleyJ2000_for_2017():
     fn = TEST_DATA_PATH.joinpath('jpl_halley_2017-Nov-15_2018-Apr-04.csv')
     exp_df = dc.read_jpl_data(fn)    
     EXP_DIFF = 1807    
+<<<<<<< HEAD
     EXP_DIFF_PERT = 113.6
     EXP_DIFF_PERT_ENCKES = 66
+=======
+    EXP_DIFF_PERT = 60.6
+    EXP_DIFF_PERT_ENCKES = 5.4
+>>>>>>> dev
     FUNC_NAME=sys._getframe().f_code.co_name
     obj = dc.HALLEY_J2000
 
@@ -265,7 +270,11 @@ def test_ceres_J2000_for_2010():
     EXP_DIFF_PERT = 841
     EXP_DIFF_PERT_ENCKES = 70
     FUNC_NAME=sys._getframe().f_code.co_name
+<<<<<<< HEAD
     obj = dc.CERES_J200
+=======
+    obj = dc.CERES_J2000
+>>>>>>> dev
     
     
     
@@ -300,7 +309,7 @@ def test_elliptical_C2012CH17_J2000_for_2012():
     # This comet  has an eccentricity of 0.999991
     fn = TEST_DATA_PATH.joinpath('jpl_C2012CH17_2012-Sep-27_2012-Nov-27.csv')
     exp_df = dc.read_jpl_data(fn)    
-    EXP_DIFF = 184
+    EXP_DIFF = 183
     EXP_DIFF_PERT = 106
     EXP_DIFF_PERT_ENCKES = 100
     FUNC_NAME=sys._getframe().f_code.co_name
@@ -340,8 +349,13 @@ def test_parabollic_C_2018_F3_Johnson_J2000_for_2017():
     fn = TEST_DATA_PATH.joinpath('jpl-C2018_F3_Johnson-Ago-01_2017-Ago-30.csv')
     exp_df = dc.read_jpl_data(fn)    
     EXP_DIFF = 222
+<<<<<<< HEAD
     EXP_DIFF_PERT = 20
     EXP_DIFF_PERT_ENCKES = 20
+=======
+    EXP_DIFF_PERT = 16.5
+    EXP_DIFF_PERT_ENCKES = 17.2
+>>>>>>> dev
     FUNC_NAME=sys._getframe().f_code.co_name
     obj = dc.C_2018_F3_Johnson
     

@@ -19,14 +19,7 @@ from myorbit.kepler.near_parabolic import calc_rv_by_stumpff
 from myorbit.util.timeut import hemisphere, mjd2str_date
 from myorbit.util.general import  NoConvergenceError
 from myorbit.util.general import mu_Sun
-
-from pathlib import Path
-CONFIG_INI=Path(__file__).resolve().parents[3].joinpath('conf','config.ini')
-from configparser import ConfigParser
-cfg = ConfigParser()
-cfg.read(CONFIG_INI)
-H_ABS_TOL = float(cfg.get('general','angular_momentum_abs_tol'))
-
+from myorbit.init_config import H_ABS_TOL
 
 logger = logging.getLogger(__name__)
 

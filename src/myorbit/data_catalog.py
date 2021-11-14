@@ -21,14 +21,9 @@ import myorbit.util.timeut as tc
 from myorbit.util.timeut import EQX_B1950, EQX_J2000
 from myorbit.coord import make_ra, mtx_gauss_vectors, make_lon
 from myorbit.util.general import pow
-from myorbit.util.constants import *
+from myorbit.util.constants import TWOPI, GM
 
-# Configuration reading
-CONFIG_INI=Path(__file__).resolve().parents[2].joinpath('conf','config.ini')
-from configparser import ConfigParser
-cfg = ConfigParser()
-cfg.read(CONFIG_INI)
-
+from myorbit.init_config import cfg
 logger = logging.getLogger(__name__)
 
 class BodyElms:

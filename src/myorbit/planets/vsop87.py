@@ -7,21 +7,23 @@ import logging
 from functools import partial
 from pathlib import Path
 from configparser import ConfigParser
+from math import fsum
 
 # Third party imports
-import pandas as pd
 import numpy as np
 from toolz import pipe 
 from numpy import sin, cos, deg2rad, rad2deg, tan
 
 # Local application imports
 from myorbit.util import timeut as tc
-from myorbit.util.timeut import JD_J2000, JD_B1950, CENTURY
+from myorbit.util.timeut import JD_J2000, CENTURY
 from myorbit import coord as co
 from myorbit.util.general import  memoize, kahan_sum
 from myorbit.coord import polarFcartesian, Coord, polarFcartesian, prec_mtx_equat
-from myorbit.data_catalog import CometElms
-from myorbit.util.constants import *
+from myorbit.init_config import VSOP87_DATA_DIR
+from myorbit.util.timeut import reduce_rad, norm_rad
+from myorbit.util.constants import PI
+from myorbit.init_config import VSOP87_DATA_DIR
 
 logger = logging.getLogger(__name__)
 
@@ -31,18 +33,6 @@ logger = logging.getLogger(__name__)
 #VSOP87C - rectangular, equinox of date
 #VSOP87D - spherical, equinox of date
 #VSOP87E - rectangular, barycentric, of J2000.0
-
-CONFIG_INI=Path(__file__).resolve().parents[3].joinpath('conf','config.ini')
-cfg = ConfigParser()
-cfg.read(CONFIG_INI)
-VSOP87_DATA_DIR=Path(cfg.get('general','vso87_data_dir_path'))
-
-def reduce_rad(rad, to_positive=False):
-    remainder = tc.my_frac(rad/TWOPI)*TWOPI
-    if rad > 0 :
-        return remainder
-    else :
-        return -remainder + TWOPI if to_positive else -remainder        
 
 @memoize
 def read_file(fn) :
@@ -104,7 +94,12 @@ def p_eq(v):
 
 def do_sum (tau, mtx_dict, var_name):
     mtx = mtx_dict[var_name] 
+<<<<<<< HEAD
     return kahan_sum(mtx[:,0]*np.cos(mtx[:,1]+mtx[:,2]*tau))
+=======
+    return np.sum((mtx[:,0]*np.cos(mtx[:,1]+mtx[:,2]*tau)))
+
+>>>>>>> dev
 
 def do_calc(var_prefix, mtx_dict, tau):
     # var_prefix='X'
@@ -128,7 +123,6 @@ VSOP87 provides methos to calculate Heliocentric coordinates:
     B, the ecliptical latitude
     R, the radius vector (=distance to the Sun)
 """
-        
 def h_xyz_eclip_eqxdate(name, jde):
     sfx = name.lower()[:3]
     fn=VSOP87_DATA_DIR.joinpath('VSOP87C.'+sfx)
@@ -174,7 +168,7 @@ def h_rlb_eclip_eqxdate(name, jde, tofk5=False):
     sfx = name.lower()[:3]
     fn=VSOP87_DATA_DIR.joinpath('VSOP87D.'+sfx)
     r, l, b = calc_series(fn, jde,['R','L','B'])    
-    l = reduce_rad(l,True) # longitude muast be [0,360]
+    l = norm_rad(l) # longitude muast be [0,360]
     b = reduce_rad(b,False) # latitud must be [-90,90]
     # Up to know, l and b are referred to the mean dynamical
     # ecliptic and equinox of the date defined by VSOP.
@@ -188,7 +182,7 @@ def h_rlb_eclip_j2000(name, jde):
     sfx = name.lower()[:3]
     fn=VSOP87_DATA_DIR.joinpath('VSOP87B.'+sfx)
     r, l, b = calc_series(fn, jde,['R','L','B'])    
-    return np.array([r,reduce_rad(l,True),reduce_rad(b,False)])
+    return np.array([r,norm_rad(l),reduce_rad(b,False)])
 
 
 def g_rlb_eclip_sun_eqxdate(jde, tofk5=True) : 
@@ -303,9 +297,18 @@ def g_rlb_equat_planet_J2000(name, jde):
                 MTX_FK5EQUAT_F_VSOPFR.dot,
                 polarFcartesian)
 
+<<<<<<< HEAD
 if __name__ == "__main__":
     None
 
+=======
+
+	
+
+    
+if __name__ == "__main__":
+    None
+>>>>>>> dev
     
  
  

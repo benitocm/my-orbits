@@ -19,13 +19,51 @@ import myorbit.util.timeut as tc
 import myorbit.data_catalog as dc
 from myorbit.util.timeut  import  MDJ_J2000, JD_J2000, CENTURY, mjd2jd
 from myorbit.util.general import pow
+<<<<<<< HEAD:src/myorbit/orbutil.py
 from myorbit.planets import  g_rlb_eclip_sun_eqxdate, g_xyz_equat_sun_j2000, h_xyz_eclip_pluto_j2000, h_xyz_eclip_eqxdate
 from myorbit.util.general import mu_Sun, INV_C, GM_by_planet, PI
+=======
+from myorbit.planets import h_xyz_eclip_eqxdate, h_xyz_eclip_pluto_j2000, g_rlb_eclip_sun_eqxdate, g_xyz_equat_sun_j2000
+from myorbit.util.general import mu_Sun
+from myorbit.util.constants import INV_C, PI
+from numba import jit
+>>>>>>> dev:src/myorbit/orbits/orbutil.py
+
+
+# The Dict.empty() constructs a typed dictionary.
+# The key and value typed must be explicitly declared.
+GM = 2.959122083e-4 
+
+<<<<<<< HEAD:src/myorbit/orbutil.py
+
+=======
+GM_by_planet={}
+GM_by_planet["Sun"]= GM                 
+GM_by_planet["Mercury"]=GM/6023600.0
+GM_by_planet["Venus"]=GM/408523.5
+GM_by_planet["Earth"]=GM/328900.5
+GM_by_planet["Mars"]=GM/3098710.0
+GM_by_planet["Jupiter"]=GM/1047.355
+GM_by_planet["Saturn"]=GM /3498.5
+GM_by_planet["Uranus"]=GM / 22869.0
+GM_by_planet["Neptune"]=GM / 19314.0
+GM_by_planet["Pluto"]=GM/3000000.0
+
+
+
+# The typed-dict can be used from the interpreter.
+#d['posx'] = np.asarray([1, 0.5, 2], dtype='f8')
+#d['posy'] = np.asarray([1.5, 3.5, 2], dtype='f8')
+#d['velx'] = np.asarray([0.5, 0, 0.7], dtype='f8')
+#d['vely'] = np.asarray([0.2, -0.2, 0.1], dtype='f8')
+
+
 
 
 logger = logging.getLogger(__name__)
 
-
+@jit(nopython=True)   
+>>>>>>> dev:src/myorbit/orbits/orbutil.py
 def accel(gm, r_xyz):
     """Computes the acceleration based on the corresponding GM of the planet and the
     radio vector of the body 
@@ -36,6 +74,7 @@ def accel(gm, r_xyz):
         Gravitational constant times the mass of the planet 
     r_xyz : np.array[3]
         Radio vector of the body
+<<<<<<< HEAD:src/myorbit/orbutil.py
 
     Returns
     -------
@@ -44,6 +83,17 @@ def accel(gm, r_xyz):
     """
 
     return gm*r_xyz/pow(norm(r_xyz),3) 
+=======
+
+    Returns
+    -------
+    np.array[3]
+        The acceleration vector
+    """
+    return gm*r_xyz/pow(norm(r_xyz),3) 
+
+
+>>>>>>> dev:src/myorbit/orbits/orbutil.py
 
 
 def calc_perturbed_accelaration(t_mjd, he_xyz_eclip_body) :
@@ -55,7 +105,11 @@ def calc_perturbed_accelaration(t_mjd, he_xyz_eclip_body) :
     ----------
     t_mjd : float
         Time of computation [Modified Julian Day]
+<<<<<<< HEAD:src/myorbit/orbutil.py
     he_xyz_eclip_body : np.array[3]
+=======
+    h_xyz_eclip_body : np.array[3]
+>>>>>>> dev:src/myorbit/orbits/orbutil.py
         Heliocentric cartesian coordinates of the minor body
 
     Returns
@@ -85,6 +139,7 @@ def calc_perturbed_accelaration(t_mjd, he_xyz_eclip_body) :
         acc += accel(GM_by_planet[pl_name], he_xyz_eclipt_planet)
     return -acc    
 
+<<<<<<< HEAD:src/myorbit/orbutil.py
 
 
 def my_f(t, Y, mu=mu_Sun):       
@@ -102,6 +157,23 @@ def my_f(t, Y, mu=mu_Sun):
     mu : float, optional
         The gravitational constant times the mass of the Sun, by default mu_Sun
 
+=======
+def my_f(t, Y, mu=mu_Sun):       
+    """Derivated function that will be numerically integrated. It will contain the 
+    velocity vector and the acceleration vector. Once this is integrated numerically,
+    the state vector is obtained, i.e, the position vector and the velocity vector.
+
+    Parameters
+    ----------
+    t : float
+        Time of computation
+    Y : np.array[6]
+        [0..2] the radio vector 
+        [3..5] the velocity vector
+    mu : float, optional
+        The gravitational constant times the mass of the Sun, by default mu_Sun
+
+>>>>>>> dev:src/myorbit/orbits/orbutil.py
     Returns
     -------
     np.array[6]
@@ -140,6 +212,11 @@ def do_integration(fun_t_y, y0 , t_begin, t_end, t_samples):
     sol
         The solution of the IVP problem provided by the solve_ivp method 
     """
+<<<<<<< HEAD:src/myorbit/orbutil.py
+=======
+
+    
+>>>>>>> dev:src/myorbit/orbits/orbutil.py
     sol = solve_ivp(fun_t_y, (t_begin,t_end), y0, t_eval=t_samples, rtol = 1e-12)  
     if sol.success :
         return sol
@@ -214,6 +291,7 @@ def process_solution(tpoints, MTX_J2000_Teqx, MTX_equatFeclip, eph_eqx_name, inc
     pd.DataFrame
         A dataframe witht the solution 
     """
+    
     oscul_keys = []
     cols = ['date','Sun(dg)','h_l','h_b','h_r','ra','dec','r[AU]','h_x','h_y','h_z','t_mjd']
     rows = []

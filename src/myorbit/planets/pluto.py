@@ -2,7 +2,10 @@
 """
 
 # Standard library imports
+<<<<<<< HEAD
 
+=======
+>>>>>>> dev
 
 # Third party imports
 import numpy as np
@@ -214,12 +217,12 @@ def cal_terms(alpha, mtx, factor):
     return kahan_sum(mtx[:,0]*np.sin(alpha) + mtx[:,1]*np.cos(alpha))*factor
 
 
-    """
-    VSOP87 provides methos to calculate Heliocentric coordinates:
-        L, the ecliptical longitude (different from the orbtial longitude)
-        B, the ecliptical latitude
-        R, the radius vector (=distance to the Sun)
-    """
+"""
+VSOP87 provides methos to calculate Heliocentric coordinates:
+    L, the ecliptical longitude (different from the orbtial longitude)
+    B, the ecliptical latitude
+    R, the radius vector (=distance to the Sun)
+"""
 
 def h_rlb_eclip_pluto_j2000(jde):
     """
