@@ -41,7 +41,7 @@ def to_AU_days(mu_m3s_2):
 # Gravitational parameters in AU/days
 mu_by_name = valmap(to_AU_days,mu_m3s_2__by_name)
 
-mu_Sun = mu_by_name["Sun"]
+mu_Sun=0.0002959122082322128   #mu_by_name["Sun"] = GM
 
 class NoConvergenceError(Exception):
     """Exception raised when the newton method does not converge
@@ -392,5 +392,5 @@ def my_range (start, stop, step, include_start = True, include_end = True):
     return result
     
 if __name__ == "__main__" :
-   print(my_range(46384,46405,10,include_end=False))
+   print (f"muSun = {mu_Sun}, GM={GM}")
         

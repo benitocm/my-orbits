@@ -7,23 +7,18 @@ import logging
 # Third party imports
 import numpy as np
 from numpy.linalg import norm
-# Using Newton-Ramson method
-from scipy.integrate import solve_ivp    
 
 # Local application imports
 from myorbit import coord as co
-import myorbit.coord as co
 from myorbit.util.general import frange
 import myorbit.orbutil as ob
-import myorbit.data_catalog as dc
-from myorbit.ephemeris_input import EphemrisInput
 from myorbit.kepler.keplerian import KeplerianStateSolver
-from myorbit.util.constants import *
+from myorbit.util.general import mu_Sun
 
 logger = logging.getLogger(__name__)
 
 
-def my_dfdt(t, y):        
+def my_dfdt(t, y, mu=mu_Sun):               
     """Computes the time derivative of the unknown function. Integrating this function, we obtain the unknown
     function. We know the velocity and acceleration that is basically what this function returns so integrating we obtain 
     the position and velocity.
@@ -49,11 +44,11 @@ def my_dfdt(t, y):
     """
 
     h_xyz = y[0:3]
-    acc = -ob.accel(GM, h_xyz) + ob.calc_perturbed_accelaration(t, h_xyz)
+    acc = -ob.accel(mu, h_xyz) + ob.calc_perturbed_accelaration(t, h_xyz)
     return np.concatenate((y[3:6], acc))
 
 
-def calc_eph_by_cowells (body, eph , obj_type='body', include_osc=False):
+def calc_eph_by_cowells (body, eph, include_osc=False):
     """Computes the ephemeris for a minor body using the Cowells method. This has 
     more inexact than Enckes but quicker
 
@@ -65,8 +60,6 @@ def calc_eph_by_cowells (body, eph , obj_type='body', include_osc=False):
         the type of this parameter must be BodyElms.
     eph : EphemrisInput
         The entry data of the ephemeris
-    obj_type : str, optional
-        Type of the object ('body' for small bodies or 'comet' for comets), by default 'comet'        
     include_osc: boolean, optional
         Flag to indicate whether the osculating elements should be included or not in the final result
 
@@ -139,113 +132,11 @@ def calc_eph_by_cowells (body, eph , obj_type='body', include_osc=False):
         tpoints[t] = (SOL_Y[:,idx][:3], SOL_Y[:,idx][3:6])
     tpoints = {t:tpoints[t] for t in sorted(tpoints.keys())}
 
-    return ob.process_solution(tpoints, MTX_J2000_Teqx, MTX_equatFeclip, eph.eqx_name)
+    return ob.process_solution(tpoints, MTX_J2000_Teqx, MTX_equatFeclip, eph.eqx_name, include_osc)
 
-
-def test_all():
-    eph = EphemrisInput(from_date="2020.05.25.0",
-                        to_date = "2020.06.15.0",
-                        step_dd_hh_hhh = "02 00.0",
-                        equinox_name = "J2000")
-
-    for name in dc.DF_BODIES['Name']: 
-        body = dc.read_body_elms_for(name,dc.DF_BODIES)
-        print ("Calculating for ",name)
-        print (calc_eph_by_cowells(body, eph)) 
-
-
-
-def test_body():
-    eph = EphemrisInput(from_date="2020.05.25.0",
-                        to_date = "2020.06.15.0",
-                        step_dd_hh_hhh = "02 00.0",
-                        equinox_name = "J2000")
-
-    eph = ob.EphemrisInput(from_date="2019.04.01.0",
-                       to_date = "2020.07.01.0",
-                       step_dd_hh_hhh = "10 00.0",
-                       equinox_name = "J2000")
-
-    """
-    eph = ob.EphemrisInput(from_date="2020.04.01.0",
-                       to_date = "2020.07.01.0",
-                       step_dd_hh_hhh = "50 00.0",
-                       equinox_name = "J2000")
-    """
-    
-    B_2002_NN4 = dc.read_body_elms_for("2002 NN4",dc.DF_BODYS)
-
-
-    CERES = dc.read_body_elms_for("Ceres",dc.DF_BODYS)
-
-
-    df = calc_eph_by_cowells(B_2002_NN4, eph)
-
-    print (df[df.columns[0:8]])
-
-    
-
-def test_comet():
-
-    eph  = EphemrisInput(from_date="1985.11.15.0",
-                        to_date = "1986.04.05.0",
-                        step_dd_hh_hhh = "10 00.0",
-                        equinox_name = "J2000")
-
-    HALLEY_J2000 = dc.read_comet_elms_for("1P/Halley", dc.DF_COMETS)
-
-
-    df = calc_eph_by_cowells(HALLEY_J2000, eph, 'comet')
-
-    print (df[df.columns[0:8]])
-
-
-
-def test_all_comets():
-    """
-    eph = EphemrisInput(from_date="2020.05.25.0",
-                        to_date = "2020.06.15.0",
-                        step_dd_hh_hhh = "02 00.0",
-                        equinox_name = "J2000")
-    """
-
-
-    df_ = dc.DF_COMETS
-    #df_ = df_.query("0.999 < e < 1.001")
-    df_ = df_.query("Name=='C/1532 R1'")
-
-    for idx, name in enumerate(df_['Name']): 
-        logger.warning(f"{idx+1} Calculating for {name} ")
-        body = dc.read_comet_elms_for(name,dc.DF_COMETS)
-        eph = EphemrisInput.from_mjds( body.epoch_mjd-25, body.epoch_mjd+25, "02 00.0", "J2000" )
-        print (f"{idx+1} Calculating for {name} ")
-        print (calc_eph_by_cowells(body, eph, 'comet')) 
-
-def test_several_comets():
-    names = [#"C/1988 L1 (Shoemaker-Holt-Rodriquez)",   # Parabolic
-             #"C/1980 E1 (Bowell)"]  
-             #"C/1848 P1 (Petersen)"
-              "C/1672 E1"]
-
-    for name in names :
-        body = dc.read_comet_elms_for(name,dc.DF_COMETS)
-        eph = EphemrisInput.from_mjds( body.epoch_mjd-50, body.epoch_mjd+50, "02 00.0", "J2000" )
-        print (f"Calculating for {name} ")
-        df = calc_eph_by_cowells(body, eph, 'comet')
-        print (df[df.columns[0:8]])
-        #print (calc_eph_by_enke(body, eph, 'comet')) 
-
-    
 
 if __name__ == "__main__" :
-    #test_all()
-    #test_2()
-    #test_all_comets()
-    test_comet()
-    #test_several_comets()
-    # test_body()
-    #test_comet()
-
+    None
 
  
 
