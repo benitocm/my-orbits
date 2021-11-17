@@ -8,7 +8,7 @@ import logging
 from toolz import pipe
 
 # Local application imports
-from myorbit.util.timeut import epochformat2jd, jd2mjd, T
+from myorbit.util.timeut import epochformat2jd, jd2mjd, T, jd2str_date, mjd2jd
 from myorbit.util.constants import *
 
 logger = logging.getLogger(__name__)
@@ -35,8 +35,8 @@ class EphemrisInput:
     def from_mjds(cls, from_mjd, to_mjd, step_dd_hh_hhh="", equinox_name=""):    
         obj = cls.__new__(cls)  # Does not call __init__
         super(EphemrisInput, obj).__init__()  # Don't forget to call any polymorphic base class initializers
-        obj.from_date = "NOT_SET"
-        obj.to_date="NOT SET"
+        obj.from_date = jd2str_date (mjd2jd(from_mjd))
+        obj.to_date= jd2str_date(mjd2jd(to_mjd))
         obj.from_mjd = from_mjd
         obj.to_mjd = to_mjd
         obj.eqx_name = equinox_name

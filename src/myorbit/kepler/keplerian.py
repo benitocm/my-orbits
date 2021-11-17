@@ -19,7 +19,7 @@ from myorbit.kepler.near_parabolic import calc_rv_by_stumpff
 from myorbit.util.timeut import hemisphere, mjd2str_date
 from myorbit.util.general import  NoConvergenceError
 from myorbit.util.general import mu_Sun
-from myorbit.init_config import H_ABS_TOL
+from myorbit.init_config import H_ABS_TOL, VELOCITY_ABS_TOL, EC_ABS_TOL, CONSIDER_PARABOLIC_TOL
 
 logger = logging.getLogger(__name__)
 
@@ -57,7 +57,7 @@ class KeplerianStateSolver(ABC):
             logger.info(msg)                        
             return NearParabolical(tp_mjd=tp_mjd, q=q, e=e)              
         
-        if isclose(e, 1, abs_tol=1e-6):
+        if np.abs(e-1.) < CONSIDER_PARABOLIC_TOL:
             # Comets have q (distance to perihelion but asteroids do not have)
             if q is None :
                 msg=f'A parabolic orbit cannot be calculated because q (distance to perihelion) is unknown'
@@ -109,7 +109,7 @@ class KeplerianStateSolver(ABC):
         check_angular_momentum(np.linalg.norm(h_xyz), r_xyz, rdot_xyz)
         e_xyz = calc_eccentricity_vector(r_xyz, rdot_xyz, h_xyz)
         e = np.linalg.norm(e_xyz)
-        if not isclose(e, self.e, rel_tol=0, abs_tol=1e-05):
+        if np.abs(e-self.e) > EC_ABS_TOL:
             msg=f'The modulus of the eccentricity vector {e} is not equal to the eccentrity {self.e}'
             #print (msg)
             logger.warning(msg)
@@ -138,9 +138,8 @@ def check_velocity(v, rdot_xyz):
     rdot_xyz : [type]
         [description]
     """
-    if not isclose(v,np.linalg.norm(rdot_xyz),abs_tol=1e-12):
+    if np.abs(v - np.linalg.norm(rdot_xyz)) > VELOCITY_ABS_TOL :
         msg=f'The velocity does not match,  v_energy={v}, modulus of rdot_xyz={np.linalg.norm(rdot_xyz)}'
-        #print(msg)
         logger.error(msg)
 
 def check_angular_momentum(h, r_xyz, rdot_xyz):
@@ -156,7 +155,7 @@ def check_angular_momentum(h, r_xyz, rdot_xyz):
         [description]
     """
     h_rv = np.cross(r_xyz,rdot_xyz)
-    if not isclose(h_rv[2], h, rel_tol=0, abs_tol=H_ABS_TOL):
+    if np.abs(h_rv[2]-h) > H_ABS_TOL :
         msg=f'The angular momentum does not match h_rv={h_rv[2]}, h_geometric={h}'
         logger.error(msg)
 

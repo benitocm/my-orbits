@@ -198,7 +198,7 @@ class CometElms:
         self.q = q
         # Semimajor axis of the orbit (asteroids only) so in the case of comet we tried to calculate it
         self.a = None
-        if isclose(1-e, 0, rel_tol=0.0,  abs_tol=1.e-6):
+        if np.abs(1-e) < 1.e-7:
             self.a = None
         else :
             self.a = q / (1-e)
@@ -350,7 +350,6 @@ def read_body_elms_for(body_name, df):
     """
     row = df[df.Name==body_name]
     if row.empty:
-        logger.error('The body %s does not exist is not found ', body_name)
         return
     row = row.to_dict('records')[0]
     return BodyElms(name = row['Name'],
@@ -382,7 +381,7 @@ def read_comet_elms_for(comet_name, df) :
 
     row = df[df.Name==comet_name]
     if row.empty:
-        logger.error('The comet %s does not exist is not found ', comet_name)
+        #logger.error(f'The object {comet_name} does not exist in the Comets database')
         return 
     row = row.to_dict('records')[0]
     return CometElms(name = row['Name'],

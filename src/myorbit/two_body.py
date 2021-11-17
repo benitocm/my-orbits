@@ -18,7 +18,7 @@ from myorbit import coord as co
 import myorbit.orbutil as ob
 from myorbit.util.general import frange, mu_Sun
 from myorbit.util.constants import INV_C
-from myorbit.init_config import H_ABS_TOL, E_ABS_TOL
+from myorbit.init_config import H_ABS_TOL, EC_ABS_TOL
 from myorbit.util.timeut import CENTURY, JD_J2000, dg2h, h2hms, dg2dgms, T_given_mjd, mjd2jd, jd2str_date
 from myorbit.planets import g_xyz_equat_sun_j2000
 from myorbit.kepler.keplerian import KeplerianStateSolver
@@ -122,7 +122,7 @@ def calc_eph_twobody(body, eph, force_orbit=None):
     if not all(np.allclose(h_xyz, hs[0], atol=H_ABS_TOL) for h_xyz in hs):
         msg = f'The angular momentum is NOT constant in the orbit'
         logger.error(msg)
-    if not all(np.allclose(e_xyz, es[0], atol=E_ABS_TOL) for e_xyz in es):
+    if not all(np.allclose(e_xyz, es[0], atol=EC_ABS_TOL) for e_xyz in es):
         msg = f'The eccentricy vector is NOT constant in the orbit'
         logger.error(msg)
 

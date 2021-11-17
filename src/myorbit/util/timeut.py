@@ -101,7 +101,7 @@ def norm_dg(degrees):
     frac = my_frac(degrees)
     fix =  my_fix(degrees)
     new_alpha = (np.abs(fix) % 360) + frac    
-    if isclose(new_alpha, 0, rel_tol=0, abs_tol=1e-9):
+    if np.abs(new_alpha) < 1.e-9:
         return 0.0
     elif degrees < 0 :
         return 360 - new_alpha        

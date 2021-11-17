@@ -5,11 +5,13 @@ This module contains functions to access vsop87 data
 # Standard library imports
 import logging
 from sys import intern
+from math import fsum
 
 # Third party imports
 import numpy as np
 from toolz import pipe 
-from numpy import sin, cos, deg2rad, rad2deg, tan
+from numpy import sin, cos, deg2rad, rad2deg, tan, sum
+
 
 # Local application imports
 from myorbit.util import timeut as tc
@@ -123,7 +125,9 @@ def do_calc(var_prefix, mtx_dict, tau):
     result = []
     for var, mtx in mtx_dict.items():
         if var.startswith(var_prefix):
-            result.append(np.sum((mtx[:,0]*np.cos(mtx[:,1]+mtx[:,2]*tau))))
+            # I have done some tests replacing np.sum by fsum and I haven't
+            # detect any different. Howerver, np.sum is faster than fsump
+            result.append(sum((mtx[:,0]*np.cos(mtx[:,1]+mtx[:,2]*tau))))
     result_tup = tuple(result)
     return vsop_pol(tau,*result_tup) 
 

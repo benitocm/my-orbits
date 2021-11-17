@@ -6,10 +6,8 @@ and also in
     "Spacecraft Dynamics and Control" lectures of Mattew M. Peet
 """
 # Standard library imports
-from math import isclose
 import logging
 from functools import partial
-from math import isclose
 
 # Third party imports
 import numpy as np

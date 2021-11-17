@@ -94,7 +94,7 @@ def calc_rv_by_stumpff (tp_mjd, q, e, t_mjd, mu=mu_Sun, abs_tol=NEAR_PARABOLIC_A
         E_2 = u_2*(1.0-e)/factor 
         c1, c2, c3 = calc_stumpff(E_2)
         factor = 3.0*e*c3 
-        if isclose(E_2, E20, rel_tol=0, abs_tol=abs_tol) :
+        if np.abs(E_2-E20) < abs_tol :
             R = q * (1.0 + u_2*c2*e/factor)
             r_xyz = np.array([q*(1.0-u_2*c2/factor), q*sqrt((1.0+e)/factor)*u*c1,0.0])
             rdot_xyz = np.array([-cte*r_xyz[1]/R, cte*(r_xyz[0]/R+e),0.0])
