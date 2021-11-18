@@ -105,28 +105,7 @@ class OrbitsPlot:
     def start(self,interval=1000, blit=False, repeat=False):
         self.anim = animation.FuncAnimation(self.fig, self.animate, frames=len(self.date_refs), interval=interval, blit=blit, repeat=repeat)
         
-    
-    
-class MyAni(object):
-    def __init__(self, size=4800, peak=1.6):
-        self.size = size
-        self.peak = peak
-        self.fig = plt.figure()
-        self.x = np.arange(self.size)
-        self.y = np.zeros(self.size)
-        self.y[0] = self.peak
-        self.line, = self.fig.add_subplot(111).plot(self.x, self.y)
-
-    def animate(self, i):
-        self.y[i - 1] = 0
-        self.y[i] = self.peak
-        self.line.set_data(self.x, self.y)
-        return self.line,
-
-    def start(self):
-        self.anim = animation.FuncAnimation(self.fig, self.animate,
-            frames=self.size, interval=20, blit=False)
-        
+       
 
 def calc_tp(M_at_epoch, a, epoch_mjd):
     deltaT = TWOPI*a*np.sqrt(a/GM)*(1-M_at_epoch/TWOPI)
@@ -214,7 +193,7 @@ def calc_orbits_heliocentric_data(eph, obj_names):
     date_refs = orbs[first_key]['date'].to_list()
     cols=['h_x','h_y','h_z']    
     for k, df in orbs.items():
-        # For each object, the ecliptic (heliocentric) coordinates are kept and
+        # For each object, only the ecliptic (heliocentric) coordinates are kept and
         # transformed to a matrix with shape (len(date_refs), 3)
         #    [[x1,y1,z1],
         #     [x2,y2,z2],
@@ -226,7 +205,8 @@ def calc_orbits_heliocentric_data(eph, obj_names):
 
 def change_reference_frame(heliocentric_orbs, name):
     orbs_from_obj = dict()
-    # A new orbs object is created changing the frame of reference to the Earth
+    # A new orbs object is created changing the frame of reference to the object (name of the object)
+    # The object should be included in the helliocentric_orbs
     for body_name in filter(lambda x : x.lower()!=name.lower(), heliocentric_orbs.keys()):
         orbs_from_obj[body_name] = heliocentric_orbs[body_name] - heliocentric_orbs[name]    
     return orbs_from_obj
