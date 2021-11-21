@@ -26,6 +26,39 @@ from myorbit.util.constants import TWOPI, GM
 from myorbit.init_config import cfg
 logger = logging.getLogger(__name__)
 
+
+def read_planet_elms_for(pl_name, df):
+    """Retrieve the orbital elements for a body 
+
+    Parameters
+    ----------
+    body_name : str
+        Name of the body 
+    df : pd.Dataframe
+        Internal dataframe that contains the  orbital data for a lot of comets read from a JPL file,
+
+    Returns
+    -------
+    BodyElms
+        Orbital elements of the body wrapped in the BodyElms structure. 
+        If the body is not found, None is returned.
+    """
+    row = df[df.name==pl_name]
+    if row.empty:
+        #logger.error(f'The object {comet_name} does not exist in the Comets database')
+        return 
+    row = row.to_dict('records')[0]
+    return BodyElms(name = row['name'],
+                     epoch_name = tc.mjd2epochformat(2451545.0),
+                     e = row['e'],
+                     i_dg = row['i_dg'],
+                     Node_dg = row['Node_dg'],
+                     w_dg = row['w_dg'],
+                     M_dg = row["M_dg"],
+                     a= row["a"]
+                     )
+
+
 class BodyElms:
 
     """Orbital elements for asteroids
@@ -280,12 +313,14 @@ def read_planets_orbital_elements (fn) :
         Dataframe with the data read from the .csv file.
         The angles are provided in radians.
     """
-    logger.info('Reading %s ...', fn)
-    df = pd.read_csv(fn,sep='|',header=0)
+    df = pd.read_csv(fn,sep='|',header=0, comment='#')
     df['name'] = df['name'].str.strip()
-    cols=['i','w','Node','n','M']
-    df[cols] = df[cols].apply(lambda s : s.map(np.deg2rad))    
+    #cols=['i_dg','w_dg','Node_dg','n_cy','M_dg']
+    #df[cols] = df[cols].apply(lambda s : s.map(np.deg2rad))  
+    #df = df.rename(columns={'Node_dg': 'Node_rad', 'i_dg': 'i_rad', 'w_dg':'w_rad'})
+    #df = df.set_index("name")
     return df
+    
 
 def read_ELEMENTS_file(fn):
     """Read a compressed file (downloaded from JPL) that contains the orbital elements for a lot of bodies

@@ -23,6 +23,8 @@ from myorbit.kepler.keplerian import KeplerianStateSolver, ParabolicalStateSolve
 from myorbit.kepler.ellipitical import calc_rv_for_elliptic_orbit, calc_M
 from myorbit.lagrange.lagrange_coeff import calc_rv_from_r0v0
 from myorbit.util.general import mu_Sun, calc_eccentricity_vector, angle_between_vectors
+from myorbit.pert_cowels import calc_eph_by_cowells
+from myorbit.two_body import calc_eph_planet
 
 from myorbit.util.timeut import EQX_B1950, EQX_J2000
 from myorbit.ephemeris_input import EphemrisInput
@@ -291,9 +293,105 @@ def test_near_parabollic():
     #df = calc_eph_twobody(obj, eph)   
     print (df)
     
-    
-    
 
+def change_reference_frame(heliocentric_orbs, name):
+    orbs_from_obj = dict()
+    # A new orbs object is created changing the frame of reference to the object (name of the object)
+    # The object should be included in the helliocentric_orbs
+    for body_name in filter(lambda x : x.lower()!=name.lower(), heliocentric_orbs.keys()):
+        orbs_from_obj[body_name] = heliocentric_orbs[body_name] - heliocentric_orbs[name]    
+    return orbs_from_obj
+
+    
+PLANET_NAMES= [x.lower() for x in GM_by_planet.keys()]    
+    
+def calc_orbits_heliocentric_data(eph, obj_names):
+    """
+    Computes the orbits of the planets, minor bodys and comets 
+    
+    Args:
+        eph : EphemerisData
+        planets : List of name of planets
+        minor_bodys : List of names of minor bodys or orbital elements itself
+        comets : List of names of comets bodys or orbital elements itself
+
+    Returns :
+        orbs : A dictionary where the key is the name of the body and value is a
+               matrix of n,3 (n rows per 3 cols) with the heliocentric coordinates h_x, h_y, h_z
+               and the index is the date of corresponding to the position.
+        date_refs :  list of the dates where the heliocentric coordinates were calculated
+        
+    """    
+    # orbs is a dictionary where the key is the name of the object (planet, asteroids or comet)
+    # and the value is the dataframe with the ephemeris data.
+    orbs = {}
+    dfs = []
+    for name in obj_names:
+        if not isinstance(name, str):
+            # Assumed that this is a BodyElms or CometElms 
+            obj = name
+            df  = calc_eph_by_cowells(obj,eph, include_osc=False)
+            orbs[obj.name] = df
+            dfs.append(df) 
+            continue           
+        if name.lower() in PLANET_NAMES:
+            df = calc_eph_planet(name, eph)
+            orbs[name] = df
+            dfs.append(df)
+        else :
+            obj = dc.read_comet_elms_for(name,dc.DF_COMETS)        
+            if obj is not None:
+                df  = calc_eph_by_cowells(obj,eph, include_osc=False)
+                orbs[name] = df
+                dfs.append(df)
+            else :
+                obj = dc.read_body_elms_for(name,dc.DF_BODIES)
+                if obj is not None:
+                    df  = calc_eph_by_cowells(obj,eph, include_osc=False)
+                    orbs[name] = df
+                    dfs.append(df)
+                else :
+                    print (f"Object {name} not found")
+    # Assumed that the ['date'] colum of each ephemeris are the same for every object so
+    # we get the list of dates from the first object.
+    first_key= list(orbs.keys())[0]
+    date_refs = orbs[first_key]['date'].to_list()
+    cols=['h_x','h_y','h_z']    
+    for k, df in orbs.items():
+        # For each object, only the ecliptic (heliocentric) coordinates are kept and
+        # transformed to a matrix with shape (len(date_refs), 3)
+        #    [[x1,y1,z1],
+        #     [x2,y2,z2],
+        #      ....
+        #     [xn,yn,zn]]
+        # for each key in the obr object, the value will be a nx3 matrix with the heliocentric coordinates
+        orbs[k] = df[cols].to_numpy()     
+    return orbs, dfs, date_refs
+    
+    
+def calc_dangerous_asteroids(eph, n_objects=10):
+    fname='/home/benito/PERSONAL/dangerous.csv'
+    print (eph)
+    df_out = pd.read_csv(fname,sep='|',names=['name', 'min_date','min_distance'])
+    prev_len = len(dc.DF_BODIES)
+    df = dc.DF_BODIES[~dc.DF_BODIES.Name.isin(df_out.name.values)]
+    print (f"Filtered out {prev_len-len(df)} bodies")
+    print ("Calculating Earth orbit data")
+    orb_earth_from_Sun, *others = calc_orbits_heliocentric_data(eph, ['Earth'])
+    with open(fname, 'at') as f:
+        for idx, name in enumerate(df['Name']): 
+            body = dc.read_body_elms_for(name,df)
+            print (f"Processing {name}, Processed:{idx+1},  Remaining:{len(df)-idx}")            
+            orb_obj_from_Sun, _, date_refs = calc_orbits_heliocentric_data(eph, [name])
+            orb_obj_from_Earth = orb_obj_from_Sun[name] - orb_earth_from_Sun['Earth']
+            distances_from_Earth = np.linalg.norm(orb_obj_from_Earth,axis=1)
+            min_index = np.argmin(distances_from_Earth, axis=0)
+            min_distance = distances_from_Earth[min_index]
+            min_date = date_refs[min_index]
+            f.write(f"{body.name}|{min_date}|{min_distance}\n")
+            f.flush()
+            if (idx > n_objects):
+                break
 
 if __name__ == "__main__":   
     #test_all_comets()
@@ -307,6 +405,11 @@ if __name__ == "__main__":
     #test_universal_kepler(5000)
     #test_comet('C/2007 M5 (SOHO)',2500)
     #test_enckes()
-    test_near_parabollic()
+    #test_near_parabollic()
+    eph = EphemrisInput(from_date="2021.01.01.0",
+                    to_date = "2060.12.01.0",
+                    step_dd_hh_hhh = "05 00.0",
+                    equinox_name = "J2000")
+    calc_dangerous_asteroids(eph,n_objects=3000000)
     
     

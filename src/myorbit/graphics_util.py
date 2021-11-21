@@ -17,9 +17,6 @@ from matplotlib import animation
 
 # Local application imports
 import myorbit.data_catalog as dc
-from myorbit.two_body import calc_eph_planet
-from myorbit.pert_cowels import calc_eph_by_cowells
-from myorbit.pert_cowels import calc_eph_by_cowells
 from myorbit.util.constants import TWOPI, GM, GM_by_planet
 
 # Local application imports
@@ -42,7 +39,7 @@ class OrbitsPlot:
         lines = []
         pts = []
         for i, (name, mtx) in enumerate(self.orbs.items()):
-            lines.append(self.ax.plot([], [], [], '--', c=colors[i], label=name,lw=.7))
+            lines.append(self.ax.plot([], [], [], '--', c=colors[i], label=name,lw=.8))
             pts.append(self.ax.plot([], [], [], 'o', c=colors[i]))
         self.lines = list(concat(lines))
         self.pts = list(concat(pts))
@@ -59,7 +56,6 @@ class OrbitsPlot:
         # The center is plotted
         self.ax.scatter3D(0,0,0, color=center_color, marker='o', lw=8, label=center_label)
             
-       
         #   set the legend
         self.ax.legend(loc='upper right', prop={'size': 9})
         #ax.set_title("Tim-Sitze, Orbits of the Inner Planets")
@@ -140,107 +136,5 @@ def calc_interval(obj_names):
 
 
 
-def calc_orbits_heliocentric_data(eph, obj_names):
-    """
-    Computes the orbits of the planets, minor bodys and comets 
-    
-    Args:
-        eph : EphemerisData
-        planets : List of name of planets
-        minor_bodys : List of names of minor bodys or orbital elements itself
-        comets : List of names of comets bodys or orbital elements itself
-
-    Returns :
-        orbs : A dictionary where the key is the name of the body and value is a
-               matrix of n,3 (n rows per 3 cols) with the heliocentric coordinates h_x, h_y, h_z
-               and the index is the date of corresponding to the position.
-        date_refs :  list of the dates where the heliocentric coordinates were calculated
-        
-    """    
-    # orbs is a dictionary where the key is the name of the object (planet, asteroids or comet)
-    # and the value is the dataframe with the ephemeris data.
-    orbs = {}
-    dfs = []
-    for name in obj_names:
-        if not isinstance(name, str):
-            # Assumed that this is a BodyElms or CometElms 
-            obj = name
-            df  = calc_eph_by_cowells(obj,eph, include_osc=False)
-            orbs[obj.name] = df
-            dfs.append(df) 
-            continue           
-        if name.lower() in PLANET_NAMES:
-            df = calc_eph_planet(name, eph)
-            orbs[name] = df
-            dfs.append(df)
-        else :
-            obj = dc.read_comet_elms_for(name,dc.DF_COMETS)        
-            if obj is not None:
-                df  = calc_eph_by_cowells(obj,eph, include_osc=False)
-                orbs[name] = df
-                dfs.append(df)
-            else :
-                obj = dc.read_body_elms_for(name,dc.DF_BODIES)
-                if obj is not None:
-                    df  = calc_eph_by_cowells(obj,eph, include_osc=False)
-                    orbs[name] = df
-                    dfs.append(df)
-                else :
-                    print (f"Object {name} not found")
-    # Assumed that the ['date'] colum of each ephemeris are the same for every object so
-    # we get the list of dates from the first object.
-    first_key= list(orbs.keys())[0]
-    date_refs = orbs[first_key]['date'].to_list()
-    cols=['h_x','h_y','h_z']    
-    for k, df in orbs.items():
-        # For each object, only the ecliptic (heliocentric) coordinates are kept and
-        # transformed to a matrix with shape (len(date_refs), 3)
-        #    [[x1,y1,z1],
-        #     [x2,y2,z2],
-        #      ....
-        #     [xn,yn,zn]]
-        # for each key in the obr object, the value will be a nx3 matrix with the heliocentric coordinates
-        orbs[k] = df[cols].to_numpy()     
-    return orbs, dfs, date_refs
-
-def change_reference_frame(heliocentric_orbs, name):
-    orbs_from_obj = dict()
-    # A new orbs object is created changing the frame of reference to the object (name of the object)
-    # The object should be included in the helliocentric_orbs
-    for body_name in filter(lambda x : x.lower()!=name.lower(), heliocentric_orbs.keys()):
-        orbs_from_obj[body_name] = heliocentric_orbs[body_name] - heliocentric_orbs[name]    
-    return orbs_from_obj
-
-
 if __name__ == "__main__" :
-    from myorbit.ephemeris_input import EphemrisInput
-    OBJS=['Ceres','Pallas','Juno','Vesta',dc.APOFIS]
-    tp_min, tp_max = calc_interval(OBJS)
-    eph = EphemrisInput.from_mjds(tp_min-150, tp_max+150, "5 00.0", "J2000" )
-    print(eph)
-    orbs, dfs, date_refs = calc_orbits_datav3(eph, OBJS)
-    
-    eph = EphemrisInput(from_date="2009.01.01.0",
-                        to_date = "2010.12.01.0",
-                        step_dd_hh_hhh = "5 00.0",
-                        equinox_name = "J2000")
-
-    #PLANETS = ['Earth','Mercury','Venus','Mars']
-    #PLANETS = ['Jupiter','Saturn','Uranus','Neptune', 'Pluto']
-    PLANETS = ['Earth','Mars']
-    #PLANETS = []
-    #PLANETS = ['Jupiter','Saturn']
-    #MINOR_BODYS = []
-    #MINOR_BODYS = ['Ceres','Pallas','Juno','Vesta']
-    #MINOR_BODYS = ['Ceres',APOFIS]
-    #MINOR_BODYS = ['Ceres']
-    MINOR_BODYS = []
-    #MINOR_BODYS=['2002 NN4','2010 NY65', dc.B_2013_XA22]
-    #COMETS = ['1P/Halley','2P/Encke','10P/Tempel 2','C/1995 O1 (Hale-Bopp)']
-    #COMETS = ['C/2019 Q4 (Borisov)']
-    #COMETS = ['D/1993 F2-A (Shoemaker-Levy 9)']
-    #COMETS = ['C/1988 L1 (Shoemaker-Holt-Rodriquez)'] #, 'C/1980 E1 (Bowell)','C/2019 Q4 (Borisov)']
-    #COMETS = ['C/2019 Q4 (Borisov)']
-    COMETS = []
-
-    orbs,  date_refs = calc_orbits_data(eph, PLANETS, MINOR_BODYS, COMETS)
+    None

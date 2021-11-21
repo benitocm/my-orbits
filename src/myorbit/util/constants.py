@@ -45,20 +45,6 @@ GM_by_planet = {
     "Pluto" : GM/3000000.0 
 }
 
-"""
-GM_by_planet = {
-    intern("Mercury") : GM/6023600.0,
-    intern("Venus") : GM/408523.5, 
-    intern("Earth") : GM/328900.5,
-    intern("Mars") : GM/3098710.0,
-    intern("Jupiter") : GM/1047.355,
-    intern("Saturn") : GM /3498.5,
-    intern("Uranus") : GM / 22869.0,
-    intern("Neptune") : GM / 19314.0,
-    intern("Pluto") : GM/3000000.0 
-}
-"""
-
 
 CENTENNIAL_PRECESSION_DG = 1.3970
 CENTENNIAL_PRECESSION_RAD = np.deg2rad(CENTENNIAL_PRECESSION_DG)

@@ -1,5 +1,7 @@
 """
 This module contains functions to access vsop87 data
+
+For more infomation check https://www.caglow.com/info/compute/vsop87
 """
 
 # Standard library imports
@@ -126,7 +128,7 @@ def do_calc(var_prefix, mtx_dict, tau):
     for var, mtx in mtx_dict.items():
         if var.startswith(var_prefix):
             # I have done some tests replacing np.sum by fsum and I haven't
-            # detect any different. Howerver, np.sum is faster than fsump
+            # detect any different. However, np.sum is faster than fsump
             result.append(sum((mtx[:,0]*np.cos(mtx[:,1]+mtx[:,2]*tau))))
     result_tup = tuple(result)
     return vsop_pol(tau,*result_tup) 
@@ -486,7 +488,8 @@ def g_rlb_equat_planet_J2000(name, jde):
                 polarFcartesian)
 
 if __name__ == "__main__":
-    None
+    print (h_rlb_eclip_eqxdate("MERCURY",2451545.0))
+    print (np.array([4.4293481036,-0.0527573409,0.4664714751]))
     
  
  

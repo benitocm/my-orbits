@@ -16,6 +16,7 @@ from toolz import pipe
 import myorbit.planets as pl
 from myorbit import coord as co
 import myorbit.orbutil as ob
+import myorbit.data_catalog as dc
 from myorbit.util.general import frange, mu_Sun
 from myorbit.util.constants import INV_C
 from myorbit.init_config import H_ABS_TOL, EC_ABS_TOL
@@ -24,8 +25,67 @@ from myorbit.planets import g_xyz_equat_sun_j2000
 from myorbit.kepler.keplerian import KeplerianStateSolver
 from myorbit.kepler.ellipitical import calc_rv_for_elliptic_orbit, calc_M
 from myorbit.lagrange.lagrange_coeff import calc_rv_from_r0v0
+from myorbit.data_catalog import read_planet_elms_for
+
 
 logger = logging.getLogger(__name__)
+
+
+
+def calc_eph_planet_by_keplerian(body, eph): 
+    """Computes the ephemeris for a planet based on the VSOP87 theory.
+
+    Parameters
+    ----------
+    name : str
+        Name of the planet
+    eph : EphemrisInput
+        The entry data of the ephemeris
+
+    Returns
+    -------
+    pd.DataFrame
+        Dataframe with the ephemeris data calculated.
+        
+    """
+    
+    # Normally, the equinox of the data of the body will be J2000  and the equinox of the 
+    # ephemeris will also be J2000, so the precession matrix will be the identity matrix
+    # Just in the case of book of Personal Astronomy with your computer pag 81 is used   
+    MTX_Teqx_PQR = co.mtx_eclip_prec(body.T_eqx0, eph.T_eqx).dot(body.mtx_PQR)  
+
+    # Transform from ecliptic to equatorial just depend on desired equinox
+    MTX_equatFecli = co.mtx_equatFeclip(eph.T_eqx)
+
+    if hasattr(body, 'q') :
+        # Comets
+        solver = KeplerianStateSolver.make(tp_mjd = body.tp_mjd, e=body.e, q= body.q, a=body.a, epoch=None, M_at_epoch=None, force_orbit=force_orbit)
+    else :
+        # Asteroids 
+        solver = KeplerianStateSolver.make(tp_mjd = body.tp_mjd, e=body.e, a=body.a, epoch=body.epoch_mjd, M_at_epoch=body.M0, force_orbit=force_orbit)     
+
+    result = dict()
+    # Angular momentums in the orbit
+    hs = []
+    # Eccentricy vector
+    es = []
+    for clock_mjd in frange(eph.from_mjd, eph.to_mjd, eph.step):        
+        r_xyz, v_xyz, r, h_xyz, e_xyz, *other = solver.calc_rv(clock_mjd)
+        hs.append(h_xyz)
+        es.append(e_xyz)
+        result[clock_mjd] = (MTX_Teqx_PQR.dot(r_xyz), MTX_Teqx_PQR.dot(v_xyz))
+    if not all(np.allclose(h_xyz, hs[0], atol=H_ABS_TOL) for h_xyz in hs):
+        msg = f'The angular momentum is NOT constant in the orbit'
+        logger.error(msg)
+    if not all(np.allclose(e_xyz, es[0], atol=EC_ABS_TOL) for e_xyz in es):
+        msg = f'The eccentricy vector is NOT constant in the orbit'
+        logger.error(msg)
+
+    return ob.process_solution(result, np.identity(3), MTX_equatFecli, eph.eqx_name, False)
+    
+    
+
+
 
 def calc_eph_planet(name, eph): 
     """Computes the ephemeris for a planet based on the VSOP87 theory.
@@ -373,4 +433,19 @@ def _g_rlb_equat_body_j2000(jd, body):
     return co.polarFcartesian(g_xyz_equat_body)
 
 if __name__ == "__main__":
-    None    
+    from myorbit.ephemeris_input import EphemrisInput
+    body = read_planet_elms_for("Jupiter",dc.DF_PLANETS)
+    eph = EphemrisInput(from_date="2000.01.01.0",
+                    to_date = "2000.04.01.0",
+                    step_dd_hh_hhh = "10 00.0",
+                    equinox_name = "J2000")
+    cols=["date","t_mjd","h_x","h_y","h_z","ra","dec"]
+    df = calc_eph_twobody(body, eph)
+    df = df[cols]
+    print (df)
+    print ("with vsop")
+    df = calc_eph_planet("Jupyter",eph)
+    df = df[cols]
+    print(df)
+    
+    

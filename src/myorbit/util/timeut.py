@@ -467,6 +467,24 @@ def jd2str_date(jd):
     tup = jd2datetime(jd)
     return f'{tup[0]:04.0f}/{tup[1]:02.0f}/{tup[2]:02.0f}'
 
+def mjd2str_date(mjd):
+    """Given a Modified julian day, returns its corresponding date-time as 
+    string
+
+    Parameters
+    ----------
+    mjd : float
+        a Modified Julian day
+
+    Returns
+    -------
+    str
+        The date-time as a string corresponding to the Modified julian day.
+    """
+    tup = jd2datetime(mjd2jd(mjd))
+    return f'{tup[0]:04.0f}/{tup[1]:02.0f}/{tup[2]:02.0f}'
+
+
 
 def datefd2jd(year, month, day) :
     """ Converts a date with year, month and day with fractional part into
@@ -569,8 +587,6 @@ def jd2datefd_v2( julian_day : float ) -> Tuple:
     year = (d - 4716) if month > 2.5 else (d-4715)
     return year,month,day
 
-
-    
 def jd2datefd( julian_day : float ) -> Tuple:
     """
     Given a Julian day calculate its date and time in UT 
@@ -627,6 +643,22 @@ DAYS = {
 }
 
 def dayOfweek(year,month,day) :
+    """[summary]
+
+    Parameters
+    ----------
+    year : [type]
+        [description]
+    month : [type]
+        [description]
+    day : [type]
+        [description]
+
+    Returns
+    -------
+    [type]
+        [description]
+    """
     jd = datefd2jd(year,month,day)
     a = (jd + 1.5)/7
     b = 7*my_frac(a)
@@ -706,7 +738,7 @@ def ut2gst_v2(year,month,day,h,m,s):
     gst = norm_hours(gst)
     return h2hms(gst)
 
-def polynomial(a0,a1,a2,a3,a4,x):
+def polynomial(a0, a1, a2, a3 ,a4 , x):
     """
     Up to x4
     """
@@ -857,8 +889,6 @@ def hemisphere (alpha) :
         return 1
     else :
         return 2
-
-
 
 
 def epochformat2jd (epoch_name:str) -> float :
