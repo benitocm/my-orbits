@@ -6,8 +6,6 @@ For more infomation check https://www.caglow.com/info/compute/vsop87
 
 # Standard library imports
 import logging
-from sys import intern
-from math import fsum
 
 # Third party imports
 import numpy as np
@@ -16,15 +14,13 @@ from numpy import sin, cos, deg2rad, rad2deg, tan, sum
 
 
 # Local application imports
-from myorbit.util import timeut as tc
-from myorbit.util.timeut import JD_J2000, CENTURY
 from myorbit import coord as co
-from myorbit.util.general import  memoize, measure
-from myorbit.coord import polarFcartesian, Coord, polarFcartesian, prec_mtx_equat
-from myorbit.init_config import VSOP87_DATA_DIR
-from myorbit.util.timeut import reduce_rad, norm_rad
-from myorbit.util.constants import PI
-from myorbit.init_config import VSOP87_DATA_DIR
+from ..util.timeut import JD_J2000, CENTURY, reduce_rad, norm_rad
+from ..util.general import  memoize, measure
+from ..util.constants import PI
+from ..coord import polarFcartesian, Coord, polarFcartesian, prec_mtx_equat, cartesianFpolar
+from ..init_config import VSOP87_DATA_DIR
+
 
 logger = logging.getLogger(__name__)
 
@@ -363,7 +359,7 @@ def g_xyz_equat_sun_eqxdate(jde, tofk5=True) :
     # but when we are using j2000 versions we need to use the special matrix
     obl = co.obliquity (T)
     mtx = co.Rx_3d(-obl)
-    return mtx.dot(co.cartesianFpolar(g_rlb))
+    return mtx.dot(cartesianFpolar(g_rlb))
 
 def g_xyz_vsopeclip_sun_j2000(jde) : 
     """Compute the geocentric ecliptic cartesian coordinates of the sun
@@ -385,7 +381,7 @@ def g_xyz_vsopeclip_sun_j2000(jde) :
     r = h_rlb_earth_j2000[0]
     l = h_rlb_earth_j2000[1] + PI
     b = -h_rlb_earth_j2000[2]    
-    return co.cartesianFpolar(np.array([r,l,b]))
+    return cartesianFpolar(np.array([r,l,b]))
 
 
 ## Matrix to transform from the VSOP frame of reference to equatorial FK5
@@ -414,7 +410,7 @@ def g_xyz_equat_sun_j2000 (jde) :
     r = h_rlb_earth_eqxdate[0]
     l = h_rlb_earth_eqxdate[1] + PI
     b = -h_rlb_earth_eqxdate[2]    
-    xyz = co.cartesianFpolar(np.array([r,l,b]))
+    xyz = cartesianFpolar(np.array([r,l,b]))
     # Up to now we are still in the eclipticla dynamical ereference frame (VSOP) 
     # of J2000.0. To transform FK5 J2000.0 reference we need to .dot  with
     # a matrix.

@@ -5,7 +5,7 @@ import logging
 
 # Third party imports
 import numpy as np
-from numpy import  arctan2, sqrt, sqrt
+from numpy import  arctan2, sqrt, sqrt, rad2deg, deg2rad
 import pandas as pd
 import toolz as tz
 from numpy.linalg import norm
@@ -14,16 +14,14 @@ from numpy.linalg import norm
 from scipy.integrate import solve_ivp    
 
 # Local application imports
-from myorbit import coord as co
-from myorbit.coord import mtx_eclip_prec
-import myorbit.util.timeut as tc
-import myorbit.data_catalog as dc
-from myorbit.util.timeut  import  MDJ_J2000, JD_J2000, CENTURY, mjd2jd
-from myorbit.util.general import pow
-from myorbit.planets import h_xyz_eclip_eqxdate, h_xyz_eclip_pluto_j2000, g_rlb_eclip_sun_eqxdate, g_xyz_equat_sun_j2000
-from myorbit.util.general import mu_Sun
-from myorbit.util.constants import INV_C, PI, GM_by_planet, GM
-
+from . import coord as co
+from . import data_catalog as dc
+from .util import timeut as tc
+from .coord import mtx_eclip_prec
+from .util.timeut  import  MDJ_J2000, JD_J2000, CENTURY, mjd2jd
+from .util.general import pow, mu_Sun
+from .planets import h_xyz_eclip_eqxdate, h_xyz_eclip_pluto_j2000, g_rlb_eclip_sun_eqxdate, g_xyz_equat_sun_j2000
+from .util.constants import INV_C, PI, GM_by_planet, GM
 
 logger = logging.getLogger(__name__)
 
@@ -249,14 +247,14 @@ def process_solution(tpoints, MTX_J2000_Teqx, MTX_equatFeclip, eph_eqx_name, inc
                                co.cartesianFpolar, 
                                co.mtx_eclip_prec(T,tc.T_J2000).dot, 
                                co.polarFcartesian)
-        row['Sun(dg)'] = f"{tc.rad2deg(g_rlb_eclipt_T[1]):03.1f}"
+        row['Sun(dg)'] = f"{rad2deg(g_rlb_eclipt_T[1]):03.1f}"
         
         g_xyz_equat_sun = g_xyz_equat_sun_j2000(clock_jd)
 
         #We need to log the heliocentirc ecliptic coordinates in polar format 
         rlb = co.polarFcartesian(h_xyz)
-        row['h_l'] = f"{tc.rad2deg(rlb[1]):03.1f}"
-        row['h_b'] = f"{tc.rad2deg(rlb[2]):03.1f}"
+        row['h_l'] = f"{rad2deg(rlb[1]):03.1f}"
+        row['h_b'] = f"{rad2deg(rlb[2]):03.1f}"
         row['h_r'] = f"{rlb[0]:03.4f}"
 
         row['h_x'] = h_xyz[0]
@@ -278,8 +276,8 @@ def process_solution(tpoints, MTX_J2000_Teqx, MTX_equatFeclip, eph_eqx_name, inc
 
         g_rlb_equat_body = co.polarFcartesian(g_xyz_equat_body)        
 
-        row['ra'] = co.format_time(tz.pipe(g_rlb_equat_body[1], tc.rad2deg,  tc.dg2h, tc.h2hms))
-        row['dec'] = co.format_dg(*tz.pipe(g_rlb_equat_body[2], tc.rad2deg, tc.dg2dgms))
+        row['ra'] = co.format_time(tz.pipe(g_rlb_equat_body[1], rad2deg,  tc.dg2h, tc.h2hms))
+        row['dec'] = co.format_dg(*tz.pipe(g_rlb_equat_body[2], rad2deg, tc.dg2dgms))
         row['r[AU]'] = r_AU
         rows.append(row)
 

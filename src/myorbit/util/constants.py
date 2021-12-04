@@ -1,6 +1,5 @@
 """This module contains contants values shared between several modules
 """
-from sys import intern
 
 # Third party imports
 import numpy as np

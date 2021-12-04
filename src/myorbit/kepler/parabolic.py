@@ -2,19 +2,17 @@
 It is based on the book "Astronomy on the Personal Computer" by Montenbruck, Pfleger.
 """
 # Standard library imports
-from math import isclose
 import logging
 
 # Third party imports
 import numpy as np
 from numpy import cos, sin, arctan
-from myorbit.util.constants import TWOPI
 from numba import jit
 
 # Local application imports
-from myorbit.util.general import pow, NoConvergenceError
-from myorbit.util.timeut import norm_rad
-from myorbit.util.general import mu_Sun
+from ..util.general import pow
+from ..util.timeut import norm_rad
+from ..util.general import mu_Sun
 
 logger = logging.getLogger(__name__)
 

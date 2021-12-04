@@ -8,8 +8,7 @@ import logging
 from toolz import pipe
 
 # Local application imports
-from myorbit.util.timeut import epochformat2jd, jd2mjd, T, jd2str_date, mjd2jd
-from myorbit.util.constants import *
+from .util.timeut import epochformat2jd, jd2mjd, T, jd2str_date, mjd2jd
 
 logger = logging.getLogger(__name__)
 

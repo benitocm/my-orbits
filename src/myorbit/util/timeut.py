@@ -16,10 +16,9 @@ from pytz import timezone
 from numpy.polynomial.polynomial import Polynomial
 from datetime import datetime
 from toolz import compose
-from numpy import deg2rad, rad2deg
 
 # Local application imports
-from myorbit.util.constants import *
+from .constants import TWOPI
 
 #
 # Python's built-in float type has double precision
@@ -1013,9 +1012,4 @@ if __name__ == "__main__":
     #print (h1)
     #hms1 = h2hms(h1)
     #print (hms1)
-
-
-    #def h2hms(dh : float) -> Tuple: 
- 
-
-    None
+   

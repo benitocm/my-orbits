@@ -17,13 +17,13 @@ from numpy import  sqrt,rad2deg, sqrt
 from toolz import pipe
 
 # Local application imports
-import myorbit.util.timeut as tc
-from myorbit.util.timeut import EQX_B1950, EQX_J2000
-from myorbit.coord import make_ra, mtx_gauss_vectors, make_lon
-from myorbit.util.general import pow
-from myorbit.util.constants import TWOPI, GM
+from .util import timeut as tc
+from .util.timeut import EQX_B1950, EQX_J2000
+from .util.general import pow
+from .util.constants import TWOPI, GM
+from .coord import make_ra, mtx_gauss_vectors, make_lon
+from .init_config import cfg
 
-from myorbit.init_config import cfg
 logger = logging.getLogger(__name__)
 
 

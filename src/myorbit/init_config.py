@@ -1,8 +1,11 @@
 """Module to handle the configuration.
 """
-from myorbit.util.general import mu_Sun
 
+# Standard library imports
 from pathlib import Path
+
+# Third party imports
+
 CONFIG_INI=Path(__file__).resolve().parents[2].joinpath('conf','config.ini')
 from configparser import ConfigParser
 cfg = ConfigParser()

@@ -13,12 +13,12 @@ import toolz as tz
 from scipy.integrate import solve_ivp    
 
 # Local application imports
-from myorbit import coord as co
-import myorbit.orbutil as ob
-from myorbit.lagrange.lagrange_coeff import calc_rv_from_r0v0
-from myorbit.kepler.keplerian import KeplerianStateSolver
-from myorbit.util.general import mu_Sun, my_range, measure, pow
-from myorbit.init_config import ENKES_ABS_TOL
+from . import orbutil as ob
+from . import coord as co
+from .lagrange.lagrange_coeff import calc_rv_from_r0v0
+from .kepler.keplerian import KeplerianStateSolver
+from .util.general import mu_Sun, my_range, measure, pow
+from .init_config import ENKES_ABS_TOL
 
 logger = logging.getLogger(__name__)
 

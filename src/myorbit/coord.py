@@ -10,12 +10,11 @@ import logging
 # Third party imports
 import numpy as np
 from numpy import sin, cos, arctan2, deg2rad, rad2deg
-import toolz as tz
 from toolz import pipe
 
 # Local application imports
-from myorbit.util import timeut as tc
-from myorbit.util.constants import *
+from .util import timeut as tc
+from .util.constants import PI_HALF, PI
 
 
 logger = logging.getLogger(__name__)
@@ -456,15 +455,7 @@ def obliquity (T : float) -> float :
     """
     return pipe(obliq_pol(T)/3600.0,deg2rad)
 
-"""
-def mtx_eclipFequat(epoch_name="J2000"):
-    eps = pipe(tc.T(epoch_name),obliquity)
-    return Rx_3d(eps)
 
-def mtx_equatFeclip(epoch_name="J2000"):
-    eps = pipe(tc.T(epoch_name),obliquity)
-    return Rx_3d(-eps)
-"""
 
 def mtx_equatFeclip(T):
     """ 

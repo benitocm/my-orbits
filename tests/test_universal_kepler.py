@@ -34,7 +34,7 @@ from common import check_df, TEST_DATA_PATH
 
 # Because ENCKES calcultations takes a lot of time, this flag variable is 
 # to control when to run them
-TEST_ENCKES = True
+TEST_ENCKES = False
 
 # The predictions for this one are very bad (1 minute precision)
 def test_C_2007_M5_SOHO():  

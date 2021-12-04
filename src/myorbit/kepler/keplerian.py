@@ -11,15 +11,13 @@ import numpy as np
 from numpy import sqrt
 
 # Local application imports
-from myorbit.kepler.parabolic import calc_rv_for_parabolic_orbit
-from myorbit.kepler.hyperbolic import calc_rv_for_hyperbolic_orbit
-from myorbit.kepler.near_parabolic import calc_rv_by_stumpff
-from myorbit.kepler.ellipitical import calc_rv_for_elliptic_orbit, calc_M_for_body, calc_M
-from myorbit.kepler.near_parabolic import calc_rv_by_stumpff
-from myorbit.util.timeut import hemisphere, mjd2str_date
-from myorbit.util.general import  NoConvergenceError
-from myorbit.util.general import mu_Sun
-from myorbit.init_config import H_ABS_TOL, VELOCITY_ABS_TOL, EC_ABS_TOL, CONSIDER_PARABOLIC_TOL
+from .parabolic import calc_rv_for_parabolic_orbit
+from .hyperbolic import calc_rv_for_hyperbolic_orbit
+from .near_parabolic import calc_rv_by_stumpff
+from .ellipitical import calc_rv_for_elliptic_orbit, calc_M_for_body, calc_M
+from ..util.timeut import hemisphere, mjd2str_date
+from ..util.general import NoConvergenceError, mu_Sun
+from ..init_config import H_ABS_TOL, VELOCITY_ABS_TOL, EC_ABS_TOL, CONSIDER_PARABOLIC_TOL
 
 logger = logging.getLogger(__name__)
 

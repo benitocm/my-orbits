@@ -13,26 +13,26 @@ from numpy.linalg import norm
 from toolz import pipe
 
 # Local application imports
-import myorbit.planets as pl
-from myorbit import coord as co
-import myorbit.orbutil as ob
-import myorbit.data_catalog as dc
-from myorbit.util.general import frange, mu_Sun
-from myorbit.util.constants import INV_C
-from myorbit.init_config import H_ABS_TOL, EC_ABS_TOL
-from myorbit.util.timeut import CENTURY, JD_J2000, dg2h, h2hms, dg2dgms, T_given_mjd, mjd2jd, jd2str_date
-from myorbit.planets import g_xyz_equat_sun_j2000
-from myorbit.kepler.keplerian import KeplerianStateSolver
-from myorbit.kepler.ellipitical import calc_rv_for_elliptic_orbit, calc_M
-from myorbit.lagrange.lagrange_coeff import calc_rv_from_r0v0
-from myorbit.data_catalog import read_planet_elms_for
+from . import planets as pl
+from . import coord as co
+from . import orbutil as ob
+from . import data_catalog as dc
+
+from .util.general import frange, mu_Sun
+from .util.constants import INV_C
+from .init_config import H_ABS_TOL, EC_ABS_TOL
+from .util.timeut import CENTURY, JD_J2000, dg2h, h2hms, dg2dgms, T_given_mjd, mjd2jd, jd2str_date
+from .planets import g_xyz_equat_sun_j2000
+from .kepler.keplerian import KeplerianStateSolver
+from .kepler.ellipitical import calc_rv_for_elliptic_orbit, calc_M
+from .lagrange.lagrange_coeff import calc_rv_from_r0v0
+from .data_catalog import read_planet_elms_for
 
 
 logger = logging.getLogger(__name__)
 
 
-
-def calc_eph_planet_by_keplerian(body, eph): 
+def calc_eph_planet_by_keplerian(body, eph, force_orbit=None): 
     """Computes the ephemeris for a planet based on the VSOP87 theory.
 
     Parameters

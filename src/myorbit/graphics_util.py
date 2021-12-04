@@ -16,8 +16,8 @@ from matplotlib import pyplot as plt
 from matplotlib import animation
 
 # Local application imports
-import myorbit.data_catalog as dc
-from myorbit.util.constants import TWOPI, GM, GM_by_planet
+from . import data_catalog as dc
+from .util.constants import TWOPI, GM, GM_by_planet
 
 # Local application imports
 
@@ -69,13 +69,11 @@ class OrbitsPlot:
 
     # initialization function: plot the background of each frame
     def init(self):
-        print ("Init called !!!!")
         for line, pt in zip(self.lines, self.pts):
             line.set_data([], [])
             line.set_3d_properties([])
             pt.set_data([], [])
             pt.set_3d_properties([])
-        print ("Returning form init")
         return self.lines + self.pts
 
     def animate(self, i):

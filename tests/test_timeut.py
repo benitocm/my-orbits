@@ -7,6 +7,7 @@ from pytest import approx
 #https://www.scivision.dev/pytest-approx-equal-assert-allclose/
 import numpy as np
 from numpy.random import default_rng
+from numpy import deg2rad, rad2deg
 
 # Local application imports
 from myorbit.util.timeut import *

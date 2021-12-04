@@ -7,16 +7,17 @@ import logging
 
 # Third party imports
 import numpy as np
-from numpy import sin, cos, sqrt, cosh, sinh, sqrt, abs
+from numpy import  sqrt, abs
 from numpy.linalg import norm
 from scipy.optimize import newton
 from numba import jit
 
 # Local application imports
-from myorbit.util.general import pow, NoConvergenceError, calc_ratio
-from myorbit.util.timeut import norm_rad  
-from myorbit.util.stumpff import calc_stumpff
-from myorbit.init_config import LAGUERRE_ABS_TOL
+from ..util.general import pow, NoConvergenceError, calc_ratio
+from ..util.timeut import norm_rad  
+from ..util.stumpff import calc_stumpff
+from ..init_config import LAGUERRE_ABS_TOL
+
 logger = logging.getLogger(__name__)
 
     

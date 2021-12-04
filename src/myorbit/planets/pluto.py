@@ -8,9 +8,9 @@ from numpy import deg2rad
 from toolz import pipe 
 
 # Local application imports
-from myorbit.util.timeut import JD_J2000, CENTURY
-from myorbit.util.general import pr_radv, kahan_sum
-from myorbit.coord import cartesianFpolar, obliquity, Rx_3d, polarFcartesian
+from ..util.timeut import JD_J2000, CENTURY
+from ..util.general import pr_radv, kahan_sum
+from ..coord import cartesianFpolar, obliquity, Rx_3d, polarFcartesian
 
 from .vsop87 import g_xyz_equat_sun_j2000
 

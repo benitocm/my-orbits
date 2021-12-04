@@ -2,7 +2,6 @@
 This module contains functions related to time conversions
 """
 # Standard library imports
-from itertools import tee
 from math import isclose
 from functools import wraps
 from time import process_time
@@ -15,7 +14,7 @@ from toolz import valmap
 from numba import jit
 
 # Local application imports
-from myorbit.util.constants import SECONDS_IN_DAY, AU_m
+from .constants import SECONDS_IN_DAY, AU_m
 
 #https://en.wikipedia.org/wiki/Standard_gravitational_parameter
 mu_m3s_2__by_name = {

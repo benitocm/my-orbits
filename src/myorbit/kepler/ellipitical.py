@@ -15,10 +15,10 @@ from numpy import sqrt, cos, sin
 from scipy.optimize import newton
 
 # Local application imports
-from myorbit.util.timeut import  norm_rad
-from myorbit.util.general import pow, NoConvergenceError, mu_Sun, calc_ratio
-from myorbit.util.constants import TWOPI, PI
-from myorbit.init_config import LAGUERRE_ABS_TOL
+from ..util.timeut import  norm_rad
+from ..util.general import NoConvergenceError, mu_Sun, calc_ratio
+from ..util.constants import TWOPI, PI
+from ..init_config import LAGUERRE_ABS_TOL
 
 logger = logging.getLogger(__name__)
 

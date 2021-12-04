@@ -9,11 +9,11 @@ import numpy as np
 from numpy.linalg import norm
 
 # Local application imports
-from myorbit import coord as co
-from myorbit.util.general import frange
-import myorbit.orbutil as ob
-from myorbit.kepler.keplerian import KeplerianStateSolver
-from myorbit.util.general import mu_Sun
+from . import coord as co
+from . import orbutil as ob
+from .util.general import frange
+from .kepler.keplerian import KeplerianStateSolver
+from .util.general import mu_Sun
 
 logger = logging.getLogger(__name__)
 

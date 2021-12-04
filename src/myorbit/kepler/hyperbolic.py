@@ -16,9 +16,8 @@ from scipy.optimize import newton
 from numba import jit
 
 # Local application imports
-from myorbit.util.general import NoConvergenceError, mu_Sun
-from myorbit.util.timeut import norm_rad
-
+from ..util.timeut import norm_rad
+from ..util.general import NoConvergenceError, mu_Sun
 
 logger = logging.getLogger(__name__)
 

@@ -7,11 +7,12 @@ import logging
 
 # Third party imports
 import numpy as np
-from numpy import sin, cos, sqrt, cosh, sinh, sqrt, abs
+from numpy import abs
 
 # Local application imports
-from myorbit.util.general import KahanAdder, NoConvergenceError
-from myorbit.init_config import STUMPFF_ABS_TOL, STUMPFF_METHOD
+from .general import KahanAdder, NoConvergenceError
+from ..init_config import STUMPFF_ABS_TOL, STUMPFF_METHOD
+
 logger = logging.getLogger(__name__)
 
 def calc_stumpff(x, atol=STUMPFF_ABS_TOL, max_iters=200):
