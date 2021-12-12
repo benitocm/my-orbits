@@ -19,6 +19,39 @@ from matplotlib import animation
 from . import data_catalog as dc
 from .util.constants import TWOPI, GM, GM_by_planet
 
+
+def my_dfdt(t, Y, G, m1, m2):     
+    """[summary]
+
+    Parameters
+    ----------
+    t : [type]
+        [description]
+    Y : [type]
+        [description]
+    G : [type]
+        [description]
+    m1 : [type]
+        [description]
+    m2 : [type]
+        [description]
+
+    Returns
+    -------
+    [type]
+        [description]
+    """    
+    
+    x1 = Y[0:3]
+    x2 = Y[3:6]
+    v1 = Y[6:9]
+    v2 = Y[9:12]
+    r_3  = np.linalg.norm(x2-x1)**3
+    acc1 = G*m2*(x2 - x1)/r_3
+    acc2 = G*m1*(x1 - x2)/r_3
+    return np.concatenate((v1,v2,acc1,acc2))
+
+
 # Local application imports
 
 #https://stackoverflow.com/questions/33587540/simple-matplotlib-animate-not-working
